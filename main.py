@@ -3,6 +3,12 @@ import random
 import heapq
 from collections import deque
 
+# Initialize pygame
+pygame.init()
+screen_width, screen_height = 480, 272
+screen = pygame.display.set_mode((screen_width, screen_height))
+pygame.display.set_caption("Empires PSP")
+
 # Define tile types and costs
 tile_types = {"G": 1, "S": 3, "W": None}  # None = impassable
 
@@ -21,12 +27,6 @@ visibility_map = [[0 for _ in range(playable_height)] for _ in range(playable_wi
 # Centering offsets
 offset_x = (boundary_width - playable_width) // 2
 offset_y = (boundary_height - playable_height) // 2
-
-# Initialize pygame
-pygame.init()
-screen_width, screen_height = 480, 272
-screen = pygame.display.set_mode((screen_width, screen_height))
-pygame.display.set_caption("Empires PSP")
 
 # Tile size and zoom
 BASE_TILE_WIDTH, BASE_TILE_HEIGHT = 64, 32
@@ -47,6 +47,19 @@ is_moving = False
 tactical_map_mode = False
 last_key_pressed = None
 
+# Initialize reachable_tiles before the main loop
+reachable_tiles = set()
+
+# === RESOURCE AND POPULATION TRACKING === #
+food_amount = 500
+wood_amount = 500
+gold_amount = 500
+
+selected_unit = None
+selected_building = None
+is_moving = False
+running = True
+
 class MessageBox:
     def __init__(self, screen, visible_width, visible_height):
         self.screen = screen
@@ -61,7 +74,8 @@ class MessageBox:
 
     def open(self, message):
         self.message = message
-        self.visible = True
+        self.visible = True  # Reset visibility to ensure it is displayed
+        self.ok_button_rect = None  # Reset the OK button rect in case it changes
 
     def close(self):
         self.visible = False
@@ -156,8 +170,7 @@ class PopupMenu:
     def set_position(self, x, y):
         self.x = x
         self.y = y  
-
-
+        
     def move_selection(self, direction):
         if self.is_open:
             self.selected_index = (self.selected_index + direction) % len(self.options)
@@ -281,6 +294,27 @@ class Building:
 
     def deselect(self):
         self.selected = False
+
+# Object initialization
+villagers = [
+    Villager(5, 5, 100, 5)
+]
+town_centre = Building(3, 3, 1000, 500, 10)
+town_centre.is_constructed = True
+
+resource = [
+    ResourceSource(1, 3, "food", 500),
+    ResourceSource(3, 1, "gold", 5000),
+    ResourceSource(5, 3, "wood", 400)
+]
+
+message_box = MessageBox(screen, screen_width, screen_height)
+popup_menu = PopupMenu([], {}, 10, 10)
+
+units = villagers
+buildings = [town_centre]
+resources = resource
+population = len(units)
 
 # Tactical map
 def draw_tactical_map():
@@ -458,7 +492,6 @@ def build_action():
             (screen_height - (popup_menu.item_height * len(popup_menu.options))) // 2
         )
 
-
 def cancel_action():
     popup_menu.open(actions, callbacks)
     popup_menu.set_position(
@@ -562,7 +595,6 @@ def build_town_centre():
             max_pop += 10
         else:
             message_box.open("Insufficient funds")
-
             cancel_action()
 
 def build_mill():
@@ -694,39 +726,7 @@ def draw_resource(x, y, half_width, half_height, offset_draw_x, offset_draw_y):
     radius = half_width // 2
     pygame.draw.circle(screen, (255, 255, 255), (draw_x, draw_y), radius)
 
-# Initialize reachable_tiles before the main loop
-reachable_tiles = set()
-
-message_box = MessageBox(screen, screen_width, screen_height)
-
-# === RESOURCE AND POPULATION TRACKING === #
-food_amount = 500
-wood_amount = 500
-gold_amount = 500
-
 # === MAIN LOOP === #
-villagers = [
-    Villager(5, 5, 100, 5)
-]
-town_centre = Building(3, 3, 1000, 500, 10)
-town_centre.is_constructed = True
-
-resource = [
-    ResourceSource(1, 3, "food", 500),
-    ResourceSource(3, 1, "gold", 5000),
-    ResourceSource(5, 3, "wood", 400)
-]
-units = villagers
-buildings = [town_centre]
-resources = resource
-population = len(units)
-
-selected_unit = None
-selected_building = None
-is_moving = False
-running = True
-
-popup_menu = PopupMenu([], {}, 10, 10)
 
 while running:
     for event in pygame.event.get():
@@ -738,6 +738,13 @@ while running:
             running = False
         if event.type == pygame.KEYDOWN:
             last_key_pressed = event.key
+
+            if message_box.visible:
+                if event.key == pygame.K_RETURN:
+                    if message_box.ok_button_rect:  # Ensure the OK button exists
+                        message_box.close()
+                continue
+
             if not popup_menu.is_open and not is_moving:
                 if event.key == pygame.K_ESCAPE:
                     if selected_unit:
@@ -942,6 +949,7 @@ while running:
         offset_y
     )
 
+
     # Only draw reachable tiles if a unit is selected
     if selected_unit:
         for tile in reachable_tiles:
@@ -968,13 +976,14 @@ while running:
     # Fill top bar background
     pygame.draw.rect(screen, bar_color, (0, 0, screen_width, bar_height))
 
+    # Population
     population = len(units)
     max_pop = 0  # Reset before accumulation
     for building in buildings:
         if building.is_constructed:
             max_pop += building.population_limit
 
-    # Prepare text
+    # Resource display
     resource_text = (
         f"| Food: {food_amount} "
         f"| Wood: {wood_amount} "
@@ -986,8 +995,8 @@ while running:
     # Center vertically, offset slightly from left
     screen.blit(text_surface, (10, (bar_height - text_surface.get_height()) // 2))
 
-
     popup_menu.draw(screen)
+    message_box.draw()
 
     pygame.display.flip()
     clock.tick(60)
