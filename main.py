@@ -36,16 +36,21 @@ food_amount = 500
 wood_amount = 500
 gold_amount = 500
 
+# Selection
 selected_unit = None
 selected_building = None
+
+selected_unit_id = None
+selected_building_id = None
+
 is_moving = False
 running = True
 
 # Object initialization
-villagers = [
-    BaseUnits(5, 5, 5, 50, 25)
-]
+villager = BaseUnits(5, 5, 5, 50, 25)
+
 town_centre = BaseBuildings(3, 3, 500, 10)
+town_centre.type = "town_centre"
 town_centre.is_constructed = True
 
 resource = [
@@ -56,7 +61,7 @@ resource = [
 
 spearmen = BaseUnits(7, 7, 7, 100, 100)
 
-units = villagers
+units = [villager]
 buildings = [town_centre]
 resources = resource
 population = len(units)
@@ -184,18 +189,26 @@ def draw_tile_highlight(tx, ty, color, alpha=128):
 
 # Pop up menu actions
 
+# FIX SELECTED_UNIT TO SELECTED_UNIT_ID
+
 def move_action():
-    global reachable_tiles, selected_unit
+    global reachable_tiles, selected_unit_id
+
     reachable_tiles = set()  # Clear the reachable tiles
+    # Find the currently selected unit by its ID
+    selected_unit = next((u for u in units if u.id == selected_unit_id), None)
+
     if selected_unit:
         selected_unit.rest()
         selected_unit.selected = False  # Deselect the unit
-    selected_unit = None  # Clear the selected unit
+
+    selected_unit_id = None  # Clear the selected unit id
     popup_menu.close()
 
 def build_action():
-    global buildings, reachable_tiles
+    global buildings, reachable_tiles, selected_unit_id
     reachable_tiles = set()  # Clear the reachable tiles
+    selected_unit = next((u for u in units if u.id == selected_unit_id), None)
     if selected_unit and selected_tile:
         if is_tile_occupied(*selected_tile):
             message_box.open("There's already a building here.")
@@ -217,49 +230,80 @@ def cancel_action():
         (SCREEN_HEIGHT - (popup_menu.item_height * len(popup_menu.options))) // 2
     )
 
-
 def gather_action():
-    global reachable_tiles, selected_unit, resources, food_amount, wood_amount, gold_amount
+    global reachable_tiles, selected_unit_id, resources
+    
+    reachable_tiles = set()  # Clear the reachable tiles
+
+    if selected_unit_id is None:
+        return
+    
+    # Find the selected unit by ID
+    selected_unit = next((u for u in units if u.id == selected_unit_id), None)
     if not selected_unit:
         return
 
     unit_pos = (int(selected_unit.x), int(selected_unit.y))
-    for res in resources:
-        if (res.x, res.y) == unit_pos:
-            amount_gathered = min(100, res.amount)
-            res.amount -= amount_gathered
-            reachable_tiles = set()  # Clear the reachable tiles
-            if selected_unit:
-                selected_unit.selected = False  # Deselect the unit
-            selected_unit = None  # Clear the selected unit
-            popup_menu.close()
+    # Find the resource at the unit's position
+    res = next((r for r in resources if (r.x, r.y) == unit_pos), None)
+    if not res:
+        return
 
-            if res.resource_type == "food":
+    # Start automatic gathering
+    selected_unit.is_gathering = True
+    selected_unit.gather_resource_id = res.id  # Each resource must have a unique id
+    if selected_unit:
+        selected_unit.rest()
+        selected_unit.selected = False  # Deselect the unit
+
+    selected_unit_id = None  # Clear the selected unit id
+    popup_menu.close()
+    # Do NOT clear selected_unit_id here: keep it in sync with your selection logic
+
+def process_automatic_gathering():
+    global food_amount, wood_amount, gold_amount, resources
+    for unit in units:
+        if getattr(unit, 'is_gathering', False):
+            res_id = getattr(unit, 'gather_resource_id', None)
+            res = next((r for r in resources if r.id == res_id), None)
+            unit_tile = (int(unit.x), int(unit.y))
+            if res and (res.x, res.y) == unit_tile:
+                amount_gathered = min(100, res.amount)
+                res.amount -= amount_gathered
+                if res.resource_type == "food":
                     food_amount += amount_gathered
-            elif res.resource_type == "wood":
-                wood_amount += amount_gathered
-            elif res.resource_type == "gold":
-                gold_amount += amount_gathered
-
-            # Remove the resource if depleted
-            if res.amount <= 0:
-                resources.remove(res)
-                message_box.open(f"{res.resource_type} has been depleted.")
-                popup_menu.close()
-            break
+                elif res.resource_type == "wood":
+                    wood_amount += amount_gathered
+                elif res.resource_type == "gold":
+                    gold_amount += amount_gathered
+                # Remove the resource if depleted
+                if res.amount <= 0:
+                    resources.remove(res)
+                    message_box.open(f"{res.resource_type} has been depleted.")
+                    unit.is_gathering = False
+                    unit.gather_resource_id = None
+            else:
+                # If unit moved off resource tile or resource gone, stop gathering
+                unit.is_gathering = False
+                unit.gather_resource_id = None
 
 def undo_action():
-    global reachable_tiles, selected_unit
+    global reachable_tiles, selected_unit_id
+
+    selected_unit = next((u for u in units if u.id == selected_unit_id), None)
     if selected_unit and hasattr(selected_unit, "previous_position"):
         selected_unit.x, selected_unit.y = selected_unit.previous_position
-        popup_menu.close()
     reachable_tiles = set()  # Clear the reachable tiles
     if selected_unit:
         selected_unit.selected = False  # Deselect the unit
-    selected_unit = None  # Clear the selected unit
+    selected_unit_id = None  # Clear the selected unit
+    popup_menu.close()
 
 def train_action():
-    global population, villagers, units, selected_building, food_amount
+    global population, villagers, units, selected_building_id, food_amount
+
+    # Find the currently selected building by its ID
+    selected_building = next((b for b in buildings if b.id == selected_building_id), None)
 
     if not selected_building or not isinstance(selected_building, BaseBuildings):
         message_box.open("No building selected or wrong type.")
@@ -274,28 +318,42 @@ def train_action():
         if int(unit.x) == spawn_x and int(unit.y) == spawn_y:
             message_box.open("Spawn location is blocked.")
             popup_menu.close()
+            # Deselect building
+            if selected_building:
+                selected_building.selected = False
+            selected_building_id = None
             return
     
     # Create new villager
     if food_amount >= 50:
         new_villager = BaseUnits(spawn_x, spawn_y, 5, 50, 25)
-        villagers.append(new_villager)
+        units.append(new_villager)
         food_amount -= 50
         selected_building.rest()
-        print(selected_building.action_count)
+        selected_building.selected = False
+        selected_building_id = None
+        popup_menu.close()
     else:
         message_box.open("insufficient funds")
-        cancel_action()
-
-    popup_menu.close()
+        if selected_building:
+            selected_building.selected = False
+        selected_building_id = None
+        popup_menu.close()
 
 def research_action():
+    # Find the currently selected building by its ID
+    selected_building = next((b for b in buildings if b.id == selected_building_id), None)
+
     message_box.open("Researching upgrades")
     selected_building.rest()
+    #close pop up menu, etc
 
 def attack_action():
-    global reachable_tiles, selected_unit
+    global reachable_tiles, selected_unit_id
 
+    # Lookup selected unit by ID
+    selected_unit = next((u for u in units if u.id == selected_unit_id), None)
+    
     damage = 0
     bonus_multiplier = 0
     flat_bonus = 0
@@ -318,61 +376,95 @@ def attack_action():
         print(selected_unit, "died")
         popup_menu.close()
 
-
     if selected_unit:
         selected_unit.selected = False  # Deselect the unit
-    selected_unit = None  # Clear the selected unit
+    selected_unit_id = None  # Clear the selected unit
     popup_menu.close()
 
-
 # Buildings
-
-tile_building = False
-
 def is_tile_occupied(x, y):
     return any(b.x == x and b.y == y for b in buildings)
 
 def build_town_centre():
-    global buildings, wood_amount, gold_amount, max_pop
+    global buildings, wood_amount, gold_amount, max_pop, selected_unit_id
+
+    # Lookup selected unit by ID
+    selected_unit = next((u for u in units if u.id == selected_unit_id), None)
+
+    # Ensure both unit and tile are selected
     if selected_unit and selected_tile:
         if is_tile_occupied(*selected_tile):
             message_box.open("There's already a building here.")
             return
         if wood_amount >= 400 and gold_amount >= 400:
+            # Assign a unique ID to the new building
+            new_building_id = max([b.id for b in buildings], default=0) + 1
             new_building = BaseBuildings(selected_tile[0], selected_tile[1], 500, 10)
+            new_building.id = new_building_id
+            new_building.type = "town_centre"
             new_building.is_constructed = True
+            print(f"New building ID: {new_building.id}")
             buildings.append(new_building)
             popup_menu.close()
-            selected_unit.rest()
+            selected_unit.rest()  # Optionally, pass in the action or tile
             wood_amount -= 400
             gold_amount -= 400
             max_pop += 10
+            # Deselect unit after building
+            selected_unit.selected = False
+            selected_unit_id = None
         else:
             message_box.open("Insufficient funds")
             cancel_action()
+    else:
+        message_box.open("No unit or tile selected.")
+        cancel_action()
 
 def build_mill():
-    global buildings, wood_amount
+    global buildings, wood_amount, selected_unit_id
+
+    # Lookup selected unit by ID
+    selected_unit = next((u for u in units if u.id == selected_unit_id), None)
+
     if selected_unit and selected_tile:
         if is_tile_occupied(*selected_tile):
             message_box.open("There's already a building here.")
             return
         if wood_amount >= 50:
+            # Assign a unique ID to the new building
+            new_building_id = max((b.id for b in buildings), default=0) + 1
             new_building = BaseBuildings(selected_tile[0], selected_tile[1], 200, 0)
+            new_building.id = new_building_id
+            new_building.type = "mill"
             new_building.is_constructed = True
+            print(f"New building ID: {new_building.id}")
             buildings.append(new_building)
             popup_menu.close()
             selected_unit.rest()
+            selected_unit.selected = False
+            selected_unit_id = None
             wood_amount -= 50
         else:
             message_box.open("Insufficient funds")
+            if selected_unit:
+                selected_unit.selected = False
+            selected_unit_id = None
+            popup_menu.close()
             cancel_action()
+    else:
+        message_box.open("No unit or tile selected.")
+        popup_menu.close()
+        cancel_action()
 
 def cancel_building_action():
-    global selected_building
+    global selected_building_id
+
+    # Find the currently selected building by its ID
+    selected_building = next((b for b in buildings if b.id == selected_building_id), None)
+
     if selected_building:
         selected_building.selected = False
-    selected_building = None
+    selected_building_id = None
     popup_menu.close()
 
 def update_VISIBILITY_MAP(units, buildings, VISIBILITY_MAP, vision_range):
@@ -404,7 +496,6 @@ def update_VISIBILITY_MAP(units, buildings, VISIBILITY_MAP, vision_range):
                         if 0 <= tx < len(VISIBILITY_MAP) and 0 <= ty < len(VISIBILITY_MAP[0]):
                             VISIBILITY_MAP[tx][ty] = 2
 
-
 def draw_map_with_fog(map_data, color_func, VISIBILITY_MAP, offset_tx=0, offset_ty=0):
     for tx in range(len(map_data)):
         for ty in range(len(map_data[0])):
@@ -434,10 +525,12 @@ def draw_map_with_fog(map_data, color_func, VISIBILITY_MAP, offset_tx=0, offset_
                     (screen_x - TILE_WIDTH // 2, screen_y + TILE_HEIGHT // 2)
                 ])
 
-    # Draw enemy units only on visible tiles
+    # Draw enemy units only on visible and in-bounds tiles
     for enemy in enemy_units:
         ex, ey = int(enemy.x), int(enemy.y)  # Enemy coordinates in the tile grid
-        if VISIBILITY_MAP[ex][ey] == 2:  # Only render if tile is fully visible
+        if (0 <= ex < len(VISIBILITY_MAP) and
+            0 <= ey < len(VISIBILITY_MAP[0]) and
+            VISIBILITY_MAP[ex][ey] == 2):
             enemy.draw(screen, OFFSET_X, OFFSET_Y, CAMERA_X, CAMERA_Y, TILE_WIDTH, TILE_HEIGHT)
 
 def follow_enemy_camera(enemy):
@@ -462,7 +555,7 @@ def follow_enemy_camera(enemy):
         CAMERA_Y -= scroll_speed
 
 def end_day():
-    global player_turn
+    global player_turn, units, buildings
     player_turn = False
     for unit in units:
         unit.rested()
@@ -493,12 +586,14 @@ while running:
 
                     if not popup_menu.is_open and not is_moving:
                         if event.key == pygame.K_ESCAPE:
+                            # Find the currently selected building by its ID
+                            selected_building = next((b for b in buildings if b.id == selected_building_id), None)
                             if selected_unit:
                                 selected_unit.selected = False
                             if selected_building:
                                 selected_building.selected = False
                             selected_unit = None
-                            selected_building = None
+                            selected_building_id = None
 
                         if event.key == pygame.K_1 and zoom_level < 1.3:
                             zoom_level += 0.1
@@ -517,16 +612,20 @@ while running:
                             selected_tile = (selected_tile[0] + 1, selected_tile[1])
 
                         if event.key == pygame.K_TAB:
-                            if selected_unit:
-                                selected_unit.selected = False
-                                current_index = units.index(selected_unit)
+                            if selected_unit_id is not None:
+                                # Find current selected unit's index by its ID
+                                current_index = next((i for i, u in enumerate(units) if u.id == selected_unit_id), 0)
+                                units[current_index].selected = False
                                 next_index = (current_index + 1) % len(units)
                                 selected_unit = units[next_index]
                             else:
                                 selected_unit = units[0]
                             selected_unit.selected = True
+                            selected_unit_id = selected_unit.id
                             selected_tile = (int(selected_unit.x), int(selected_unit.y))
-                            reachable_tiles = path_finding.bfs_reachable((int(selected_unit.x), int(selected_unit.y)), selected_unit.movement_range)
+                            reachable_tiles = path_finding.bfs_reachable(
+                                (int(selected_unit.x), int(selected_unit.y)), selected_unit.movement_range
+                            )
 
                         if event.key == pygame.K_m:
                             if not is_moving:
@@ -539,36 +638,39 @@ while running:
                             unit_found = False
                             for unit in units:
                                 if int(unit.x) == hovered_tile[0] and int(unit.y) == hovered_tile[1]:
-                                    if selected_unit:
-                                        selected_unit.selected = False
+                                    if selected_unit_id is not None:
+                                        prev_unit = next((u for u in units if u.id == selected_unit_id), None)
+                                        if prev_unit:
+                                            prev_unit.selected = False
                                     selected_unit = unit
-                                    if selected_unit.unit_tired() == False:
+                                    selected_unit_id = unit.id
+                                    if not selected_unit.unit_tired():
                                         selected_unit.selected = True
                                         selected_tile = (int(selected_unit.x), int(selected_unit.y))
                                         reachable_tiles = path_finding.bfs_reachable((int(unit.x), int(unit.y)), unit.movement_range)
                                         unit_found = True
 
                                         # Deselect any building if a unit is selected
-                                        if selected_building:
-                                            selected_building.selected = False
-                                            selected_building = None
-                                        break
+                                        if selected_building_id is not None:
+                                            prev_building = next((b for b in buildings if b.id == selected_building_id), None)
+                                            if prev_building:
+                                                prev_building.selected = False
+                                        selected_building_id = None
+                                    break
 
                             if not unit_found:
                                 building_found = False
                                 for building in buildings:
-                                    if building.x == hovered_tile[0] and building.y == hovered_tile[1]:
-                                        if selected_building:
-                                            selected_building.selected = False
-                                        selected_building = building
-                                        if selected_building.building_tired() == False:
-                                            selected_building.selected = True
+                                    if int(building.x) == hovered_tile[0] and int(building.y) == hovered_tile[1]:
+                                        if selected_building_id is not None:
+                                            prev_building = next((b for b in buildings if b.id == selected_building_id), None)
+                                            if prev_building:
+                                                prev_building.selected = False
+                                        selected_building_id = building.id
+                                        print("Selected building id:", selected_building_id)
+                                        if not building.building_tired():
+                                            building.selected = True
                                             building_found = True
-
-                                            if selected_unit:
-                                                selected_unit.selected = False
-                                                selected_unit = None
-                                                reachable_tiles = []
 
                                             popup_menu.open(["Train", "Research", "Cancel"], {
                                                 "Train": train_action,
@@ -583,37 +685,46 @@ while running:
                                             break
 
                             if not unit_found and not building_found:
-                                if selected_unit:
-                                    selected_unit.selected = False
+                                if selected_unit_id is not None:
+                                    prev_unit = next((u for u in units if u.id == selected_unit_id), None)
+                                    if prev_unit:
+                                        prev_unit.selected = False
+                                    selected_unit_id = None
                                     selected_unit = None
                                     reachable_tiles = []
-                                if selected_building:
-                                    selected_building.selected = False
-                                    selected_building = None
+                                if selected_building_id is not None:
+                                    prev_building = next((b for b in buildings if b.id == selected_building_id), None)
+                                    if prev_building:
+                                        prev_building.selected = False
+                                    selected_building_id = None
 
                                 popup_menu.open(["End Day"], {"End Day": end_day})
+                                popup_menu.menu_type = "options"
                                 popup_menu.set_position(
-                                            (SCREEN_WIDTH - popup_menu.width) // 2,
-                                            (SCREEN_HEIGHT - (popup_menu.item_height * len(popup_menu.options))) // 2
-                                        )
+                                    (SCREEN_WIDTH - popup_menu.width) // 2,
+                                    (SCREEN_HEIGHT - (popup_menu.item_height * len(popup_menu.options))) // 2
+                                )
 
-                        if event.key == pygame.K_SPACE and selected_unit:
-                            tactical_map_mode = False
-                            if selected_tile in reachable_tiles:
-                                selected_unit.previous_position = (selected_unit.x, selected_unit.y)
-                                start_pos = (int(selected_unit.x), int(selected_unit.y))
+                        if event.key == pygame.K_SPACE and selected_unit_id is not None:
+                            # Find the unit object by its ID
+                            selected_unit = next((u for u in units if u.id == selected_unit_id), None)
+                            if selected_unit:
+                                tactical_map_mode = False
+                                if selected_tile in reachable_tiles:
+                                    selected_unit.previous_position = (selected_unit.x, selected_unit.y)
+                                    start_pos = (int(selected_unit.x), int(selected_unit.y))
 
-                                if selected_tile == start_pos:
-                                    selected_unit.path = [(float(selected_unit.x), float(selected_unit.y))]
-                                    is_moving = True
-                                else:
-                                    path = path_finding.a_star(start_pos, selected_tile, selected_unit.movement_range)
-                                    if path:
-                                        selected_unit.path = [(float(x), float(y)) for x, y in path]
+                                    if selected_tile == start_pos:
+                                        selected_unit.path = [(float(selected_unit.x), float(selected_unit.y))]
                                         is_moving = True
                                     else:
-                                        message_box.open("No valid path within movement range")
-                            tactical_map_mode = False
+                                        path = path_finding.a_star(start_pos, selected_tile, selected_unit.movement_range)
+                                        if path:
+                                            selected_unit.path = [(float(x), float(y)) for x, y in path]
+                                            is_moving = True
+                                        else:
+                                            message_box.open("No valid path within movement range")
+                                tactical_map_mode = False
 
                     if popup_menu.is_open:
                         if event.key == pygame.K_w:
@@ -622,6 +733,9 @@ while running:
                             popup_menu.move_selection(1)
                         elif event.key == pygame.K_RETURN:
                             choice = popup_menu.select()
+                        elif event.key == pygame.K_ESCAPE and getattr(popup_menu, "menu_type", None) == "options":
+                            popup_menu.close()
+                            continue
         else:
             # ENEMY TURN PHASE
             if not enemy_paths_planned:
@@ -643,6 +757,7 @@ while running:
                 player_turn = True
                 enemy_moving = False
                 enemy_paths_planned = False
+                process_automatic_gathering()
 
             # Find a visible enemy that is moving (has a path)
             enemy_to_follow = None
@@ -655,9 +770,6 @@ while running:
             # Call the camera-follow if found
             if enemy_to_follow:
                 follow_enemy_camera(enemy_to_follow)
-        
-    for enemy in enemy_units:
-        print(f"Enemy at ({enemy.x}, {enemy.y}) path: {enemy.path}")
 
     if is_moving and not selected_unit.path:
         is_moving = False
@@ -690,6 +802,14 @@ while running:
 
     if is_moving:
         selected_unit.move_along_path(enemy_units)
+        # --- Stop gathering if the unit moves off the resource tile during movement ---
+        if getattr(selected_unit, "is_gathering", False):
+            res_id = getattr(selected_unit, "gather_resource_id", None)
+            res = next((r for r in resources if r.id == res_id), None)
+            if not res or (int(selected_unit.x), int(selected_unit.y)) != (res.x, res.y):
+                selected_unit.is_gathering = False
+                selected_unit.gather_resource_id = None
+                
         if not selected_unit.path:
             is_moving = False
 
@@ -707,16 +827,16 @@ while running:
                     actions.insert(2, "Gather")  # Insert Gather before Undo
                     callbacks["Gather"] = gather_action
                     break
+
+            if target_aquisition.is_enemy_adjacent(selected_tile, enemy_units):
+                actions.insert(0, "Attack")
+                callbacks["Attack"] = attack_action
             
             popup_menu.open(actions, callbacks)
             popup_menu.set_position(
                 (SCREEN_WIDTH - popup_menu.width) // 2,
                 (SCREEN_HEIGHT - (popup_menu.item_height * len(popup_menu.options))) // 2
             )
-
-            if target_aquisition.is_enemy_adjacent(selected_tile, enemy_units):
-                actions.insert(0, "Attack")
-                callbacks["Attack"] = attack_action
 
     if tactical_map_mode:
         draw_tactical_map()
@@ -733,10 +853,7 @@ while running:
             (34, 177, 76) if PLAYABLE_MAP[tx][ty] == "G" else
             (0, 162, 232) if PLAYABLE_MAP[tx][ty] == "W" else
             (127, 127, 127)
-        ),
-        VISIBILITY_MAP,
-        OFFSET_X,
-        OFFSET_Y
+        ),VISIBILITY_MAP, OFFSET_X, OFFSET_Y
     )
 
     # Only draw reachable tiles if a unit is selected
@@ -749,6 +866,7 @@ while running:
     if selected_tile:
         draw_tile_highlight(*selected_tile, (255, 255, 0, 100))
 
+    # Drawing
     for building in buildings:
         building.draw(screen, OFFSET_X, OFFSET_Y, CAMERA_X, CAMERA_Y, TILE_WIDTH, TILE_HEIGHT)
     for resource in resources:
