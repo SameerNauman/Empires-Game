@@ -2,7 +2,8 @@ import pygame
 from config import *
 
 class BaseBuildings:
-    def __init__(self, x, y, hitpoints, population_limit=0):
+    next_id = 1
+    def __init__(self, x, y, hitpoints, population_limit=0, type="Unknown", defense=200):
         self.x = x
         self.y = y
         self.hitpoints = hitpoints
@@ -10,6 +11,9 @@ class BaseBuildings:
         self.is_constructed = False
         self.selected = False
         self.action_count = 0
+        self.type = type
+        self.id = BaseBuildings.next_id
+        BaseBuildings.next_id += 1
 
     def draw(self, screen, OFFSET_X, OFFSET_Y, CAMERA_X, CAMERA_Y, TILE_WIDTH, TILE_HEIGHT):
         draw_x = self.x + OFFSET_X
