@@ -47,7 +47,8 @@ is_moving = False
 running = True
 
 # Object initialization
-villager = BaseUnits(5, 5, 5, 50, 25)
+villager = BaseUnits(5, 5, 5, 50, 25, 1, type="villager")
+archer = BaseUnits(6, 6, 7, 150, 100, 3, type="archer")
 
 town_centre = BaseBuildings(3, 3, 500, 10)
 town_centre.type = "town_centre"
@@ -59,9 +60,9 @@ resource = [
     ResourceSource(5, 3, "wood", 400)
 ]
 
-spearmen = BaseUnits(7, 7, 7, 100, 100)
+spearmen = BaseUnits(7, 7, 7, 100, 100, 1, type="spearmen")
 
-units = [villager]
+units = [villager, archer]
 buildings = [town_centre]
 resources = resource
 population = len(units)
@@ -71,7 +72,6 @@ player_turn = True
 
 message_box = MessageBox(screen, SCREEN_WIDTH, SCREEN_HEIGHT)
 popup_menu = PopupMenu([], {}, 10, 10)
-path_finding = PathFinding(enemy_units)
 target_aquisition = TargetAquisition()
 enemy_ai = EnemyAi(enemy_units)
 enemy_moving = False  # Flag to track if enemies are animating/moving
@@ -326,7 +326,7 @@ def train_action():
     
     # Create new villager
     if food_amount >= 50:
-        new_villager = BaseUnits(spawn_x, spawn_y, 5, 50, 25)
+        new_villager = BaseUnits(spawn_x, spawn_y, 5, 50, 25, 1, type="villager")
         units.append(new_villager)
         food_amount -= 50
         selected_building.rest()
@@ -353,28 +353,25 @@ def attack_action():
 
     # Lookup selected unit by ID
     selected_unit = next((u for u in units if u.id == selected_unit_id), None)
-    
-    damage = 0
-    bonus_multiplier = 0
-    flat_bonus = 0
 
-    enemy = target_aquisition.adjacent_enemy(selected_tile, enemy_units)
-    damage = ((selected_unit.attack * (1 + bonus_multiplier))/enemy.defense) * 25 + flat_bonus
+    if selected_unit.attack_range > 1:
+        # For archers: ranged attack
+        enemy = target_aquisition.ranged_enemy(selected_tile, selected_unit.attack_range, enemy_units)
+    else:
+        # For melee: adjacent
+        enemy = target_aquisition.adjacent_enemy(selected_tile, enemy_units)
+
+    if not enemy:
+        message_box.open("No enemy in attack range")
+        return
+    
+    damage = ((selected_unit.attack * (1 + BONUS_MULTIPLYER))/enemy.defense) * 25 + FLAT_BONUS
     enemy.health -= damage
+    enemy_ai.enemy_retaliation(selected_unit, enemy)
     print("enemy:", enemy.health)
     print("player:", selected_unit.health)
     selected_unit.rest()
     reachable_tiles = set()  # Clear the reachable tiles
-
-    if enemy.health <= 0:
-        enemy_units.remove(enemy)
-        print(enemy, "died")
-        popup_menu.close()
-
-    if selected_unit.health <= 0:
-        units.remove(selected_unit)
-        print(selected_unit, "died")
-        popup_menu.close()
 
     if selected_unit:
         selected_unit.selected = False  # Deselect the unit
@@ -525,14 +522,6 @@ def draw_map_with_fog(map_data, color_func, VISIBILITY_MAP, offset_tx=0, offset_
                     (screen_x - TILE_WIDTH // 2, screen_y + TILE_HEIGHT // 2)
                 ])
 
-    # Draw enemy units only on visible and in-bounds tiles
-    for enemy in enemy_units:
-        ex, ey = int(enemy.x), int(enemy.y)  # Enemy coordinates in the tile grid
-        if (0 <= ex < len(VISIBILITY_MAP) and
-            0 <= ey < len(VISIBILITY_MAP[0]) and
-            VISIBILITY_MAP[ex][ey] == 2):
-            enemy.draw(screen, OFFSET_X, OFFSET_Y, CAMERA_X, CAMERA_Y, TILE_WIDTH, TILE_HEIGHT)
-
 def follow_enemy_camera(enemy):
     global CAMERA_X, CAMERA_Y
     # Use same math as you do for selected tiles
@@ -623,6 +612,8 @@ while running:
                             selected_unit.selected = True
                             selected_unit_id = selected_unit.id
                             selected_tile = (int(selected_unit.x), int(selected_unit.y))
+                            friendly_units_for_pathfinding = [u for u in units if u != selected_unit]
+                            path_finding = PathFinding(friendly_units_for_pathfinding, enemy_units)
                             reachable_tiles = path_finding.bfs_reachable(
                                 (int(selected_unit.x), int(selected_unit.y)), selected_unit.movement_range
                             )
@@ -647,6 +638,8 @@ while running:
                                     if not selected_unit.unit_tired():
                                         selected_unit.selected = True
                                         selected_tile = (int(selected_unit.x), int(selected_unit.y))
+                                        friendly_units_for_pathfinding = [u for u in units if u != selected_unit]
+                                        path_finding = PathFinding(friendly_units_for_pathfinding, enemy_units)
                                         reachable_tiles = path_finding.bfs_reachable((int(unit.x), int(unit.y)), unit.movement_range)
                                         unit_found = True
 
@@ -709,6 +702,9 @@ while running:
                             # Find the unit object by its ID
                             selected_unit = next((u for u in units if u.id == selected_unit_id), None)
                             if selected_unit:
+                                # New PathFinding instance for this unit
+                                friendly_units_for_pathfinding = [u for u in units if u != selected_unit]
+                                path_finding = PathFinding(friendly_units_for_pathfinding, enemy_units)
                                 tactical_map_mode = False
                                 if selected_tile in reachable_tiles:
                                     selected_unit.previous_position = (selected_unit.x, selected_unit.y)
@@ -771,6 +767,20 @@ while running:
             if enemy_to_follow:
                 follow_enemy_camera(enemy_to_follow)
 
+    # Chek 
+    for unit in units:
+        if unit.health <= 0:
+            print(f"Player at ({unit.x},{unit.y}) is defeated!")
+            units.remove(unit)
+    for building in buildings:
+        if building.hitpoints <= 0:
+            print(f"Building at ({building.x},{building.y}) is destroyed!")
+            buildings.remove(building)
+    for enemy in enemy_units:
+        if enemy.health <= 0:
+            enemy_units.remove(enemy)
+            print(enemy, "died")
+            
     if is_moving and not selected_unit.path:
         is_moving = False
         if tactical_map_queued and last_tactical_key == "m":
@@ -828,10 +838,16 @@ while running:
                     callbacks["Gather"] = gather_action
                     break
 
-            if target_aquisition.is_enemy_adjacent(selected_tile, enemy_units):
-                actions.insert(0, "Attack")
-                callbacks["Attack"] = attack_action
-            
+            # NEW ARCHER LOGIC
+            if hasattr(selected_unit, "attack_range") and selected_unit.attack_range > 1:
+                if target_aquisition.any_ranged_enemy_in_range(selected_tile, selected_unit.attack_range, enemy_units):
+                    actions.insert(0, "Attack")
+                    callbacks["Attack"] = attack_action
+            else:
+                if target_aquisition.is_enemy_adjacent(selected_tile, enemy_units):
+                    actions.insert(0, "Attack")
+                    callbacks["Attack"] = attack_action
+                    
             popup_menu.open(actions, callbacks)
             popup_menu.set_position(
                 (SCREEN_WIDTH - popup_menu.width) // 2,
@@ -858,7 +874,7 @@ while running:
 
     # Only draw reachable tiles if a unit is selected
     if selected_unit:
-        for tile in reachable_tiles:
+        for tile in (reachable_tiles or []):
             draw_tile_highlight(tile[0], tile[1], (0, 255, 255, 90))
 
     if hovered_tile:
@@ -871,6 +887,15 @@ while running:
         building.draw(screen, OFFSET_X, OFFSET_Y, CAMERA_X, CAMERA_Y, TILE_WIDTH, TILE_HEIGHT)
     for resource in resources:
         resource.draw(screen, OFFSET_X, OFFSET_Y, CAMERA_X, CAMERA_Y, TILE_WIDTH, TILE_HEIGHT, resources)
+    # Draw enemy units above resources, but ONLY if visible!
+    for enemy in enemy_units:
+        ex, ey = int(enemy.x), int(enemy.y)
+        if (
+            0 <= ex < len(VISIBILITY_MAP)
+            and 0 <= ey < len(VISIBILITY_MAP[0])
+            and VISIBILITY_MAP[ex][ey] == 2
+        ):
+            enemy.draw(screen, OFFSET_X, OFFSET_Y, CAMERA_X, CAMERA_Y, TILE_WIDTH, TILE_HEIGHT)
     for unit in units:
         unit.draw(screen, OFFSET_X, OFFSET_Y, CAMERA_X, CAMERA_Y, TILE_WIDTH, TILE_HEIGHT)
 
