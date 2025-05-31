@@ -2,11 +2,14 @@ import pygame
 from config import *
 
 class ResourceSource:
+    next_id = 1
     def __init__(self, x, y, resource_type, amount):
         self.x = x
         self.y = y
         self.resource_type = resource_type  # e.g., "wood", "gold", "food"
         self.amount = amount
+        self.id = ResourceSource.next_id
+        ResourceSource.next_id += 1
 
     def is_depleted(self):
         return self.amount <= 0
