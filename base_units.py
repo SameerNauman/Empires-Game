@@ -2,7 +2,8 @@ import pygame
 from config import *
 
 class BaseUnits:
-    def __init__(self, x, y, movement, attack, defense, speed=0.1, health=100):
+    next_id = 1
+    def __init__(self, x, y, movement, attack, defense, attack_range=1, speed=0.1, health=100, type="Unknown"):
         self.x = x
         self.y = y
         self.health = health
@@ -14,7 +15,13 @@ class BaseUnits:
         self.path = []
         self.previous_position = (x,y)
         self.action_count = 0
-        self.enemy_range = 1
+        self.attack_range = attack_range
+        self.type = type
+        self.id = BaseUnits.next_id
+        BaseUnits.next_id += 1
+        # Gathering mechanic attributes
+        self.is_gathering = False
+        self.gather_resource_id = None
 
     def rest(self):
         self.action_count += 1
