@@ -3,8 +3,15 @@ from collections import deque
 from config import *
 
 class PathFinding():
-    def __init__(self, enemy_units):
-        self.enemy_units = enemy_units
+    def __init__(self, player_units, enemy_units):
+        self.player_units = player_units  # list of friendly units
+        self.enemy_units = enemy_units    # list of enemy units
+
+    def is_enemy(self, x, y):
+        return any(enemy.x == x and enemy.y == y for enemy in self.enemy_units)
+
+    def is_friendly(self, x, y):
+        return any(unit.x == x and unit.y == y for unit in self.player_units)
 
     def neighbors(self, x, y):
         for dx, dy in [(0, 1), (1, 0), (-1, 0), (0, -1)]:
@@ -25,21 +32,31 @@ class PathFinding():
             _, current = heapq.heappop(heap)
             if current == goal:
                 break
-                
+
             for neighbor in self.neighbors(*current):
-                if any(enemy.x == neighbor[0] and enemy.y == neighbor[1] for enemy in self.enemy_units):
+                x, y = neighbor
+                # Enemy-occupied tiles cannot be entered
+                if self.is_enemy(x, y):
                     continue
-                tile_cost = TILE_TYPES[PLAYABLE_MAP[neighbor[0]][neighbor[1]]]
+
+                tile_cost = TILE_TYPES[PLAYABLE_MAP[x][y]]
                 new_cost = cost_so_far[current] + tile_cost
-                
-                if new_cost > max_cost:  # Respect movement range
+
+                if new_cost > max_cost:
                     continue
-                    
+
+                # Don't allow stopping on a friendly-occupied tile (unless it's the goal)
+                if self.is_friendly(x, y) and neighbor != goal:
+                    # Can pass through, but not stop, so enqueue as normal
+                    pass
+
                 if neighbor not in cost_so_far or new_cost < cost_so_far[neighbor]:
                     cost_so_far[neighbor] = new_cost
                     priority = new_cost + self.heuristic(goal, neighbor)
                     heapq.heappush(heap, (priority, neighbor))
                     came_from[neighbor] = current
+
+        # Path reconstruction (same as before)
         path = []
         current = goal
         while current != start:
@@ -49,7 +66,7 @@ class PathFinding():
             current = came_from[current]
         path.reverse()
         return path
-
+        
     def bfs_reachable(self, start, max_cost):
         visited = set()
         queue = deque([(start, 0)])
@@ -57,21 +74,29 @@ class PathFinding():
         
         while queue:
             current, cost = queue.popleft()
-            
+            x, y = current
+
             if current in visited:
                 continue
             visited.add(current)
+
+            # Only add to reachable if you can stop here (not occupied by a friendly, unless it's the start)
+            if current == start or not self.is_friendly(x, y):
+                reachable.add(current)
             
-            # Only add to reachable if we can stop here
-            reachable.add(current)
-            
-            for neighbor in self.neighbors(*current):
-                # Skip tiles occupied by enemy units
-                if any(enemy.x == neighbor[0] and enemy.y == neighbor[1] for enemy in self.enemy_units):
+            for neighbor in self.neighbors(x, y):
+                nx, ny = neighbor
+                # Enemy-occupied tiles cannot be entered
+                if self.is_enemy(nx, ny):
                     continue
-                tile_cost = TILE_TYPES[PLAYABLE_MAP[neighbor[0]][neighbor[1]]]
+
+                tile_cost = TILE_TYPES[PLAYABLE_MAP[nx][ny]]
                 new_cost = cost + tile_cost
-                if new_cost <= max_cost:
-                    queue.append((neighbor, new_cost))
-        
+                if new_cost > max_cost:
+                    continue
+
+                # Friendly-occupied tiles can be traversed but not stopped on,
+                # so always enqueue as long as not already visited.
+                queue.append((neighbor, new_cost))
+                
         return reachable
