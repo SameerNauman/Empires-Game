@@ -50,7 +50,7 @@ This project is a 2D isometric turn-based strategy game built in Python using [P
 
 ```
 .
-├── main.py                  # Game entry point
+├── gameplay.py              # Game entry point
 ├── path_finding.py          # A* pathfinding logic
 ├── enemy_ai.py              # Enemy AI logic
 ├── config.py                # Game configuration and constants
