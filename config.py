@@ -31,3 +31,19 @@ CAMERA_X, CAMERA_Y = 0, 0
 DAMAGE = 0
 BONUS_MULTIPLYER = 0
 FLAT_BONUS = 0
+
+# Buildings = [name, food cost, wood cost, gold cost, hitpoints, pop capacity, 1_units, 2_units, 3_units, 4_units]
+BUILDINGS = {
+    "town_centre": ["town_centre", 0, 400, 400, 500, 10, ["Villager", "Archers"]],
+}
+
+# [name, food cost, wood cost, gold cost, hitpoints, pop capacity]
+RESOURCE_BUILDINGS = {
+    "mill": ["mill", 0, 50, 0, 200, 0]
+}
+
+# [name, food cost, wood cost, gold cost, pop cost, movement, attack, defense, attack_range=1]
+UNITS = {
+    "Villager": ["villager", 50, 0, 0, 1, 5, 50, 25, 1],
+    "Archers": ["archers", 60, 60, 0, 1, 7, 150, 100, 3]
+}
