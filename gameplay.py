@@ -214,14 +214,17 @@ def build_action():
             message_box.open("There's already a building here.")
             return
         popup_menu.open(["Town Centre", "Mill", "Cancel"], {
-                    "Town Centre": build_town_centre,
-                    "Mill": build_mill,
+                    "Town Centre": lambda: building_selector("town_centre"),
+                    "Mill": lambda: building_selector("mill"),
                     "Cancel": cancel_action
         })
         popup_menu.set_position(
             (SCREEN_WIDTH - popup_menu.width) // 2,
             (SCREEN_HEIGHT - (popup_menu.item_height * len(popup_menu.options))) // 2
         )
+    else:
+        message_box.open("No unit or tile selected.")
+        cancel_action()
 
 def cancel_action():
     popup_menu.open(actions, callbacks)
@@ -299,8 +302,8 @@ def undo_action():
     selected_unit_id = None  # Clear the selected unit
     popup_menu.close()
 
-def train_action():
-    global population, villagers, units, selected_building_id, food_amount
+def unit_selection():
+    global units, selected_building_id
 
     # Find the currently selected building by its ID
     selected_building = next((b for b in buildings if b.id == selected_building_id), None)
@@ -323,18 +326,48 @@ def train_action():
                 selected_building.selected = False
             selected_building_id = None
             return
-    
-    # Create new villager
-    if food_amount >= 50:
-        new_villager = BaseUnits(spawn_x, spawn_y, 5, 50, 25, 1, type="villager")
-        units.append(new_villager)
-        food_amount -= 50
-        selected_building.rest()
-        selected_building.selected = False
-        selected_building_id = None
+
+    building_name = selected_building.type
+    if building_name in BUILDINGS:
+        b_attr = BUILDINGS[building_name]
+    else:
+        b_attr = RESOURCE_BUILDINGS[building_name]
+
+    trainable_units = b_attr[6]  # e.g. ["Villager", "Archer"]
+
+    # Build the options list and actions dict dynamically
+    options = trainable_units + ["Cancel"]
+    actions = {unit: (lambda u=unit: train_action(u, spawn_x, spawn_y)) for unit in trainable_units}
+    actions["Cancel"] = popup_menu.close
+
+    popup_menu.open(options, actions)
+    popup_menu.set_position(
+        (SCREEN_WIDTH - popup_menu.width) // 2,
+        (SCREEN_HEIGHT - (popup_menu.item_height * len(popup_menu.options))) // 2
+    )
+
+def train_action(unit_name, spawn_x, spawn_y):
+    global population, units, selected_building_id, food_amount, wood_amount, gold_amount
+
+    u_attr = UNITS[unit_name]
+
+    # Create new unit
+    if food_amount >= u_attr[1] and wood_amount >= u_attr[2] and gold_amount >= u_attr[3]:
+        new_unit = BaseUnits(spawn_x, spawn_y, u_attr[5], u_attr[6], u_attr[7], u_attr[8], type=unit_name)
+        units.append(new_unit)
+        food_amount -= u_attr[1]
+        wood_amount -= u_attr[2]
+        gold_amount -= u_attr[3]
+        # Optionally update population here if needed
+        selected_building = next((b for b in buildings if b.id == selected_building_id), None)
+        if selected_building:
+            selected_building.rest()
+            selected_building.selected = False
+            selected_building_id = None
         popup_menu.close()
     else:
-        message_box.open("insufficient funds")
+        message_box.open("Insufficient funds")
+        selected_building = next((b for b in buildings if b.id == selected_building_id), None)
         if selected_building:
             selected_building.selected = False
         selected_building_id = None
@@ -382,75 +415,38 @@ def attack_action():
 def is_tile_occupied(x, y):
     return any(b.x == x and b.y == y for b in buildings)
 
-def build_town_centre():
-    global buildings, wood_amount, gold_amount, max_pop, selected_unit_id
+def building_selector(building_name):
+    global buildings, food_amount, wood_amount, gold_amount, max_pop, selected_unit_id
+
+    if building_name in BUILDINGS:
+        b_attr = BUILDINGS[building_name]
+    elif building_name in RESOURCE_BUILDINGS:
+        b_attr = RESOURCE_BUILDINGS[building_name]
 
     # Lookup selected unit by ID
     selected_unit = next((u for u in units if u.id == selected_unit_id), None)
 
-    # Ensure both unit and tile are selected
-    if selected_unit and selected_tile:
-        if is_tile_occupied(*selected_tile):
-            message_box.open("There's already a building here.")
-            return
-        if wood_amount >= 400 and gold_amount >= 400:
-            # Assign a unique ID to the new building
-            new_building_id = max([b.id for b in buildings], default=0) + 1
-            new_building = BaseBuildings(selected_tile[0], selected_tile[1], 500, 10)
-            new_building.id = new_building_id
-            new_building.type = "town_centre"
-            new_building.is_constructed = True
-            print(f"New building ID: {new_building.id}")
-            buildings.append(new_building)
-            popup_menu.close()
+    if food_amount >= b_attr[1] and wood_amount >= b_attr[2] and gold_amount >= b_attr[3]:
+        # Assign a unique ID to the new building
+        new_building_id = max([b.id for b in buildings], default=0) + 1
+        new_building = BaseBuildings(selected_tile[0], selected_tile[1], b_attr[4], b_attr[5])
+        new_building.id = new_building_id
+        new_building.type = building_name
+        new_building.is_constructed = True
+        print(f"New building ID: {new_building.id}")
+        buildings.append(new_building)
+        popup_menu.close()
+        if selected_unit:
             selected_unit.rest()  # Optionally, pass in the action or tile
-            wood_amount -= 400
-            gold_amount -= 400
-            max_pop += 10
             # Deselect unit after building
             selected_unit.selected = False
-            selected_unit_id = None
-        else:
-            message_box.open("Insufficient funds")
-            cancel_action()
+        food_amount -= b_attr[1]
+        wood_amount -= b_attr[2]
+        gold_amount -= b_attr[3]
+        max_pop += b_attr[5]
+        selected_unit_id = None
     else:
-        message_box.open("No unit or tile selected.")
-        cancel_action()
-
-def build_mill():
-    global buildings, wood_amount, selected_unit_id
-
-    # Lookup selected unit by ID
-    selected_unit = next((u for u in units if u.id == selected_unit_id), None)
-
-    if selected_unit and selected_tile:
-        if is_tile_occupied(*selected_tile):
-            message_box.open("There's already a building here.")
-            return
-        if wood_amount >= 50:
-            # Assign a unique ID to the new building
-            new_building_id = max((b.id for b in buildings), default=0) + 1
-            new_building = BaseBuildings(selected_tile[0], selected_tile[1], 200, 0)
-            new_building.id = new_building_id
-            new_building.type = "mill"
-            new_building.is_constructed = True
-            print(f"New building ID: {new_building.id}")
-            buildings.append(new_building)
-            popup_menu.close()
-            selected_unit.rest()
-            selected_unit.selected = False
-            selected_unit_id = None
-            wood_amount -= 50
-        else:
-            message_box.open("Insufficient funds")
-            if selected_unit:
-                selected_unit.selected = False
-            selected_unit_id = None
-            popup_menu.close()
-            cancel_action()
-    else:
-        message_box.open("No unit or tile selected.")
-        popup_menu.close()
+        message_box.open("Insufficient funds")
         cancel_action()
 
 def cancel_building_action():
@@ -661,21 +657,35 @@ while running:
                                                 prev_building.selected = False
                                         selected_building_id = building.id
                                         print("Selected building id:", selected_building_id)
+                                        if selected_unit_id is not None:
+                                            prev_unit = next((u for u in units if u.id == selected_unit_id), None)
+                                            if prev_unit:
+                                                prev_unit.selected = False
+                                            selected_unit_id = None
+                                            selected_unit = None
+                                            reachable_tiles = []
                                         if not building.building_tired():
                                             building.selected = True
                                             building_found = True
-
-                                            popup_menu.open(["Train", "Research", "Cancel"], {
-                                                "Train": train_action,
-                                                "Research": research_action,
-                                                "Cancel": cancel_building_action
-                                            })
+                                            building_name = building.type
+                                            if building_name in BUILDINGS:
+                                                building_actions = ["Train", "Research", "Cancel"]
+                                                building_callbacks = {
+                                                    "Train": unit_selection,
+                                                    "Research": research_action,
+                                                    "Cancel": cancel_building_action
+                                                }
+                                            else:
+                                                building_actions = ["Research", "Cancel"]
+                                                building_callbacks = {
+                                                    "Research": research_action,
+                                                    "Cancel": cancel_building_action
+                                                }
+                                            popup_menu.open(building_actions, building_callbacks)
                                             popup_menu.set_position(
                                                 (SCREEN_WIDTH - popup_menu.width) // 2,
                                                 (SCREEN_HEIGHT - (popup_menu.item_height * len(popup_menu.options))) // 2
                                             )
-
-                                            break
 
                             if not unit_found and not building_found:
                                 if selected_unit_id is not None:
@@ -767,7 +777,7 @@ while running:
             if enemy_to_follow:
                 follow_enemy_camera(enemy_to_follow)
 
-    # Chek 
+    # Check health of units and buildings.
     for unit in units:
         if unit.health <= 0:
             print(f"Player at ({unit.x},{unit.y}) is defeated!")
