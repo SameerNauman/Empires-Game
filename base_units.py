@@ -22,6 +22,7 @@ class BaseUnits:
         # Gathering mechanic attributes
         self.is_gathering = False
         self.gather_resource_id = None
+        self.queued = False
 
     def rest(self):
         self.action_count += 1
@@ -32,6 +33,10 @@ class BaseUnits:
         else:
             return False
     
+    def unit_queued(self):
+        self.queued = True
+        self.action_count = 2
+
     def rested(self):
         self.action_count = 0
         
