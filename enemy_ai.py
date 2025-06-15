@@ -8,7 +8,7 @@ class EnemyAi():
         # Remove the static path_finding instance; will construct per enemy on-demand.
         self.path_enemies = path_enemies
 
-    def plan_enemy_paths(self, enemy_units, player_units, player_buildings):
+    def plan_enemy_paths(self, enemy_units, player_units, player_buildings, resource_list):
         """
         For each enemy, plan their path to the nearest player unit or building (do not move yet).
         Uses updated PathFinding logic: 
@@ -18,6 +18,46 @@ class EnemyAi():
         for enemy in enemy_units:
             if enemy.health <= 0:
                 continue
+    
+            # --- RESOURCE GATHERING for ENEMY VILLAGERS ---
+            if getattr(enemy, "type", None) == "villager":
+                # Already gathering and on resource? Skip movement
+                if getattr(enemy, "is_gathering", False):
+                    found_res = next((r for r in resource_list if r.id == getattr(enemy, "gather_resource_id", -1)), None)
+                    if found_res and (enemy.x, enemy.y) == (found_res.x, found_res.y) and not found_res.is_depleted():
+                        continue
+
+                # Find nearest non-depleted resource
+                nearest_resource = None
+                min_dist = float('inf')
+                for res in resource_list:
+                    if not res.is_depleted():
+                        dist = abs(enemy.x - res.x) + abs(enemy.y - res.y)
+                        if dist < min_dist:
+                            min_dist = dist
+                            nearest_resource = res
+
+                # If on resource, start gathering
+                if nearest_resource and (enemy.x, enemy.y) == (nearest_resource.x, nearest_resource.y):
+                    enemy.is_gathering = True
+                    enemy.gather_resource_id = nearest_resource.id
+                    continue
+
+                # Otherwise, path directly to the resource tile (not adjacent!)
+                if nearest_resource:
+                    path_finding = PathFinding([], enemy_units)
+                    path = path_finding.a_star(
+                        start=(int(enemy.x), int(enemy.y)),
+                        goal=(int(nearest_resource.x), int(nearest_resource.y)),
+                        max_cost=100
+                    )
+                    if path:
+                        steps = min(enemy.movement_range, len(path))
+                        path = path[:steps]
+                        enemy.path = [(float(x), float(y)) for x, y in path]
+                    else:
+                        enemy.path = []
+                continue  # Skip rest of logic for villagers
 
             # Find nearest living player unit or constructed building
             nearest_target = None
