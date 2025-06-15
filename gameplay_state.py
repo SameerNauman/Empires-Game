@@ -36,27 +36,47 @@ class GameplayState:
         self.camera_x = 0
         self.camera_y = 0
 
-        # Object initialization
+        # Attack
+        self.target_select_mode = False
+        self.targetable_enemies = []
+        self.selected_target_index = 0
+
+        # Player units initialization
         villager = BaseUnits(5, 5, 5, 50, 25, 1, type="villager")
         archer = BaseUnits(6, 6, 7, 150, 100, 3, type="archer")
-        town_centre = BaseBuildings(3, 3, 500, 10)
-        town_centre.type = "town_centre"
+        # Player buildings initialization
+        town_centre = BaseBuildings(3, 3, 500, 10, type="town_centre")
         town_centre.is_constructed = True
+        # Resource initialization
         resource = [
             ResourceSource(1, 3, "food", 500),
             ResourceSource(3, 1, "gold", 5000),
             ResourceSource(5, 3, "wood", 400)
         ]
+        # Enemy units initialization
         spearmen = BaseUnits(7, 7, 7, 100, 100, 1, type="spearmen")
+        spearmen2 = BaseUnits(7, 5, 7, 100, 100, 1, type="spearmen")
+        # Enemy buildings initialization
+        e_town_centre = BaseBuildings(7, 9, 500, 10, type="town_centre") #16, 16
+        e_town_centre.is_constructed = True
+        e_town_centre2 = BaseBuildings(9, 7, 500, 10, type="town_centre")
+        e_town_centre2.is_constructed = True
 
+        # Player unit and building lists
         self.units = [villager, archer]
         self.buildings = [town_centre]
         self.resources = resource
-        self.enemy_units = [spearmen]
+        # Enemy unit and building lists
+        self.enemy_units = [spearmen, spearmen2]
+        self.e_buildings = [e_town_centre, e_town_centre2]
         self.population = len(self.units)
         self.player_turn = True
         self.enemy_moving = False
         self.enemy_paths_planned = False
+        self.enemy_turn_index = 0      # index of the current enemy being processed
+        self.enemy_turn_phase = 'move' # 'move', 'attack', or 'done'
+        self.enemy_turn_delay = 0      # delay timer for animation
+
         self.game_over = False
 
         self.message_box = MessageBox(self.screen, SCREEN_WIDTH, SCREEN_HEIGHT)
@@ -150,6 +170,23 @@ class GameplayState:
             (0, self.tile_height // 2)
         ])
         self.screen.blit(overlay, (screen_x - self.tile_width // 2, screen_y))
+
+    def draw_tile_highlight2(self, tx, ty, color=(220, 20, 60)):
+        draw_tx = tx + OFFSET_X
+        draw_ty = ty + OFFSET_Y
+        screen_x = (draw_tx - draw_ty) * self.tile_width // 2 + (SCREEN_WIDTH // 2) + self.camera_x
+        screen_y = (draw_tx + draw_ty) * self.tile_height // 2 + (SCREEN_HEIGHT // 4) + self.camera_y
+
+        # Define the diamond shape points
+        points = [
+            (screen_x, screen_y),  # top
+            (screen_x + self.tile_width // 2, screen_y + self.tile_height // 2),  # right
+            (screen_x, screen_y + self.tile_height),  # bottom
+            (screen_x - self.tile_width // 2, screen_y + self.tile_height // 2),  # left
+        ]
+
+        # Draw the outline, not a filled polygon
+        pygame.draw.polygon(self.screen, color, points, width=5)
 
     # === Pop up menu actions and game logic ===
 
@@ -302,24 +339,64 @@ class GameplayState:
 
     def attack_action(self):
         selected_unit = next((u for u in self.units if u.id == self.selected_unit_id), None)
+        if not selected_unit:
+            return
+
+        # Find all enemies in attack range
         if selected_unit.attack_range > 1:
-            enemy = self.target_aquisition.ranged_enemy(self.selected_tile, selected_unit.attack_range, self.enemy_units)
+            enemies = self.target_aquisition.all_ranged_enemies(self.selected_tile, selected_unit.attack_range, self.enemy_units)
+            enemy_buildings = self.target_aquisition.all_ranged_buildings(self.selected_tile, selected_unit.attack_range, self.e_buildings)
         else:
-            enemy = self.target_aquisition.adjacent_enemy(self.selected_tile, self.enemy_units)
-        if not enemy:
+            enemies = self.target_aquisition.all_adjacent_enemies(self.selected_tile, self.enemy_units)
+            enemy_buildings = self.target_aquisition.all_adjacent_buildings(self.selected_tile, self.e_buildings)
+
+        # Combine units and buildings into a single list for cycling.
+        targets = []
+        for e in enemies:
+            targets.append(('unit', e))
+        for b in enemy_buildings:
+            targets.append(('building', b))
+
+        if not targets:
             self.message_box.open("No enemy in attack range")
             return
-        damage = ((selected_unit.attack * (1 + BONUS_MULTIPLYER))/enemy.defense) * 25 + FLAT_BONUS
-        enemy.health -= damage
-        self.enemy_ai.enemy_retaliation(selected_unit, enemy)
-        print("enemy:", enemy.health)
-        print("player:", selected_unit.health)
+
+        if len(targets) == 1:
+            kind, target = targets[0]
+            self._execute_attack(selected_unit, target, kind)
+        else:
+            self.reachable_tiles = set()
+            self.popup_menu.close()
+            self.target_select_mode = True
+            self.targetable_enemies = targets  # Now stores tuples: ('unit'/'building', obj)
+            self.selected_target_index = 0
+            kind, target = self.targetable_enemies[self.selected_target_index]
+            self.selected_tile = (int(target.x), int(target.y))
+            self.hovered_tile = self.selected_tile
+
+    def _execute_attack(self, selected_unit, target, kind):
+        # kind: 'unit' or 'building'
+        if kind == 'unit':
+            enemy = target
+            damage = ((selected_unit.attack * (1 + BONUS_MULTIPLYER))/enemy.defense) * 25 + FLAT_BONUS
+            enemy.health -= damage
+            self.enemy_ai.enemy_retaliation(selected_unit, enemy)
+            print("enemy:", enemy.health)
+            print("player:", selected_unit.health)
+        elif kind == 'building':
+            building = target
+            damage = ((selected_unit.attack * (1 + BONUS_MULTIPLYER))/max(1, getattr(building, "defense", 1))) * 25 + FLAT_BONUS
+            building.hitpoints -= damage
+            print("building:", building.hitpoints)
         selected_unit.rest()
         self.reachable_tiles = set()
         if selected_unit:
             selected_unit.selected = False
         self.selected_unit_id = None
         self.popup_menu.close()
+        self.target_select_mode = False
+        self.targetable_enemies = []
+        self.selected_target_index = 0
 
     def is_tile_occupied(self, x, y):
         return any(b.x == x and b.y == y for b in self.buildings)
@@ -426,13 +503,31 @@ class GameplayState:
             building.rested()
         self.popup_menu.close()
     
-    def run_one_frame(self):
+    def run(self):
         if not self.game_over:
             if self.player_turn:
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         self.running = False
-
+                    if self.target_select_mode:
+                        if event.type == pygame.KEYDOWN:
+                            if event.key == pygame.K_TAB and self.targetable_enemies:
+                                # Cycle to next target (unit or building)
+                                self.selected_target_index = (self.selected_target_index + 1) % len(self.targetable_enemies)
+                                kind, target = self.targetable_enemies[self.selected_target_index]
+                                self.selected_tile = (int(target.x), int(target.y))
+                                self.hovered_tile = self.selected_tile
+                            elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                                # Attack the currently selected target
+                                selected_unit = next((u for u in self.units if u.id == self.selected_unit_id), None)
+                                kind, target = self.targetable_enemies[self.selected_target_index]
+                                self._execute_attack(selected_unit, target, kind)
+                            elif event.key == pygame.K_ESCAPE:
+                                # Cancel target selection mode
+                                self.target_select_mode = False
+                                self.targetable_enemies = []
+                                self.selected_target_index = 0
+                        return
                     if event.type == pygame.KEYDOWN:
                         self.last_key_pressed = event.key
 
@@ -613,39 +708,66 @@ class GameplayState:
                                 self.popup_menu.close()
                                 continue
             else:
-                # ENEMY TURN PHASE
+                # --- Only plan once at start of enemy turn ---
                 if not self.enemy_paths_planned:
                     self.enemy_ai.plan_enemy_paths(self.enemy_units, self.units, self.buildings)
                     self.enemy_paths_planned = True
-                    self.enemy_moving = True
+                    self.enemy_turn_index = 0
+                    self.enemy_turn_phase = 'move'
+                    self.enemy_turn_delay = 0
 
-                # Animate enemy movement
-                all_paths_empty = True
-                for enemy in self.enemy_units:
-                    enemy.move_along_path(self.enemy_units)
-                    if enemy.path:  # If any enemy still moving, don't end turn yet
-                        all_paths_empty = False
-
-                if self.enemy_moving and all_paths_empty:
-                    # After all movement, handle attacks for adjacent enemies
-                    self.enemy_ai.try_enemy_attack(self.enemy_units, self.units, self.buildings)
-                    # End the enemy turn, switch back to player
+                # --- If all enemies processed, end turn ---
+                if self.enemy_turn_index >= len(self.enemy_units):
                     self.player_turn = True
-                    self.enemy_moving = False
                     self.enemy_paths_planned = False
                     self.process_automatic_gathering()
+                    return
 
-                # Find a visible enemy that is moving (has a path)
-                enemy_to_follow = None
-                for enemy in self.enemy_units:
-                    ex, ey = int(enemy.x), int(enemy.y)
-                    if VISIBILITY_MAP[ex][ey] == 2 and enemy.path:
-                        enemy_to_follow = enemy
-                        break
+                enemy = self.enemy_units[self.enemy_turn_index]
+                # Delay between actions for clarity/animation (e.g. 15 frames = 0.25s at 60 FPS)
+                if self.enemy_turn_delay > 0:
+                    self.enemy_turn_delay -= 1
+                    return
 
-                # Call the camera-follow if found
-                if enemy_to_follow:
-                    self.follow_enemy_camera(enemy_to_follow)
+                if self.enemy_turn_phase == 'move':
+                    # Animate movement
+                    if enemy.path:
+                        enemy.move_along_path(self.enemy_units)
+                        self.follow_enemy_camera(enemy)
+                        # Only move one tile per frame or step (for clarity/animation)
+                        self.enemy_turn_delay = 0  # Adjust as needed for your game speed
+                        if not enemy.path:
+                            self.enemy_turn_phase = 'attack'
+                    else:
+                        self.enemy_turn_phase = 'attack'
+
+                elif self.enemy_turn_phase == 'attack':
+                    # Try to attack player unit/building
+                    did_attack = False
+                    # Units
+                    for player in self.units:
+                        if player.health > 0 and abs(enemy.x - player.x) + abs(enemy.y - player.y) == 1:
+                            damage = ((enemy.attack * (1 + BONUS_MULTIPLYER))/player.defense) * 25 + FLAT_BONUS
+                            player.health -= damage
+                            self.enemy_ai.enemy_retaliation(enemy, player)
+                            print("enemy:", enemy.health)
+                            print("player:", player.health)
+                            did_attack = True
+                            break
+                    # Buildings
+                    if not did_attack:
+                        for building in self.buildings:
+                            if getattr(building, 'is_constructed', True) and getattr(building, 'hitpoints', 1) > 0:
+                                if abs(enemy.x - building.x) + abs(enemy.y - building.y) == 1:
+                                    damage = ((enemy.attack * (1 + BONUS_MULTIPLYER))/building.defense) * 25 + FLAT_BONUS
+                                    building.hitpoints -= enemy.attack
+                                    print("enemy:", enemy.health)
+                                    print("player:", building.hitpoints)
+                                    did_attack = True
+                                    break
+                    self.enemy_turn_delay = 0  # Pause after attack for clarity/animation
+                    self.enemy_turn_index += 1
+                    self.enemy_turn_phase = 'move'
 
         # Check health of units and buildings.
         for unit in self.units:
@@ -660,6 +782,10 @@ class GameplayState:
             if enemy.health <= 0:
                 self.enemy_units.remove(enemy)
                 print(enemy, "died")
+        for eb in self.e_buildings:
+            if eb.hitpoints <= 0:
+                print(f"Building at ({building.x},{building.y}) is destroyed!")
+                self.e_buildings.remove(eb)
 
         self.hovered_tile = self.selected_tile
 
@@ -750,17 +876,19 @@ class GameplayState:
             for tile in (self.reachable_tiles or []):
                 self.draw_tile_highlight(tile[0], tile[1], (0, 255, 255, 90))
 
-        if self.hovered_tile:
-            self.draw_tile_highlight(*self.hovered_tile, (255, 255, 255, 60))
-        if self.selected_tile:
-            self.draw_tile_highlight(*self.selected_tile, (255, 255, 0, 100))
-
         # Drawing
-        for building in self.buildings:
-            building.draw(self.screen, OFFSET_X, OFFSET_Y, self.camera_x, self.camera_y, self.tile_width, self.tile_height)
         for resource in self.resources:
             resource.draw(self.screen, OFFSET_X, OFFSET_Y, self.camera_x, self.camera_y, self.tile_width, self.tile_height, self.resources)
-        # Draw enemy units above resources, but ONLY if visible!
+        for building in self.buildings:
+            building.draw(self.screen, OFFSET_X, OFFSET_Y, self.camera_x, self.camera_y, self.tile_width, self.tile_height)
+        for eb in self.e_buildings:
+            ex, ey = int(eb.x), int(eb.y)
+            if (
+                0 <= ex < len(VISIBILITY_MAP)
+                and 0 <= ey < len(VISIBILITY_MAP[0])
+                and VISIBILITY_MAP[ex][ey] == 2
+            ):
+                eb.draw(self.screen, OFFSET_X, OFFSET_Y, self.camera_x, self.camera_y, self.tile_width, self.tile_height)
         for enemy in self.enemy_units:
             ex, ey = int(enemy.x), int(enemy.y)
             if (
@@ -771,6 +899,12 @@ class GameplayState:
                 enemy.draw(self.screen, OFFSET_X, OFFSET_Y, self.camera_x, self.camera_y, self.tile_width, self.tile_height)
         for unit in self.units:
             unit.draw(self.screen, OFFSET_X, OFFSET_Y, self.camera_x, self.camera_y, self.tile_width, self.tile_height)
+
+        if self.hovered_tile:
+            self.draw_tile_highlight2(*self.hovered_tile, (220, 20, 60))  # crimson outline
+
+        if self.selected_tile:
+            self.draw_tile_highlight2(*self.selected_tile, (220, 20, 60))  # crimson outline
 
         # === RESOURCE AND POPULATION DISPLAY BAR === #
         bar_height = 25
