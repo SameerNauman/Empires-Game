@@ -9,6 +9,8 @@ from target_aquisition import TargetAquisition
 from enemy_ai import EnemyAi
 from config import *
 
+# implement enemy ai for gathering resources, training units.
+
 class GameplayState:
     def __init__(self, screen):
         self.screen = screen
@@ -26,6 +28,9 @@ class GameplayState:
         self.food_amount = 500
         self.wood_amount = 500
         self.gold_amount = 500
+        self.enemy_food = 0
+        self.enemy_wood = 0
+        self.enemy_gold = 0
         self.selected_unit = None
         self.selected_building = None
         self.selected_unit_id = None
@@ -50,10 +55,11 @@ class GameplayState:
         # Resource initialization
         resource = [
             ResourceSource(1, 3, "food", 500),
-            ResourceSource(3, 1, "gold", 5000),
+            ResourceSource(3, 1, "gold", 2000),
             ResourceSource(5, 3, "wood", 400)
         ]
         # Enemy units initialization
+        enemy_villager = BaseUnits(1, 1, 5, 50, 25, 1, type="villager")
         spearmen = BaseUnits(7, 7, 7, 100, 100, 1, type="spearmen")
         spearmen2 = BaseUnits(7, 5, 7, 100, 100, 1, type="spearmen")
         # Enemy buildings initialization
@@ -65,7 +71,7 @@ class GameplayState:
         self.buildings = [town_centre]
         self.resources = resource
         # Enemy unit and building lists
-        self.enemy_units = [spearmen, spearmen2]
+        self.enemy_units = [spearmen, spearmen2, enemy_villager]
         self.e_buildings = [e_town_centre]
         self.population = len(self.units)
         self.player_turn = True
@@ -266,6 +272,29 @@ class GameplayState:
                 else:
                     unit.is_gathering = False
                     unit.gather_resource_id = None
+
+    def process_enemy_gathering(self):
+            for villager in [u for u in self.enemy_units if getattr(u, "type", None) == "villager"]:
+                if getattr(villager, "is_gathering", False):
+                    res_id = getattr(villager, "gather_resource_id", None)
+                    res = next((r for r in self.resources if r.id == res_id), None)
+                    if res and (villager.x, villager.y) == (res.x, res.y) and not res.is_depleted():
+                        amount_gathered = min(100, res.amount)
+                        res.amount -= amount_gathered
+                        if res.resource_type == "food":
+                            self.enemy_food += amount_gathered
+                        elif res.resource_type == "wood":
+                            self.enemy_wood += amount_gathered
+                        elif res.resource_type == "gold":
+                            self.enemy_gold += amount_gathered
+                        if res.amount <= 0:
+                            villager.is_gathering = False
+                            villager.gather_resource_id = None
+                    else:
+                        villager.is_gathering = False
+                        villager.gather_resource_id = None
+                    
+                    print("food: ", self.enemy_food, "wood: ", self.enemy_wood, "gold: ", self.enemy_gold)
 
     def undo_action(self):
         selected_unit = next((u for u in self.units if u.id == self.selected_unit_id), None)
@@ -710,7 +739,7 @@ class GameplayState:
             else:
                 # --- Only plan once at start of enemy turn ---
                 if not self.enemy_paths_planned:
-                    self.enemy_ai.plan_enemy_paths(self.enemy_units, self.units, self.buildings)
+                    self.enemy_ai.plan_enemy_paths(self.enemy_units, self.units, self.buildings, self.resources)
                     self.enemy_paths_planned = True
                     self.enemy_turn_index = 0
                     self.enemy_turn_phase = 'move'
@@ -721,6 +750,7 @@ class GameplayState:
                     self.player_turn = True
                     self.enemy_paths_planned = False
                     self.process_automatic_gathering()
+                    self.process_enemy_gathering()
                     return
 
                 enemy = self.enemy_units[self.enemy_turn_index]
