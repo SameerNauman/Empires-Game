@@ -57,10 +57,8 @@ class GameplayState:
         spearmen = BaseUnits(7, 7, 7, 100, 100, 1, type="spearmen")
         spearmen2 = BaseUnits(7, 5, 7, 100, 100, 1, type="spearmen")
         # Enemy buildings initialization
-        e_town_centre = BaseBuildings(7, 9, 500, 10, type="town_centre") #16, 16
+        e_town_centre = BaseBuildings(16, 16, 500, 10, type="town_centre")
         e_town_centre.is_constructed = True
-        e_town_centre2 = BaseBuildings(9, 7, 500, 10, type="town_centre")
-        e_town_centre2.is_constructed = True
 
         # Player unit and building lists
         self.units = [villager, archer]
@@ -68,7 +66,7 @@ class GameplayState:
         self.resources = resource
         # Enemy unit and building lists
         self.enemy_units = [spearmen, spearmen2]
-        self.e_buildings = [e_town_centre, e_town_centre2]
+        self.e_buildings = [e_town_centre]
         self.population = len(self.units)
         self.player_turn = True
         self.enemy_moving = False
@@ -171,7 +169,7 @@ class GameplayState:
         ])
         self.screen.blit(overlay, (screen_x - self.tile_width // 2, screen_y))
 
-    def draw_tile_highlight2(self, tx, ty, color=(220, 20, 60)):
+    def draw_tile_highlight_crimson(self, tx, ty, color=(220, 20, 60)):
         draw_tx = tx + OFFSET_X
         draw_ty = ty + OFFSET_Y
         screen_x = (draw_tx - draw_ty) * self.tile_width // 2 + (SCREEN_WIDTH // 2) + self.camera_x
@@ -313,6 +311,7 @@ class GameplayState:
         u_attr = UNITS[unit_name]
         if self.food_amount >= u_attr[1] and self.wood_amount >= u_attr[2] and self.gold_amount >= u_attr[3]:
             new_unit = BaseUnits(spawn_x, spawn_y, u_attr[5], u_attr[6], u_attr[7], u_attr[8], type=unit_name)
+            new_unit.unit_queued()
             self.units.append(new_unit)
             self.food_amount -= u_attr[1]
             self.wood_amount -= u_attr[2]
@@ -412,7 +411,7 @@ class GameplayState:
             new_building = BaseBuildings(self.selected_tile[0], self.selected_tile[1], b_attr[4], b_attr[5])
             new_building.id = new_building_id
             new_building.type = building_name
-            new_building.is_constructed = True
+            new_building.building_queued()
             self.buildings.append(new_building)
             self.popup_menu.close()
             if selected_unit:
@@ -622,6 +621,7 @@ class GameplayState:
                                                     prev_building.selected = False
                                             self.selected_building_id = building.id
                                             print("Selected building id:", self.selected_building_id)
+                                            print("Selected building action count:", building.action_count)
                                             if self.selected_unit_id is not None:
                                                 prev_unit = next((u for u in self.units if u.id == self.selected_unit_id), None)
                                                 if prev_unit:
@@ -901,10 +901,10 @@ class GameplayState:
             unit.draw(self.screen, OFFSET_X, OFFSET_Y, self.camera_x, self.camera_y, self.tile_width, self.tile_height)
 
         if self.hovered_tile:
-            self.draw_tile_highlight2(*self.hovered_tile, (220, 20, 60))  # crimson outline
+            self.draw_tile_highlight_crimson(*self.hovered_tile, (220, 20, 60))  # crimson outline
 
         if self.selected_tile:
-            self.draw_tile_highlight2(*self.selected_tile, (220, 20, 60))  # crimson outline
+            self.draw_tile_highlight_crimson(*self.selected_tile, (220, 20, 60))  # crimson outline
 
         # === RESOURCE AND POPULATION DISPLAY BAR === #
         bar_height = 25
