@@ -8,10 +8,12 @@ class BaseBuildings:
         self.y = y
         self.hitpoints = hitpoints
         self.population_limit = population_limit
+        self.queued = False
         self.is_constructed = False
         self.selected = False
         self.action_count = 0
         self.type = type
+        self.defense = defense
         self.id = BaseBuildings.next_id
         BaseBuildings.next_id += 1
 
@@ -38,6 +40,10 @@ class BaseBuildings:
         else:
             return False
         
+    def building_queued(self):
+        self.queued = True
+        self.action_count = 2
+
     def rested(self):
         self.action_count = 0
 
