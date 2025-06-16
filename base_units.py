@@ -83,9 +83,13 @@ class BaseUnits:
         screen_y = (draw_x + draw_y) * TILE_HEIGHT // 2 + (SCREEN_HEIGHT // 4) + camera_y
         screen_y += TILE_HEIGHT // 2
 
+        # Pick the color for this unit type, default to white if not found
+        color = UNIT_COLORS.get(self.type, (255, 255, 255))
+        tired_color = tuple(max(0, c // 4) for c in color)  # Darker for 'tired'
+
         if self.unit_tired() == True:
-            pygame.draw.circle(screen, (64, 64, 64), (int(screen_x), int(screen_y)), 5)
+            pygame.draw.circle(screen, tired_color, (int(screen_x), int(screen_y)), 5)
         else:
-            pygame.draw.circle(screen, (255, 0, 0), (int(screen_x), int(screen_y)), 5)
+            pygame.draw.circle(screen, color, (int(screen_x), int(screen_y)), 5)
             if self.selected:
                 pygame.draw.circle(screen, (255, 255, 0), (int(screen_x), int(screen_y)), 8, 2)
