@@ -54,7 +54,6 @@ class Menu():
         else:            
             pygame.draw.rect(self.display, self.hovering_color, self.quit_b, 5, 5)
 
-
         # Center the text on the button
         start_rect = self.start.get_rect(center=self.start_b.center)
         quit_rect = self.quit.get_rect(center=self.quit_b.center)
