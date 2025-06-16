@@ -24,13 +24,17 @@ class BaseBuildings:
         screen_y = (draw_x + draw_y) * TILE_HEIGHT // 2 + (SCREEN_HEIGHT // 4) + CAMERA_Y
         screen_y += TILE_HEIGHT // 2
 
-        if self.building_tired() == True:
-            pygame.draw.rect(screen, (64, 64, 64), (screen_x - TILE_WIDTH // 2, screen_y - TILE_HEIGHT // 2, TILE_WIDTH, TILE_HEIGHT))
+        # Pick the color for this building type, default to white if not found
+        color = BUILDING_COLORS.get(self.type, (255, 255, 255))
+        tired_color = tuple(max(0, c // 4) for c in color)  # Darker for 'tired'
+
+        if self.building_tired():
+            pygame.draw.rect(screen, tired_color, (screen_x - TILE_WIDTH // 2, screen_y - TILE_HEIGHT // 2, TILE_WIDTH, TILE_HEIGHT))
         else:
-            pygame.draw.rect(screen, (255, 255, 255), (screen_x - TILE_WIDTH // 2, screen_y - TILE_HEIGHT // 2, TILE_WIDTH, TILE_HEIGHT))
+            pygame.draw.rect(screen, color, (screen_x - TILE_WIDTH // 2, screen_y - TILE_HEIGHT // 2, TILE_WIDTH, TILE_HEIGHT))
             if self.selected:
                 pygame.draw.rect(screen, (255, 255, 0), (screen_x - TILE_WIDTH // 2, screen_y - TILE_HEIGHT // 2, TILE_WIDTH, TILE_HEIGHT), 3)
-
+    
     def rest(self):
         self.action_count += 1
 
