@@ -57,13 +57,12 @@ class TargetAquisition():
         return False
     
     def all_ranged_enemies(self, pos, attack_range, enemy_units):
-        # Returns all enemy units in range
         tx, ty = pos
         return [
             e for e in enemy_units
-            if abs(int(e.x) - tx) + abs(int(e.y) - ty) <= attack_range
+            if 1 < abs(int(e.x) - tx) + abs(int(e.y) - ty) <= attack_range  # Only targets at distance > 1!
         ]
-    
+        
     def all_adjacent_enemies(self, pos, enemy_units):
         tx, ty = pos
         return [
@@ -75,7 +74,7 @@ class TargetAquisition():
         tx, ty = pos
         return [
             b for b in enemy_buildings
-            if abs(int(b.x) - tx) + abs(int(b.y) - ty) <= attack_range
+            if 1 < abs(int(b.x) - tx) + abs(int(b.y) - ty) <= attack_range
         ]
 
     def all_adjacent_buildings(self, pos, enemy_buildings):
