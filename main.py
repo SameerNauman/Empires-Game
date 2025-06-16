@@ -2,6 +2,7 @@ import pygame
 import sys
 from states.gameplay_state import GameplayState
 from states.menu import Menu
+from states.game_over import GameOver
 from config import *
 
 class Main():
@@ -14,9 +15,10 @@ class Main():
 
         self.game_state_manager = GameStateManager("menu")
         self.menu = Menu(self.screen, self.game_state_manager)
-        self.gameplay_state = GameplayState(self.screen)
+        self.game_over = GameOver(self.screen, self.game_state_manager, None)
+        self.gameplay_state = GameplayState(self.screen, self.game_state_manager)
 
-        self.states = {"gameplay state": self.gameplay_state, "menu": self.menu}    
+        self.states = {"gameplay state": self.gameplay_state, "menu": self.menu, "game over": self.game_over}    
     def run(self):
         while self.gameplay_state.running:
             self.states[self.game_state_manager.get_state()].run()
