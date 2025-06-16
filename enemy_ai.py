@@ -1,5 +1,6 @@
 from path_finding import PathFinding
 from target_aquisition import TargetAquisition
+from units.base_units import BaseUnits
 from config import *
 
 class EnemyAi():
@@ -161,3 +162,49 @@ class EnemyAi():
             if 1 < dist <= getattr(defender, "attack_range", 1):
                 damage = ((defender.attack * (1 + BONUS_MULTIPLYER)) / attacker.defense) * 25 + FLAT_BONUS
                 attacker.health -= damage
+
+    def train_enemy_units(self, e_buildings, enemy_units, gameplay_state):
+        for building in e_buildings:
+            if not getattr(building, 'is_constructed', False):
+                continue
+            if building.type not in BUILDINGS:
+                continue  # skip resource buildings
+
+            # Check if spawn location is blocked by any alive enemy unit
+            spawn_x, spawn_y = building.x, building.y
+            spawn_blocked = any(
+                int(u.x) == spawn_x and int(u.y) == spawn_y and u.health > 0
+                for u in enemy_units
+            )
+            if spawn_blocked:
+                # Optionally print or log: print(f"Spawn at ({spawn_x},{spawn_y}) blocked for {building.type}")
+                continue  # Skip training for this building this turn
+
+            b_attr = BUILDINGS[building.type]
+            trainable_units = b_attr[6]
+
+            # Collect all affordable units
+            affordable_units = []
+            for unit_name in trainable_units:
+                u_attr = UNITS[unit_name]
+                food, wood, gold = u_attr[1], u_attr[2], u_attr[3]
+                if (gameplay_state.enemy_food >= food and
+                    gameplay_state.enemy_wood >= wood and
+                    gameplay_state.enemy_gold >= gold):
+                    affordable_units.append(unit_name)
+
+            if affordable_units:
+                unit_name = random.choice(affordable_units)
+                u_attr = UNITS[unit_name]
+                food, wood, gold = u_attr[1], u_attr[2], u_attr[3]
+                new_unit = BaseUnits(
+                    spawn_x, spawn_y,
+                    u_attr[5], u_attr[6], u_attr[7], u_attr[8], type=unit_name
+                )
+                print("Enemy spawns:", unit_name, "at", (spawn_x, spawn_y))
+                enemy_units.append(new_unit)
+                gameplay_state.enemy_food -= food
+                gameplay_state.enemy_wood -= wood
+                gameplay_state.enemy_gold -= gold
+                building.rest()
+                # Only one unit per building per turn
