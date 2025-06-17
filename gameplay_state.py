@@ -374,17 +374,17 @@ class GameplayState:
         # Find all enemies in attack range
         if selected_unit.attack_range > 1:
             enemies = self.target_aquisition.all_ranged_enemies(self.selected_tile, selected_unit.attack_range, self.enemy_units)
-            enemy_buildings = self.target_aquisition.all_ranged_buildings(self.selected_tile, selected_unit.attack_range, self.e_buildings)
+            enemy_buildings = self.target_aquisition.all_ranged_buildings(self.selected_tile, selected_unit.attack_range, self.e_buildings, self.enemy_units)
         else:
             enemies = self.target_aquisition.all_adjacent_enemies(self.selected_tile, self.enemy_units)
-            enemy_buildings = self.target_aquisition.all_adjacent_buildings(self.selected_tile, self.e_buildings)
-
-        # Combine units and buildings into a single list for cycling.
+            enemy_buildings = self.target_aquisition.all_adjacent_buildings(self.selected_tile, self.e_buildings, self.enemy_units)
+                
         targets = []
         for e in enemies:
             targets.append(('unit', e))
         for b in enemy_buildings:
-            targets.append(('building', b))
+            if not self.target_aquisition.is_unit_on_building(b, self.enemy_units):
+                targets.append(('building', b))
 
         if not targets:
             self.message_box.open("No enemy in attack range")
@@ -447,7 +447,8 @@ class GameplayState:
             enemy = target
             damage = ((selected_unit.attack * (1 + BONUS_MULTIPLYER))/enemy.defense) * 25 + FLAT_BONUS
             enemy.health -= damage
-            self.enemy_ai.enemy_retaliation(selected_unit, enemy)
+            dist = abs(selected_unit.x - enemy.x) + abs(selected_unit.y - enemy.y)
+            self.enemy_ai.enemy_retaliation(selected_unit, enemy, dist)
             print("enemy:", enemy.health)
             print("player:", selected_unit.health)
         elif kind == 'building':
@@ -866,10 +867,11 @@ class GameplayState:
                     did_attack = False
                     # Units
                     for player in self.units:
-                        if player.health > 0 and abs(enemy.x - player.x) + abs(enemy.y - player.y) == 1:
+                        dist = abs(enemy.x - player.x) + abs(enemy.y - player.y)
+                        if player.health > 0 and dist == 1:
                             damage = ((enemy.attack * (1 + BONUS_MULTIPLYER))/player.defense) * 25 + FLAT_BONUS
                             player.health -= damage
-                            self.enemy_ai.enemy_retaliation(enemy, player)
+                            self.enemy_ai.enemy_retaliation(enemy, player, dist)
                             print("enemy:", enemy.health)
                             print("player:", player.health)
                             did_attack = True
