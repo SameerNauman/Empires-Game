@@ -70,16 +70,30 @@ class TargetAquisition():
             if abs(int(e.x) - tx) + abs(int(e.y) - ty) == 1
         ]
     
-    def all_ranged_buildings(self, pos, attack_range, enemy_buildings):
+    def all_adjacent_buildings(self, pos, enemy_buildings, enemy_units):
         tx, ty = pos
-        return [
-            b for b in enemy_buildings
-            if 1 < abs(int(b.x) - tx) + abs(int(b.y) - ty) <= attack_range
-        ]
+        result = []
+        for b in enemy_buildings:
+            bx, by = int(b.x), int(b.y)
+            if abs(bx - tx) + abs(by - ty) == 1:
+                # Only include if no living enemy unit is on the building
+                if not self.is_unit_on_building(b, enemy_units):
+                    result.append(b)
+        return result
 
-    def all_adjacent_buildings(self, pos, enemy_buildings):
+    def all_ranged_buildings(self, pos, attack_range, enemy_buildings, enemy_units):
         tx, ty = pos
-        return [
-            b for b in enemy_buildings
-            if abs(int(b.x) - tx) + abs(int(b.y) - ty) == 1
-        ]
+        result = []
+        for b in enemy_buildings:
+            bx, by = int(b.x), int(b.y)
+            if 1 < abs(bx - tx) + abs(by - ty) <= attack_range:
+                if not self.is_unit_on_building(b, enemy_units):
+                    result.append(b)
+        return result
+    
+    def is_unit_on_building(self, building, units):
+        bx, by = int(building.x), int(building.y)
+        for u in units:
+            if int(u.x) == bx and int(u.y) == by and getattr(u, "health", 1) > 0:
+                return True
+        return False
