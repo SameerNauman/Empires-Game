@@ -117,51 +117,102 @@ class EnemyAi():
 
     def try_enemy_attack(self, enemy_units, player_units, player_buildings):
         """
-        After movement, perform attacks if adjacent to a player unit or a player building.
+        After movement, enemy units attack following same rules as player units:
+        - Ranged attacks: only targets at distance > 1 and ≤ attack_range
+        - Melee attacks: only targets at distance == 1
+        - Units on buildings prevent the building from being targeted
+        - Only one attack per enemy per turn
         """
         for enemy in enemy_units:
             if enemy.health <= 0:
                 continue
 
-            # Attack adjacent player units
-            for player in list(player_units):  # copy to allow removal
-                if player.health > 0 and abs(enemy.x - player.x) + abs(enemy.y - player.y) == 1:
+            attacked = False
+            attack_range = getattr(enemy, "attack_range", 1)
+
+            # --- RANGED ATTACK (distance > 1 and ≤ attack_range) ---
+            if attack_range > 1:
+                # Units
+                for player in player_units:
+                    dist = abs(enemy.x - player.x) + abs(enemy.y - player.y)
+                    if player.health > 0 and 1 < dist <= attack_range:
+                        damage = ((enemy.attack * (1 + BONUS_MULTIPLYER))/player.defense) * 25 + FLAT_BONUS
+                        player.health -= damage
+                        self.enemy_retaliation(enemy, player, dist)
+                        print("enemy (ranged):", enemy.health)
+                        print("player:", player.health)
+                        attacked = True
+                        break
+                if attacked:
+                    continue
+                # Buildings
+                for building in player_buildings:
+                    if getattr(building, 'is_constructed', True) and getattr(building, 'hitpoints', 1) > 0:
+                        dist = abs(enemy.x - building.x) + abs(enemy.y - building.y)
+                        if 1 < dist <= attack_range:
+                            bx, by = int(building.x), int(building.y)
+                            unit_on_building = any(
+                                int(u.x) == bx and int(u.y) == by and u.health > 0
+                                for u in player_units
+                            )
+                            if unit_on_building:
+                                continue
+                            damage = ((enemy.attack * (1 + BONUS_MULTIPLYER))/building.defense) * 25 + FLAT_BONUS
+                            building.hitpoints -= enemy.attack
+                            print("enemy (ranged):", enemy.health)
+                            print("player building:", building.hitpoints)
+                            attacked = True
+                            break
+                if attacked:
+                    continue
+
+            # --- MELEE ATTACK (distance == 1) ---
+            # Units
+            for player in player_units:
+                dist = abs(enemy.x - player.x) + abs(enemy.y - player.y)
+                if player.health > 0 and dist == 1:
                     damage = ((enemy.attack * (1 + BONUS_MULTIPLYER))/player.defense) * 25 + FLAT_BONUS
                     player.health -= damage
-                    
-                    self.enemy_retaliation(enemy, player)
-
-                    print("enemy:", enemy.health)
+                    self.enemy_retaliation(enemy, player, dist)
+                    print("enemy (melee):", enemy.health)
                     print("player:", player.health)
-                    break  # Only one attack per turn
-
-            # Attack adjacent player buildings (constructed and not destroyed)
+                    attacked = True
+                    break
+            if attacked:
+                continue
+            # Buildings
             for building in player_buildings:
                 if getattr(building, 'is_constructed', True) and getattr(building, 'hitpoints', 1) > 0:
-                    if abs(enemy.x - building.x) + abs(enemy.y - building.y) == 1:
+                    dist = abs(enemy.x - building.x) + abs(enemy.y - building.y)
+                    if dist == 1:
+                        bx, by = int(building.x), int(building.y)
+                        unit_on_building = any(
+                            int(u.x) == bx and int(u.y) == by and u.health > 0
+                            for u in player_units
+                        )
+                        if unit_on_building:
+                            continue
                         damage = ((enemy.attack * (1 + BONUS_MULTIPLYER))/building.defense) * 25 + FLAT_BONUS
                         building.hitpoints -= enemy.attack
-                        print("enemy:", enemy.health)
-                        print("player:", building.hitpoints)
-                        break  # Only one attack per turn
+                        print("enemy (melee):", enemy.health)
+                        print("player building:", building.hitpoints)
+                        break
 
-    def enemy_retaliation(self, attacker, defender):
-        # attacker: the unit that attacked (could be player or enemy)
-        # defender: the unit retaliating (could be enemy or player)
-        # This works for both player->enemy and enemy->player retaliation
-
-        # Melee retaliation (range 1)
-        if getattr(defender, "attack_range", 1) == 1:
-            # Only retaliate if adjacent
-            if abs(attacker.x - defender.x) + abs(attacker.y - defender.y) == 1:
-                damage = ((defender.attack * (1 + BONUS_MULTIPLYER)) / attacker.defense) * 25 + FLAT_BONUS
-                attacker.health -= damage
-        # Ranged retaliation (>1)
-        else:
-            dist = abs(attacker.x - defender.x) + abs(attacker.y - defender.y)
-            if 1 < dist <= getattr(defender, "attack_range", 1):
-                damage = ((defender.attack * (1 + BONUS_MULTIPLYER)) / attacker.defense) * 25 + FLAT_BONUS
-                attacker.health -= damage
+    def enemy_retaliation(self, attacker, defender, distance):
+        """
+        attacker: the unit that attacked (could be player or enemy)
+        defender: the unit retaliating (could be enemy or player)
+        distance: Manhattan distance between attacker and defender at the time of the attack
+        """
+        defender_range = getattr(defender, "attack_range", 1)
+        # Melee retaliation: only if defender is melee and distance==1
+        if defender_range == 1 and distance == 1:
+            damage = ((defender.attack * (1 + BONUS_MULTIPLYER)) / attacker.defense) * 25 + FLAT_BONUS
+            attacker.health -= damage
+        # Ranged retaliation: only if not melee (distance > 1 and ≤ range)
+        elif defender_range > 1 and 1 < distance <= defender_range:
+            damage = ((defender.attack * (1 + BONUS_MULTIPLYER)) / attacker.defense) * 25 + FLAT_BONUS
+            attacker.health -= damage
 
     def train_enemy_units(self, e_buildings, enemy_units, gameplay_state):
         for building in e_buildings:
