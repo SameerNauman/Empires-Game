@@ -1,16 +1,63 @@
 import random
+import csv, os
+from resources.resource_source import ResourceSource
 
 SCREEN_WIDTH, SCREEN_HEIGHT = 480, 272
 
 # Define tile types and costs
-TILE_TYPES = {"G": 1, "S": 3, "W": None}  # None = impassable
+TILE_DRAW_COLORS = {
+    "P": (34, 177, 76),      # Plains
+    "S": (193, 255, 255),    # Mountains
+    "F": (34, 139, 34),      # Forest
+    "H": (189, 183, 107),    # Hills
+    "R": (127, 127, 127),    # Roads
+    "W": (0, 162, 232),      # Water
+    "FO": (128, 0, 128),     # Food (purple)
+    "WO": (0, 100, 0),       # Wood (dark green)
+    "GO": (255, 165, 0),     # Gold (orange)
+}
+
+TILE_TYPES = {
+    "P": 2, "S": None, "F": 4, "H": 3, "R": 1, "W": None,
+    "FO": 2, "WO": 2, "GO": 2,  # You can use the same cost as plains, or None if impassable
+}
 
 # Map dimensions
 PLAYABLE_WIDTH, PLAYABLE_HEIGHT = 20, 20
 BOUNDARY_WIDTH, BOUNDARY_HEIGHT = 20, 20
 
 # Create maps
-PLAYABLE_MAP = [[random.choice(list(TILE_TYPES.keys())) for _ in range(PLAYABLE_WIDTH)] for _ in range(PLAYABLE_HEIGHT)]
+csv_path = os.path.join("..", "assets", "maps", "alps.csv")
+PLAYABLE_MAP = []
+with open(csv_path, newline='') as csvfile:
+    reader = csv.reader(csvfile)
+    for row in reader:
+        clean_row = [cell.strip() for cell in row if cell.strip()]
+        if clean_row:
+            PLAYABLE_MAP.append(clean_row)
+
+# ADD THIS RIGHT AFTER LOADING
+if PLAYABLE_MAP:
+    PLAYABLE_MAP = [list(row) for row in zip(*PLAYABLE_MAP)]
+
+# Resource type, amount defaults
+RESOURCE_TILE_TYPES = {
+    "FO": ("food", 500),
+    "WO": ("wood", 400),
+    "GO": ("gold", 2000),
+}
+
+resources = []
+
+for x in range(len(PLAYABLE_MAP)):
+    for y in range(len(PLAYABLE_MAP[0])):
+        tile = PLAYABLE_MAP[x][y]
+        if tile in RESOURCE_TILE_TYPES:
+            r_type, r_amt = RESOURCE_TILE_TYPES[tile]
+            resources.append(ResourceSource(x, y, r_type, r_amt))
+            PLAYABLE_MAP[x][y] = "P"  # Replace with base terrain for drawing/movement
+
+
 BOUNDARY_MAP = [[0 for _ in range(BOUNDARY_WIDTH)] for _ in range(BOUNDARY_HEIGHT)]
 
 # Assuming these dimensions already exist
