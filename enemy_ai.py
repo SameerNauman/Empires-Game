@@ -1,3 +1,4 @@
+import random
 from path_finding import PathFinding
 from target_aquisition import TargetAquisition
 from units.base_units import BaseUnits
@@ -9,13 +10,24 @@ class EnemyAi():
         # Remove the static path_finding instance; will construct per enemy on-demand.
         self.path_enemies = path_enemies
 
-    def plan_enemy_paths(self, enemy_units, player_units, player_buildings, resource_list):
+    def plan_enemy_paths(
+        self, 
+        enemy_units, 
+        player_units, 
+        player_buildings, 
+        resource_list, 
+        enemy_buildings=None
+    ):
         """
         For each enemy, plan their path to the nearest player unit or building (do not move yet).
         Uses updated PathFinding logic: 
         - Enemy units cannot move onto or stop on tiles occupied by any unit (enemy or player).
-        - Enemy units can pass through other enemy units, but not stop on their tile unless it's their own tile.
+        - Enemy units cannot walk through player buildings.
+        - Player units cannot walk through enemy buildings. (handled in player code)
         """
+        if enemy_buildings is None:
+            enemy_buildings = []
+
         for enemy in enemy_units:
             if enemy.health <= 0:
                 continue
@@ -46,7 +58,11 @@ class EnemyAi():
 
                 # Otherwise, path directly to the resource tile (not adjacent!)
                 if nearest_resource:
-                    path_finding = PathFinding([], enemy_units)
+                    path_finding = PathFinding(
+                        [], enemy_units, 
+                        player_buildings, enemy_buildings, 
+                        moving_side='enemy'
+                    )
                     path = path_finding.a_star(
                         start=(int(enemy.x), int(enemy.y)),
                         goal=(int(nearest_resource.x), int(nearest_resource.y)),
@@ -96,7 +112,13 @@ class EnemyAi():
             player_units_for_pathfinding = player_units  # all player units
 
             # Create a PathFinding instance for this enemy
-            path_finding = PathFinding(player_units_for_pathfinding, enemy_units_for_pathfinding)
+            path_finding = PathFinding(
+                player_units_for_pathfinding, 
+                enemy_units_for_pathfinding,
+                player_buildings,
+                enemy_buildings,
+                moving_side='enemy'
+            )
 
             # Find path to target
             path = path_finding.a_star(
