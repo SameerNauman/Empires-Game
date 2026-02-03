@@ -1,0 +1,135 @@
+
+- all units have 100 health, except seige and civilization specific units
+- all siege units have 300 health, "
+- all infantry units have 7 movement, "
+- all cavalry units have 10 movement, "
+- all ranged units have 7 movement, "
+- all seige units have 5 movement, "
+- all units have 6 sight, except ranged, seige and civilization specific units
+- all ranged units have 7 sight, "
+- all seige units have 9 sight, "
+- civilization specific units are "elite units"
+
+COST:
+ATTACK:
+DEFENSE:
+AGE:
+
+TYPE ADVANTAGES:
+
+light infantry / cavalry / ranged / light infantry
+
+ADVANCED:
+
+| Type                   | Description                                        | Strengths                      | Weaknesses                  |
+| ---------------------- | -------------------------------------------------- | ------------------------------ | --------------------------- |
+| **Spearmen / Pikemen** | Anti-cavalry infantry                              | Strong vs cavalry, cheap       | Weak vs ranged, low damage  |
+| **Heavy Infantry**     | Well-armored melee troops (e.g. Swordsman, Axemen) | Good defense, decent all-round | Vulnerable to cavalry       |
+
+| Type                | Description            | Strengths                       | Weaknesses                  |
+| ------------------- | ---------------------- | ------------------------------- | --------------------------- |
+| **Light Cavalry**   | Fast scouts or raiders | High mobility, good vs ranged   | Fragile                     |
+| **Heavy Cavalry**   | Knights, cataphracts   | High armor, great charge damage | Costly, countered by spears |
+| **Camel Cavalry**   | Anti-cavalry cavalry   | Good vs enemy cavalry           | Mediocre stats otherwise    |
+| **Mounted Archers** | Hybrid ranged cavalry  | Kiting power, mobility          | Weak at close range         |
+
+| Type            | Description               | Strengths                          | Weaknesses                |
+| --------------- | ------------------------- | ---------------------------------- | ------------------------- |
+| **Archer**      | Standard ranged unit      | Good range, cheap                  | Low defense               |
+| **Crossbowman** | Armor-piercing ranged     | Strong vs heavy armor              | Slower fire rate          |
+| **Slinger**     | Early-game ranged         | Effective vs buildings/light armor | Low damage vs heavy units |
+
+| Type          | Description         | Strengths                 | Weaknesses                  |
+| ------------- | ------------------- | ------------------------- | --------------------------- |
+| **Ram**       | Anti-building melee | Strong vs gates/walls     | Useless vs units            |
+| **Catapult**  | Area damage         | Great vs groups/buildings | Friendly fire, slow         |
+| **Trebuchet** | Long-range siege    | High siege damage         | Must set up, can't defend   |
+| **Ballista**  | Anti-unit siege     | Strong vs big targets     | Less effective vs buildings |
+
+
+- military unit upgrades are researched in the blacksmith building. upgrades are unlocked by 
+aging up.
+
+DAMAGE CALCULATION FORMULA:
+
+Damage = [(Attack * Bonus Multiplier) / Defense] * 25 + Flat Bonus
+
+Bonus Multiplier: terrain and type advantage bonuses
+Flat Bonus: Heroes
+
+VILLAGER: Untrained civilian unit. Equipped with farming tools and no armor.
+    COST: 50 food
+    ATTACK: 50
+    DEFENSE: 0
+    AGE: 1
+
+SPEARMEN: Basic military unit; villagers called upon to serve in the army. Advantageous against
+light cavalry. Weak against ranged units and heavy infantry. Equipped with spears, and leather 
+armor (light armor). LIGHT INFANTRY
+    COST: 50 food, 50 wood
+    ATTACK: 100
+    DEFENSE: 100
+    AGE: 1
+
+SWORDSMEN: Trained military unit, soldiers who have spent some time in battle. Advantageous against
+ranged units and light infantry. Weak against cavalry. Equipped with swords, sheilds, and chainmail
+armor (medium armor). HEAVY INFANTRY
+    COST: 75 food, 75 gold
+    ATTACK: 150
+    DEFENSE: 150
+    AGE: 2
+
+TEMPLAR KNIGHT: Elite infantry unit, veterens with elite skill on the battle field. Advantageous
+against ranged units and light infantry. Weak against cavalry. Equipped with swords, shields and
+plated armor (heavy). ELITE INFANTRY
+    COST: 130 food, 150 gold
+    ATTACK: 300
+    DEFENSE: 300
+    AGE: 4
+
+ARCHERS: Trained ranged unit. Advantageous against light infantry. Weak against cavalry and heavy 
+infantry. Equipped with bows, and leather armor (light). RANGED
+    COST: 60 food, 60 wood
+    ATTACK: 150
+    DEFENSE: 100
+    AGE: 2
+
+CROSSBOWMEN: Experienced ranged unit, advantageous against heavy infanty and heavy cavalry from a 
+distance. Weak against heavy infantry, and heavy cavalry at close range. Equipped with a crossbow 
+and chainmail armor. (medium) RANGED
+    COST: 100 food, 100 gold
+    ATTACK: 200
+    DEFENSE: 150
+    AGE: 3
+
+JANISSARIES: Elite ranged unit, advantageous against heavy infantry and heavy cavalry from a 
+distance. Act as heavy infantry in close range encounters. Weak against cavalry Equipped with a
+Turkish bow, sword, and reinforced leather armor. (heavy) ELITE RANGED/INFANTRY
+    COST: 120 food, 150 gold
+    ATTACK: 300
+    DEFENSE: 300
+    AGE: 4
+
+HORSEMEN: Basic cavalry unit, soldiers experienced in scouting, and flanking enemies. Advantageous
+against heavy infantry, seige and ranged units. Weak against light infantry. Equipped with swords 
+and leather armor (light) LIGHT CAVALRY
+    COST: 60 food, 60 gold
+    ATTACK: 150
+    DEFENSE: 100
+    AGE: 1
+
+KNIGHT: Experienced cavalry unit, veteren horsemen experienced in flanking and charging enemies.
+Advantageous against heavy infantry, ranged, and seige units. Weak against crossbows, and ranged 
+units. Equipped with a spear and chainmail armor (medium) HEAVY CAVALRY
+    COST: 75 food, 100 gold
+    ATTACK: 200
+    DEFENSE: 150
+    AGE: 2
+
+SPAHI: Battle-hardened cavalry unit, advantageous against heavy infantry, ranged, and seige units.
+Weak against crossbows and spearmen. Equipped with a sword and plated armor (heavy) 
+HEAVY CAVALRY
+    COST: 100 food, 140 gold
+    ATTACK: 250
+    DEFENSE: 200
+    AGE: 3
