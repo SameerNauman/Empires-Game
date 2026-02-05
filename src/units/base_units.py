@@ -43,20 +43,6 @@ class BaseUnits:
         
         if self.path:
             next_x, next_y = self.path[0]
-            map_x, map_y = int(next_x), int(next_y)
-            if (0 <= map_x < PLAYABLE_WIDTH and 
-                0 <= map_y < PLAYABLE_HEIGHT and 
-                TILE_TYPES[PLAYABLE_MAP[map_x][map_y]] is None):
-                popup_message = "Path blocked!"
-                popup_message_timer = pygame.time.get_ticks()
-                self.path = []
-                return
-            for enemy in enemy_units:
-                if enemy.x == map_x and enemy.y == map_y:
-                    popup_message = "Path blocked by enemy!"
-                    popup_message_timer = pygame.time.get_ticks()
-                    self.path = []
-                    return
             dx, dy = next_x - self.x, next_y - self.y
             dist = (dx ** 2 + dy ** 2) ** 0.5
             if dist < self.speed:

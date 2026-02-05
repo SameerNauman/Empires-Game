@@ -13,7 +13,6 @@ class GameplayState:
     def __init__(self, screen, game_state_manager):
         self.game_state_manager = game_state_manager
         self.screen = screen
-        self.zoom_level = 1
         self.tile_width = BASE_TILE_WIDTH
         self.tile_height = BASE_TILE_HEIGHT
         self.clock = pygame.time.Clock()
@@ -35,8 +34,6 @@ class GameplayState:
         self.selected_unit_id = None
         self.selected_building_id = None
         self.running = True
-        self.tactical_map_queued = False
-        self.last_tactical_key = None
         self.camera_x = 0
         self.camera_y = 0
         self.TILE_SPRITES = self.load_tiles()
@@ -66,6 +63,8 @@ class GameplayState:
         self.enemy_units = [enemy_villager]
         self.e_buildings = [e_town_centre]
         self.population = len(self.units)
+
+        # Turn control
         self.player_turn = True
         self.enemy_moving = False
         self.enemy_paths_planned = False
@@ -80,11 +79,12 @@ class GameplayState:
         self.target_aquisition = TargetAquisition()
         self.enemy_ai = EnemyAi(self.enemy_units)
 
-    # === Drawing methods ===
+# === MAP DISPLAYING ===
 
+    # Displays the map when opened.
     def draw_tactical_map(self):
         self.screen.fill((32, 32, 32))
-        tile_size = 15
+        tile_size = 25
         half_width = tile_size // 2
         half_height = tile_size // 4
         map_width_px = (PLAYABLE_WIDTH + PLAYABLE_HEIGHT) * half_width
@@ -108,6 +108,7 @@ class GameplayState:
                     (draw_x, draw_y + 2 * half_height),
                     (draw_x - half_width, draw_y + half_height)
                 ])
+
         # Only draw player units/buildings/resources if on visible tiles
         for unit in self.units:
             ux, uy = int(unit.x), int(unit.y)
@@ -121,6 +122,7 @@ class GameplayState:
             rx, ry = int(res.x), int(res.y)
             if 0 <= rx < PLAYABLE_WIDTH and 0 <= ry < PLAYABLE_HEIGHT and VISIBILITY_MAP[rx][ry] != 0:
                 self.draw_resource(rx, ry, half_width, half_height, offset_draw_x, offset_draw_y)
+        
         # Draw camera view (isometric polygon)
         corners = [
             (0, 0), (SCREEN_WIDTH, 0), (SCREEN_WIDTH, SCREEN_HEIGHT), (0, SCREEN_HEIGHT)
@@ -137,6 +139,7 @@ class GameplayState:
         pygame.draw.polygon(self.screen, (255, 255, 0), iso_points, 2)
         pygame.display.flip()
 
+    # Displays units on the map
     def draw_unit(self, x, y, half_width, half_height, offset_draw_x, offset_draw_y):
         draw_x = (x - y) * half_width + offset_draw_x + (PLAYABLE_WIDTH * half_width)
         draw_y = (x + y) * half_height + offset_draw_y + (PLAYABLE_HEIGHT * half_height) // 2
@@ -147,12 +150,14 @@ class GameplayState:
         ]
         pygame.draw.polygon(self.screen, (255, 255, 255), triangle_points)
 
+    # Displays buildings on the map
     def draw_building(self, x, y, half_width, half_height, offset_draw_x, offset_draw_y):
         draw_x = (x - y) * half_width + offset_draw_x + (PLAYABLE_WIDTH * half_width)
         draw_y = (x + y) * half_height + offset_draw_y + (PLAYABLE_HEIGHT * half_height) // 2
         size = half_width // 2
         pygame.draw.rect(self.screen, (255, 255, 255), pygame.Rect(draw_x - size, draw_y - size, size * 2, size * 2))
 
+    # Displays resources on the map
     def draw_resource(self, x, y, half_width, half_height, offset_draw_x, offset_draw_y):
         # Only draw resources if tile is visible
         if 0 <= x < PLAYABLE_WIDTH and 0 <= y < PLAYABLE_HEIGHT and VISIBILITY_MAP[x][y] == 2:
@@ -161,6 +166,7 @@ class GameplayState:
             radius = half_width // 2
             pygame.draw.circle(self.screen, (255, 255, 255), (draw_x, draw_y), radius)
 
+    # Displays highlighted reachable tiles
     def draw_tile_highlight(self, tx, ty, color, alpha=128):
         draw_tx = tx + OFFSET_X
         draw_ty = ty + OFFSET_Y
@@ -175,6 +181,7 @@ class GameplayState:
         ])
         self.screen.blit(overlay, (screen_x - self.tile_width // 2, screen_y))
 
+    # Displays the red hovered tile
     def draw_tile_highlight_crimson(self, tx, ty, color=(220, 20, 60)):
         draw_tx = tx + OFFSET_X
         draw_ty = ty + OFFSET_Y
@@ -192,8 +199,9 @@ class GameplayState:
         # Draw the outline, not a filled polygon
         pygame.draw.polygon(self.screen, color, points, width=5)
 
-    # === Pop up menu actions and game logic ===
+# === UNIT ACTIONS ===
 
+    # Moves a unit and increases the action count by 1, deselects the unit, then closes the popup menu
     def move_action(self):
         self.reachable_tiles = set()
         selected_unit = next((u for u in self.units if u.id == self.selected_unit_id), None)
@@ -201,28 +209,34 @@ class GameplayState:
             selected_unit.rest()
             selected_unit.selected = False
         self.selected_unit_id = None
-        self.popup_menu.close()
+        self.close_popup_menu()
 
+    # Displays a popup menu of the different buildings to construct and then calls the building selector
     def build_action(self):
         self.reachable_tiles = set()
-        selected_unit = next((u for u in self.units if u.id == self.selected_unit_id), None)
-        if selected_unit and self.selected_tile:
-            if self.is_tile_occupied(*self.selected_tile):
-                self.message_box.open("There's already a building here.")
-                return
-            self.popup_menu.open(["Town Centre", "Mill", "Cancel"], {
-                "Town Centre": lambda: self.building_selector("town_centre"),
-                "Mill": lambda: self.building_selector("mill"),
-                "Cancel": self.cancel_action
-            })
-            self.popup_menu.set_position(
-                (SCREEN_WIDTH - self.popup_menu.width) // 2,
-                (SCREEN_HEIGHT - (self.popup_menu.item_height * len(self.popup_menu.options))) // 2
-            )
-        else:
-            self.message_box.open("No unit or tile selected.")
-            self.cancel_action()
+        self.popup_menu.open(["Town Centre", "Mill", "Cancel"], {
+            "Town Centre": lambda: self.building_selector("town_centre"),
+            "Mill": lambda: self.building_selector("mill"),
+            "Cancel": self.cancel_action
+        })
+        self.popup_menu.set_position(
+            (SCREEN_WIDTH - self.popup_menu.width) // 2,
+            (SCREEN_HEIGHT - (self.popup_menu.item_height * len(self.popup_menu.options))) // 2
+        )
 
+    # Unit gathers the resource from the resource tile its on, increases the action count by 1,
+    # then closes the popup menu.
+    def gather_action(self, unit, resource):
+        self.reachable_tiles = set()
+        unit.is_gathering = True
+        unit.gather_resource_id = resource.id
+        if unit:
+            unit.rest()
+            unit.selected = False
+        self.selected_unit_id = None
+        self.close_popup_menu()
+
+    # Returns to the previous popup menu
     def cancel_action(self):
         self.popup_menu.open(actions, callbacks)
         self.popup_menu.set_position(
@@ -230,26 +244,8 @@ class GameplayState:
             (SCREEN_HEIGHT - (self.popup_menu.item_height * len(self.popup_menu.options))) // 2
         )
     
+    # Closes the popup menu
     def close_popup_menu(self):
-        self.popup_menu.close()
-
-    def gather_action(self):
-        self.reachable_tiles = set()
-        if self.selected_unit_id is None:
-            return
-        selected_unit = next((u for u in self.units if u.id == self.selected_unit_id), None)
-        if not selected_unit:
-            return
-        unit_pos = (int(selected_unit.x), int(selected_unit.y))
-        res = next((r for r in self.resources if (r.x, r.y) == unit_pos), None)
-        if not res:
-            return
-        selected_unit.is_gathering = True
-        selected_unit.gather_resource_id = res.id
-        if selected_unit:
-            selected_unit.rest()
-            selected_unit.selected = False
-        self.selected_unit_id = None
         self.popup_menu.close()
 
     def process_automatic_gathering(self):
@@ -601,21 +597,28 @@ class GameplayState:
             self.camera_y -= scroll_speed
 
     def end_day(self):
+        # Ends player turn
         self.player_turn = False
+        # Iterates through all units and resets their action count.
         for unit in self.units:
             unit.rested()
+        # Iterates through all buildings and resets their action count if they aren't under construction
         for building in self.buildings:
             if building.queued == False:
                 building.rested()
+        # Closes the popup menu
         self.popup_menu.close()
 
     def end_enemy_day(self):
+        # Starts the player turn. Processes unit and enemy resource gathering for the turn. Enemy Trains
+        # their units
         self.player_turn = True
         self.enemy_paths_planned = False
         self.process_automatic_gathering()
         self.process_enemy_gathering()
         self.enemy_ai.train_enemy_units(self.e_buildings, self.enemy_units, self)
-        
+        # Iterates through all player buildings and checks which ones are under construction. Completes
+        # the buildings that are under construction and resets their action count.
         for building in self.buildings:
             if building.queued == True:
                 for key, value in list(self.construction.items()):
@@ -640,13 +643,14 @@ class GameplayState:
     def run(self):
         global actions, callbacks
         if not self.game_over:
+            # Events during the player's turn
             if self.player_turn:
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         self.running = False
                         return
 
-                    # === POPUP MENU HANDLING ===
+                    # popup menu handling
                     if self.popup_menu.is_open:
                         if event.type == pygame.KEYDOWN:
                             if event.key == pygame.K_w:
@@ -657,7 +661,7 @@ class GameplayState:
                                 self.popup_menu.select()
                         continue  # While popup is open, IGNORE ALL OTHER CONTROLS
 
-                    # === MESSAGE BOX HANDLING ===
+                    # Message box handling
                     if self.message_box.visible:
                         if event.type == pygame.KEYDOWN and event.key == pygame.K_LSHIFT:
                             if self.message_box.ok_button_rect:
@@ -690,7 +694,7 @@ class GameplayState:
                                 return
                         return
 
-                    # === NORMAL GAMEPLAY INPUT (when not in popup, message, or target select mode) ===
+                    # Normal gameplay input (when not in popup, message, or target select mode) 
                     if event.type == pygame.KEYDOWN:
                         if event.key == pygame.K_ESCAPE:
                             # Deselect unit/building, close menus
@@ -705,14 +709,6 @@ class GameplayState:
                             self.popup_menu.close()
                             continue
 
-                        # Zoom. Needs fixing; adjust the size of tiles when zooming in and out.
-                        # if event.key == pygame.K_1 and self.zoom_level < 1.3:
-                        #     self.zoom_level += 0.1
-                        # if event.key == pygame.K_2 and self.zoom_level > 0.3:
-                        #     self.zoom_level -= 0.1
-                        # self.tile_width = int(BASE_TILE_WIDTH * self.zoom_level)
-                        # self.tile_height = int(BASE_TILE_HEIGHT * self.zoom_level)
-
                         # Tile movement
                         if event.key == pygame.K_w and self.selected_tile[1] > 0:
                             self.selected_tile = (self.selected_tile[0], self.selected_tile[1] - 1)
@@ -723,38 +719,61 @@ class GameplayState:
                         if event.key == pygame.K_d and self.selected_tile[0] < PLAYABLE_WIDTH - 1:
                             self.selected_tile = (self.selected_tile[0] + 1, self.selected_tile[1])
 
-                        # Needs fixing. We dont want to cycle to tired units. 
+                        # Cycles through available units
                         if event.key == pygame.K_TAB:
+                            # Filter only non-tired units
+                            available_units = [u for u in self.units if not u.unit_tired()]
+
+                            if not available_units:
+                                # No units available to select
+                                return
+
                             if self.selected_unit_id is not None:
-                                # Find current selected unit's index by its ID
-                                current_index = next((i for i, u in enumerate(self.units) 
-                                                      if u.id == self.selected_unit_id), 0)
-                                self.units[current_index].selected = False
-                                next_index = (current_index + 1) % len(self.units)
-                                self.selected_unit = self.units[next_index]
+                                # Find current selected unit in the filtered list
+                                try:
+                                    current_index = next(i for i, u in enumerate(available_units)
+                                                        if u.id == self.selected_unit_id)
+                                    next_index = (current_index + 1) % len(available_units)
+                                except StopIteration:
+                                    # Previously selected unit is now tired or missing
+                                    next_index = 0
                             else:
-                                self.selected_unit = self.units[0]
+                                next_index = 0
+
+                            # Deselect previous unit
+                            for u in self.units:
+                                u.selected = False
+
+                            # Select new unit
+                            self.selected_unit = available_units[next_index]
                             self.selected_unit.selected = True
                             self.selected_unit_id = self.selected_unit.id
                             self.selected_tile = (int(self.selected_unit.x), int(self.selected_unit.y))
+
+                            # Pathfinding setup
                             friendly_units_for_pathfinding = [u for u in self.units if u != self.selected_unit]
                             path_finding = PathFinding(
-                                friendly_units_for_pathfinding,   # player_units
-                                self.enemy_units,                 # enemy_units
-                                self.buildings,                   # player_buildings
-                                self.e_buildings,                 # enemy_buildings
+                                friendly_units_for_pathfinding,
+                                self.enemy_units,
+                                self.buildings,
+                                self.e_buildings,
                                 moving_side='player'
                             )
                             self.reachable_tiles = path_finding.bfs_reachable(
-                                (int(self.selected_unit.x), int(self.selected_unit.y)), self.selected_unit.movement_range
+                                (int(self.selected_unit.x), int(self.selected_unit.y)),
+                                self.selected_unit.movement_range
                             )
 
+                        # Opens the map
                         if event.key == pygame.K_m:
                             if not self.is_moving:
                                 self.tactical_map_mode = not self.tactical_map_mode
 
+                        # Selecting a tile
                         if event.key == pygame.K_LSHIFT:
                             unit_found = False
+                            # Iterates through units and checks if they are on the hovered tile. If there is,
+                            # then that unit is selected and the previous unit is deselected.
                             for unit in self.units:
                                 if int(unit.x) == self.hovered_tile[0] and int(unit.y) == self.hovered_tile[1]:
                                     if self.selected_unit_id is not None:
@@ -763,6 +782,7 @@ class GameplayState:
                                             prev_unit.selected = False
                                     self.selected_unit = unit
                                     self.selected_unit_id = unit.id
+                                    # Only shows the reachable tiles for units that aren't tired.
                                     if not self.selected_unit.unit_tired():
                                         self.selected_unit.selected = True
                                         self.selected_tile = (int(self.selected_unit.x), int(self.selected_unit.y))
@@ -776,7 +796,6 @@ class GameplayState:
                                         )
                                         self.reachable_tiles = path_finding.bfs_reachable((int(unit.x), int(unit.y)), unit.movement_range)
                                         unit_found = True
-
                                         # Deselect any building if a unit is selected
                                         if self.selected_building_id is not None:
                                             prev_building = next((b for b in self.buildings if b.id == self.selected_building_id), None)
@@ -787,15 +806,16 @@ class GameplayState:
 
                             if not unit_found:
                                 building_found = False
+                                # Iterates through buildings and selects the one that is on the hovered tile, and deselects
+                                # the previously selected building or unit.
                                 for building in self.buildings:
                                     if int(building.x) == self.hovered_tile[0] and int(building.y) == self.hovered_tile[1]:
                                         if self.selected_building_id is not None:
                                             prev_building = next((b for b in self.buildings if b.id == self.selected_building_id), None)
                                             if prev_building:
                                                 prev_building.selected = False
+                                        self.selected_building = building
                                         self.selected_building_id = building.id
-                                        print("Selected building id:", self.selected_building_id)
-                                        print("Selected building action count:", building.action_count)
                                         if self.selected_unit_id is not None:
                                             prev_unit = next((u for u in self.units if u.id == self.selected_unit_id), None)
                                             if prev_unit:
@@ -803,10 +823,11 @@ class GameplayState:
                                             self.selected_unit_id = None
                                             self.selected_unit = None
                                             self.reachable_tiles = []
+                                        # Selects only available buildings and displays their popup menu for their actions
                                         if not building.building_tired():
-                                            building.selected = True
+                                            self.selected_building.selected = True
                                             building_found = True
-                                            building_name = building.type
+                                            building_name = self.selected_building.type
                                             if building_name in BUILDINGS:
                                                 building_actions = ["Train", "Research", "Cancel"]
                                                 building_callbacks = {
@@ -826,6 +847,8 @@ class GameplayState:
                                                 (SCREEN_HEIGHT - (self.popup_menu.item_height * len(self.popup_menu.options))) // 2
                                             )
 
+                            # If an empty tile is selected, then previously selected units and buildings are deselected.
+                            # Displays a popup menu to end the players turn.
                             if not unit_found and not building_found:
                                 if self.selected_unit_id is not None:
                                     prev_unit = next((u for u in self.units if u.id == self.selected_unit_id), None)
@@ -850,6 +873,8 @@ class GameplayState:
                                     (SCREEN_HEIGHT - (self.popup_menu.item_height * len(self.popup_menu.options))) // 2
                                 )
 
+                        # If a unit is selected to move and space is pressed, the map is closed, the unit pathfinds
+                        # from the starting position (the units position) to the selected tile.
                         if event.key == pygame.K_SPACE and self.selected_unit_id is not None:
                             # Find the unit object by its ID
                             self.selected_unit = next((u for u in self.units if u.id == self.selected_unit_id), None)
@@ -861,13 +886,12 @@ class GameplayState:
                                     self.enemy_units,                 # enemy_units
                                     self.buildings,                   # player_buildings
                                     self.e_buildings,                 # enemy_buildings
-                                    moving_side='player'              # <--- YOU SET IT HERE FOR PLAYER
+                                    moving_side='player'
                                 )
                                 self.tactical_map_mode = False
                                 if self.selected_tile in self.reachable_tiles:
                                     self.selected_unit.previous_position = (self.selected_unit.x, self.selected_unit.y)
                                     start_pos = (int(self.selected_unit.x), int(self.selected_unit.y))
-
                                     if self.selected_tile == start_pos:
                                         self.selected_unit.path = [(float(self.selected_unit.x), float(self.selected_unit.y))]
                                         self.is_moving = True
@@ -876,12 +900,9 @@ class GameplayState:
                                         if path:
                                             self.selected_unit.path = [(float(x), float(y)) for x, y in path]
                                             self.is_moving = True
-                                        else:
-                                            self.message_box.open("No valid path within movement range")
-                                self.tactical_map_mode = False
-
-            else:
-                # --- Only plan once at start of enemy turn ---
+            
+            # Enemy turn
+            else: 
                 if not self.enemy_paths_planned:
                     self.enemy_ai.plan_enemy_paths(self.enemy_units, self.units, self.buildings, self.resources)
                     self.enemy_paths_planned = True
@@ -889,7 +910,7 @@ class GameplayState:
                     self.enemy_turn_phase = 'move'
                     self.enemy_turn_delay = 0
 
-                # --- If all enemies processed, end turn ---
+                # If all enemies processed, the enemy turn ends
                 if self.enemy_turn_index >= len(self.enemy_units):
                     self.end_enemy_day()
                     return
@@ -906,7 +927,7 @@ class GameplayState:
                         enemy.move_along_path(self.enemy_units)
                         self.follow_enemy_camera(enemy)
                         # Only move one tile per frame or step (for clarity/animation)
-                        self.enemy_turn_delay = 0  # Adjust as needed for your game speed
+                        self.enemy_turn_delay = 0  # Adjust as needed for game speed
                         if not enemy.path:
                             self.enemy_turn_phase = 'attack'
                     else:
@@ -915,7 +936,7 @@ class GameplayState:
                 elif self.enemy_turn_phase == 'attack':
                     # Try to attack player unit/building
                     did_attack = False
-                    # Units
+                    # Player units take damage from enemy attacks
                     for player in self.units:
                         dist = abs(enemy.x - player.x) + abs(enemy.y - player.y)
                         if player.health > 0 and dist == 1:
@@ -926,7 +947,7 @@ class GameplayState:
                             print("player:", player.health)
                             did_attack = True
                             break
-                    # Buildings
+                    # Player buildings take damage from enemy attacks
                     if not did_attack:
                         for building in self.buildings:
                             if getattr(building, 'is_constructed', True) and getattr(building, 'hitpoints', 1) > 0:
@@ -941,7 +962,7 @@ class GameplayState:
                     self.enemy_turn_index += 1
                     self.enemy_turn_phase = 'move'
 
-        # Check health of units and buildings.
+        # Checks health of units and removes dead units
         for unit in self.units:
             if unit.health <= 0:
                 print(f"Player at ({unit.x},{unit.y}) is defeated!")
@@ -950,24 +971,29 @@ class GameplayState:
                     if key == unit:
                         self.construction.pop(key)
                 self.units.remove(unit)
-                
+            
+        # Checks health of buildings and removes destroyed buildings
         for building in self.buildings:
             if building.hitpoints <= 0:
                 print(f"Building at ({building.x},{building.y}) is destroyed!")
                 self.buildings.remove(building)
 
+        # Checks health of enemy units and removes dead units
         for enemy in self.enemy_units:
             if enemy.health <= 0:
                 self.enemy_units.remove(enemy)
                 print(enemy, "died")
 
+        # checks health of enemy buildings and removes destroyed buildings
         for eb in self.e_buildings:
             if eb.hitpoints <= 0:
                 print(f"Building at ({building.x},{building.y}) is destroyed!")
                 self.e_buildings.remove(eb)
 
+        # Check if the condition to end the game is true
         self.game_over = self.check_game_over()
 
+        # The hovered tile is selected
         self.hovered_tile = self.selected_tile
 
         # Convert hovered tile to screen coordinates
@@ -990,16 +1016,18 @@ class GameplayState:
         elif screen_y > SCREEN_HEIGHT - margin:
             self.camera_y -= scroll_speed
 
+        # When a player unit is moving
         if self.is_moving:
             self.selected_unit.move_along_path(self.enemy_units)
-            # --- Stop gathering if the unit moves off the resource tile during movement ---
-            if getattr(self.selected_unit, "is_gathering", False):
-                res_id = getattr(self.selected_unit, "gather_resource_id", None)
+            # Stops gathering if the unit moves off the resource tile
+            if self.selected_unit.is_gathering:
+                res_id = self.selected_unit.gather_resource_id
                 res = next((r for r in self.resources if r.id == res_id), None)
                 if not res or (int(self.selected_unit.x), int(self.selected_unit.y)) != (res.x, res.y):
                     self.selected_unit.is_gathering = False
                     self.selected_unit.gather_resource_id = None
-                    
+            
+            # If the selected unit is not moving, displays a popup menu of its actions
             if not self.selected_unit.path:
                 self.is_moving = False
 
@@ -1008,43 +1036,56 @@ class GameplayState:
                     "Move": self.move_action,
                     "Undo Move": self.undo_action
                 }
-                if getattr(self.selected_unit, "type", "").lower() == "villager":
-                    actions.insert(1, "Build")
-                    callbacks["Build"] = self.build_action
 
-                # Check if unit landed on a resource tile
+                # If the unit is a villager the 'build' action is added to the popup menu
+                # if the tile is not already occupied by a building.
+                if self.selected_unit.type == "Villager":
+                    if not self.is_tile_occupied(*self.hovered_tile):
+                        actions.insert(1, "Build")
+                        callbacks["Build"] = self.build_action
+
+                # If the unit is a villager and is on a resource tile, the 'gather' action
+                # is added to the popup menu.
                 landed_tile = (int(self.selected_unit.x), int(self.selected_unit.y))
-                if getattr(self.selected_unit, "type", "").lower() == "villager":
+                if self.selected_unit.type == "Villager":
                     for res in self.resources:
                         if (res.x, res.y) == landed_tile:
                             actions.insert(2, "Gather")
-                            callbacks["Gather"] = self.gather_action
+                            callbacks["Gather"] = lambda u=self.selected_unit, r=res: self.gather_action(u, r)
                             break
 
-                if hasattr(self.selected_unit, "attack_range") and self.selected_unit.attack_range > 1:
-                    if self.target_aquisition.any_ranged_enemy_in_range(self.selected_tile, self.selected_unit.attack_range, self.enemy_units):
+                # If the selected unit's range is greater than 1, then target aquisition runs to find an
+                # enemy in its range.
+                if self.selected_unit.attack_range > 1:
+                    if self.target_aquisition.any_ranged_enemy_in_range(self.selected_tile,
+                                                    self.selected_unit.attack_range, self.enemy_units):
                         actions.insert(0, "Attack")
                         callbacks["Attack"] = self.attack_action
+                # If the selected units range is 1, then target aquisition runs to find an adjacent enemy
                 else:
                     if self.target_aquisition.is_enemy_adjacent(self.selected_tile, self.enemy_units):
                         actions.insert(0, "Attack")
                         callbacks["Attack"] = self.attack_action
-                        
+                
                 self.popup_menu.open(actions, callbacks)
                 self.popup_menu.set_position(
                     (SCREEN_WIDTH - self.popup_menu.width) // 2,
                     (SCREEN_HEIGHT - (self.popup_menu.item_height * len(self.popup_menu.options))) // 2
                 )
 
+        # Displays the map if it is opened
         if self.tactical_map_mode:
             self.draw_tactical_map()
             self.clock.tick(30)
             return
 
+        # Updates the unit visibility
         self.update_VISIBILITY_MAP(vision_range=3)
 
+        # Displays the screen
         self.screen.fill((32, 32, 32))
 
+        # Implements the fog of war
         self.draw_map_with_fog(
             PLAYABLE_MAP,
             lambda tx, ty: (
@@ -1059,13 +1100,14 @@ class GameplayState:
             for tile in (self.reachable_tiles or []):
                 self.draw_tile_highlight(tile[0], tile[1], (0, 255, 255, 90))
 
-        # Drawing
+        # Draws resources
         for resource in self.resources:
             resource.draw(
                 self.screen, OFFSET_X, OFFSET_Y, self.camera_x, self.camera_y,
                 self.tile_width, self.tile_height, SCREEN_WIDTH, SCREEN_HEIGHT,
                 self.resources, VISIBILITY_MAP=VISIBILITY_MAP
             )
+        # Draws player and enemy buildings
         for building in self.buildings:
             building.draw(self.screen, OFFSET_X, OFFSET_Y, self.camera_x, self.camera_y, self.tile_width, self.tile_height)
         for eb in self.e_buildings:
@@ -1076,6 +1118,7 @@ class GameplayState:
                 and VISIBILITY_MAP[ex][ey] == 2
             ):
                 eb.draw(self.screen, OFFSET_X, OFFSET_Y, self.camera_x, self.camera_y, self.tile_width, self.tile_height)
+        # Draws enemy units
         for enemy in self.enemy_units:
             ex, ey = int(enemy.x), int(enemy.y)
             if (
@@ -1084,16 +1127,15 @@ class GameplayState:
                 and VISIBILITY_MAP[ex][ey] == 2
             ):
                 enemy.draw(self.screen, OFFSET_X, OFFSET_Y, self.camera_x, self.camera_y, self.tile_width, self.tile_height)
+        # Draws player units
         for unit in self.units:
             unit.draw(self.screen, OFFSET_X, OFFSET_Y, self.camera_x, self.camera_y, self.tile_width, self.tile_height)
 
+        # Displays hovered tile
         if self.hovered_tile:
-            self.draw_tile_highlight_crimson(*self.hovered_tile, (220, 20, 60))  # crimson outline
+            self.draw_tile_highlight_crimson(*self.hovered_tile)  # crimson outline
 
-        if self.selected_tile:
-            self.draw_tile_highlight_crimson(*self.selected_tile, (220, 20, 60))  # crimson outline
-
-        # === RESOURCE AND POPULATION DISPLAY BAR === #
+        # Displays the resource and population bar 
         bar_height = 25
         bar_color = (20, 20, 20)
         text_color = (255, 255, 255)

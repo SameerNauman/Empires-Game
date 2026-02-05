@@ -6,7 +6,7 @@ from states.game_over import GameOver
 from config import *
 
 # make sure enemies gather resources.
-# Helloooo
+
 class Main():
     def __init__(self):
         # Initialize pygame
