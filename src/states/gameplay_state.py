@@ -52,9 +52,9 @@ class GameplayState:
         town_centre = BaseBuildings(3, 3, 500, 10, type="town_centre")
         town_centre.is_constructed = True
         # Enemy units initialization
-        enemy_villager = BaseUnits(15, 15, 5, 50, 25, 1, type="Villager")
+        enemy_villager = BaseUnits(7, 7, 5, 50, 25, 1, type="Villager")
         # Enemy buildings initialization
-        e_town_centre = BaseBuildings(16, 16, 500, 10, type="town_centre")
+        e_town_centre = BaseBuildings(6, 10, 500, 10, type="town_centre")
         e_town_centre.is_constructed = True
 
         # Player unit and building lists
@@ -229,6 +229,9 @@ class GameplayState:
             (SCREEN_WIDTH - self.popup_menu.width) // 2,
             (SCREEN_HEIGHT - (self.popup_menu.item_height * len(self.popup_menu.options))) // 2
         )
+    
+    def close_popup_menu(self):
+        self.popup_menu.close()
 
     def gather_action(self):
         self.reachable_tiles = set()
@@ -562,7 +565,7 @@ class GameplayState:
             return pygame.image.load(path).convert_alpha()
 
         return {
-            "P": load_tile("grass3.png"),
+            "P": load_tile("grass4.png"),
             "F": load_tile("forest1.png"),
             "R1": load_tile("road1.png"),
             "R2": load_tile("road2.png"),
@@ -650,13 +653,13 @@ class GameplayState:
                                 self.popup_menu.move_selection(-1)
                             elif event.key == pygame.K_s:
                                 self.popup_menu.move_selection(1)
-                            elif event.key == pygame.K_RETURN:
+                            elif event.key == pygame.K_LSHIFT:
                                 self.popup_menu.select()
                         continue  # While popup is open, IGNORE ALL OTHER CONTROLS
 
                     # === MESSAGE BOX HANDLING ===
                     if self.message_box.visible:
-                        if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
+                        if event.type == pygame.KEYDOWN and event.key == pygame.K_LSHIFT:
                             if self.message_box.ok_button_rect:
                                 self.message_box.close()
                         continue
@@ -665,15 +668,15 @@ class GameplayState:
                     if self.target_select_mode:
                         # 1. Confirmation popup active (awaiting_attack_confirmation == True)
                         if self.awaiting_attack_confirmation:
-                            if self.popup_menu.is_open:
-                                if event.type == pygame.KEYDOWN:
-                                    if event.key == pygame.K_w:
-                                        self.popup_menu.move_selection(-1)
-                                    elif event.key == pygame.K_s:
-                                        self.popup_menu.move_selection(1)
-                                    elif event.key == pygame.K_RETURN:
-                                        self.popup_menu.select()
-                                    # DO NOT RESPOND TO ESCAPE
+                            # if self.popup_menu.is_open:
+                            #     if event.type == pygame.KEYDOWN:
+                            #         if event.key == pygame.K_w:
+                            #             self.popup_menu.move_selection(-1)
+                            #         elif event.key == pygame.K_s:
+                            #             self.popup_menu.move_selection(1)
+                            #         elif event.key == pygame.K_RETURN:
+                            #             self.popup_menu.select()
+                            #         # DO NOT RESPOND TO ESCAPE
                                 continue
                         else:
                             if event.type == pygame.KEYDOWN:
@@ -702,13 +705,13 @@ class GameplayState:
                             self.popup_menu.close()
                             continue
 
-                        # Other hotkeys for movement, zoom, etc.
-                        if event.key == pygame.K_1 and self.zoom_level < 1.3:
-                            self.zoom_level += 0.1
-                        if event.key == pygame.K_2 and self.zoom_level > 0.3:
-                            self.zoom_level -= 0.1
-                        self.tile_width = int(BASE_TILE_WIDTH * self.zoom_level)
-                        self.tile_height = int(BASE_TILE_HEIGHT * self.zoom_level)
+                        # Zoom. Needs fixing; adjust the size of tiles when zooming in and out.
+                        # if event.key == pygame.K_1 and self.zoom_level < 1.3:
+                        #     self.zoom_level += 0.1
+                        # if event.key == pygame.K_2 and self.zoom_level > 0.3:
+                        #     self.zoom_level -= 0.1
+                        # self.tile_width = int(BASE_TILE_WIDTH * self.zoom_level)
+                        # self.tile_height = int(BASE_TILE_HEIGHT * self.zoom_level)
 
                         # Tile movement
                         if event.key == pygame.K_w and self.selected_tile[1] > 0:
@@ -720,10 +723,12 @@ class GameplayState:
                         if event.key == pygame.K_d and self.selected_tile[0] < PLAYABLE_WIDTH - 1:
                             self.selected_tile = (self.selected_tile[0] + 1, self.selected_tile[1])
 
+                        # Needs fixing. We dont want to cycle to tired units. 
                         if event.key == pygame.K_TAB:
                             if self.selected_unit_id is not None:
                                 # Find current selected unit's index by its ID
-                                current_index = next((i for i, u in enumerate(self.units) if u.id == self.selected_unit_id), 0)
+                                current_index = next((i for i, u in enumerate(self.units) 
+                                                      if u.id == self.selected_unit_id), 0)
                                 self.units[current_index].selected = False
                                 next_index = (current_index + 1) % len(self.units)
                                 self.selected_unit = self.units[next_index]
@@ -738,7 +743,7 @@ class GameplayState:
                                 self.enemy_units,                 # enemy_units
                                 self.buildings,                   # player_buildings
                                 self.e_buildings,                 # enemy_buildings
-                                moving_side='player'              # <--- YOU SET IT HERE FOR PLAYER
+                                moving_side='player'
                             )
                             self.reachable_tiles = path_finding.bfs_reachable(
                                 (int(self.selected_unit.x), int(self.selected_unit.y)), self.selected_unit.movement_range
@@ -767,7 +772,7 @@ class GameplayState:
                                             self.enemy_units,                 # enemy_units
                                             self.buildings,                   # player_buildings
                                             self.e_buildings,                 # enemy_buildings
-                                            moving_side='player'              # <--- YOU SET IT HERE FOR PLAYER
+                                            moving_side='player'              
                                         )
                                         self.reachable_tiles = path_finding.bfs_reachable((int(unit.x), int(unit.y)), unit.movement_range)
                                         unit_found = True
@@ -835,7 +840,10 @@ class GameplayState:
                                         prev_building.selected = False
                                     self.selected_building_id = None
 
-                                self.popup_menu.open(["End Day"], {"End Day": self.end_day})
+                                self.popup_menu.open(["End Day", "Cancel"],
+                                                      {"End Day": self.end_day,
+                                                       "Cancel": self.close_popup_menu
+                                                       })
                                 self.popup_menu.menu_type = "options"
                                 self.popup_menu.set_position(
                                     (SCREEN_WIDTH - self.popup_menu.width) // 2,
