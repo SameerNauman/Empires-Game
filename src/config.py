@@ -5,6 +5,27 @@ from resources.resource_source import ResourceSource
 SCREEN_WIDTH, SCREEN_HEIGHT = 480, 272
 
 # Define tile types and costs
+
+TILE_SPRITES = {
+            "P": "grass4.png",
+            "F": "forest1.png",
+            "R1": "road1.png",
+            "R2": "road2.png",
+            "RC1": "roadcorner1.png",
+            "RC2": "roadcorner2.png",
+            "RC3": "roadcorner3.png",
+            "RC4": "roadcorner4.png",
+            "H": "hills2.png",
+            "W1": "river1.png",
+            "W2": "river2.png",
+            "W3": "river3.png",
+            "W4": "river4.png",
+            "WC1": "rivercorner1.png",
+            "WC2": "rivercorner2.png",
+            "WC3": "rivercorner3.png",
+            "WC4": "rivercorner4.png"
+        }
+
 TILE_DRAW_COLORS = {
     "P": (34, 177, 76),      # Plains
     "S": (193, 255, 255),    # Mountains
@@ -69,6 +90,10 @@ VISIBILITY_MAP = [[0 for _ in range(PLAYABLE_HEIGHT)] for _ in range(PLAYABLE_WI
 # Centering offsets
 OFFSET_X = (BOUNDARY_WIDTH - PLAYABLE_WIDTH) // 2
 OFFSET_Y = (BOUNDARY_HEIGHT - PLAYABLE_HEIGHT) // 2
+
+# Camera
+MARGIN = 50
+SCROLL_SPEED = 10
 
 # Tile size and zoom
 BASE_TILE_WIDTH, BASE_TILE_HEIGHT = 64, 32

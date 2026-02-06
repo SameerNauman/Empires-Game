@@ -6,6 +6,8 @@ class BaseUnits:
     def __init__(self, x, y, movement, attack, defense, attack_range=1, speed=0.1, health=100, type="Unknown"):
         self.x = x
         self.y = y
+        self.vision_x = int(self.x)
+        self.vision_y = int(self.y)
         self.health = health
         self.max_health = health
         self.movement_range = movement

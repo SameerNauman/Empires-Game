@@ -11,7 +11,6 @@ class PopupMenu:
         self.selected_index = 0
         self.is_open = False
         self.font = pygame.font.SysFont("Arial", 20)
-        self.menu_type = None
 
     def open(self, options, actions):
         self.options = options
