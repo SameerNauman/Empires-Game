@@ -6,7 +6,7 @@ SCREEN_WIDTH, SCREEN_HEIGHT = 480, 272
 
 # Define tile types and costs
 
-TILE_SPRITES = {
+TERRAIN_SPRITES = {
             "P": "grass4.png",
             "F": "forest1.png",
             "R1": "road1.png",
@@ -23,7 +23,9 @@ TILE_SPRITES = {
             "WC1": "rivercorner1.png",
             "WC2": "rivercorner2.png",
             "WC3": "rivercorner3.png",
-            "WC4": "rivercorner4.png"
+            "WC4": "rivercorner4.png",
+            "M": "mountain1.png",
+            "M2": "mountain2.png"            
         }
 
 TILE_DRAW_COLORS = {
@@ -43,7 +45,13 @@ TILE_TYPES = {
     "W": None, "FO": 2, "WO": 2, "GO": 2,  # You can use the same cost as plains, or None if impassable
 }
 
-ASSET_PATH = os.path.join("..", "assets", "tiles")
+TERRAIN_PATH = os.path.join("..", "assets", "terrain")
+
+BUILDING_SPRITES = {
+    "town_centre": "towncenter3.png"
+}
+
+BUILDING_PATH = os.path.join("..", "assets", "buildings")
 
 # Map dimensions
 PLAYABLE_WIDTH, PLAYABLE_HEIGHT = 20, 20

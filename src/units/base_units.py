@@ -27,22 +27,24 @@ class BaseUnits:
         self.gather_resource_id = None
         self.queued = False
 
+    
     def rest(self):
         self.action_count += 1
 
     def unit_tired(self):
         return self.action_count == 2
     
+    # Use after training a unit at a building.
     def unit_queued(self):
         self.queued = True
         self.action_count = 2
 
+    # Reset action count
     def rested(self):
         self.action_count = 0
         
-    def move_along_path(self, enemy_units):
-        global popup_message, popup_message_timer
-        
+    # Unit pathfinding
+    def move_along_path(self):
         if self.path:
             next_x, next_y = self.path[0]
             dx, dy = next_x - self.x, next_y - self.y
@@ -54,6 +56,7 @@ class BaseUnits:
                 self.x += self.speed * (dx / dist)
                 self.y += self.speed * (dy / dist)
 
+    # Unit and unit health bar displaying
     def draw(self, screen, offset_x, offset_y, camera_x, camera_y, TILE_WIDTH, TILE_HEIGHT):
         draw_x = self.x + offset_x
         draw_y = self.y + offset_y
@@ -80,6 +83,7 @@ class BaseUnits:
                 self.health, self.max_health
             )
         
+    # Health bar drawing
     def draw_health_bar(self, screen, x, y, length, height, current, maximum):
         GREEN = (34, 177, 76)
         INDIANRED4 = (139, 34, 34)

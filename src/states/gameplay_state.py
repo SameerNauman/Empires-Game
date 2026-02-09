@@ -37,10 +37,15 @@ class GameplayState:
         self.camera_x = 0
         self.camera_y = 0
 
-        # Tile sprites
-        self.tile_sprites = {}
-        self.asset_path = os.path.join("..", "assets", "tiles")
-        self.load_tile_sprites()
+        # Terrain sprites
+        self.terrain_sprites = {}
+        self.terrain_path = TERRAIN_PATH
+        self.load_terrain_sprites()
+
+        # Building sprites
+        self.building_sprites = {}
+        self.building_path = BUILDING_PATH
+        self.load_building_sprites()
 
         # Attack
         self.target_select_mode = False
@@ -113,7 +118,7 @@ class GameplayState:
                             if 0 <= tx < len(VISIBILITY_MAP) and 0 <= ty < len(VISIBILITY_MAP[0]):
                                 VISIBILITY_MAP[tx][ty] = 2
 
-    # Displays the sprites for the tiles, and magenta for missing sprites
+    # Displays the sprites for the terrain, and magenta for missing sprites
     def draw_map_with_fog(self, map_data, VISIBILITY_MAP, offset_tx=0, offset_ty=0):
         for tx in range(len(map_data)):
             for ty in range(len(map_data[tx])):
@@ -139,7 +144,7 @@ class GameplayState:
                 tile = map_data[tx][ty]
 
                 # Sprite aquisition
-                sprite = self.tile_sprites.get(tile)
+                sprite = self.terrain_sprites.get(tile)
 
                 if sprite:
                     # Darken if explored but not currently visible
@@ -169,11 +174,17 @@ class GameplayState:
                     )
 
     # Loads the sprites for the world tiles
-    def load_tile_sprites(self):
-        for tile_code, filename in TILE_SPRITES.items():
-            path = os.path.join(self.asset_path, filename)
-            self.tile_sprites[tile_code] = pygame.image.load(path).convert_alpha()
+    def load_terrain_sprites(self):
+        for tile_code, filename in TERRAIN_SPRITES.items():
+            path = os.path.join(self.terrain_path, filename)
+            self.terrain_sprites[tile_code] = pygame.image.load(path).convert_alpha()
     
+    # Loads the sprites for the buildings
+    def load_building_sprites(self):
+        for tile_code, filename in BUILDING_SPRITES.items():
+            path = os.path.join(self.building_path, filename)
+            self.building_sprites[tile_code] = pygame.image.load(path).convert_alpha()
+
     # 'Cinematic' effect of following enemy units during enemy turn.
     def follow_enemy_camera(self, enemy):
         draw_x = enemy.x + OFFSET_X
@@ -336,8 +347,8 @@ class GameplayState:
     # Displays a popup menu of the units available actions
     def display_unit_actions(self):
 
-        actions = ["Move", "Undo Move"]
-        callbacks = {
+        options = ["Move", "Undo Move"]
+        actions = {
             "Move": self.move_action,
             "Undo Move": self.undo_move
         }
@@ -345,16 +356,16 @@ class GameplayState:
         # If the unit is a villager, allow building if tile is empty
         if self.selected_unit.type == "Villager":
             if not self.is_tile_occupied(*self.hovered_tile):
-                actions.insert(1, "Build")
-                callbacks["Build"] = self.build_action
+                options.insert(1, "Build")
+                actions["Build"] = self.build_action
 
         # If the villager is on a resource tile, allow gathering
         landed_tile = (int(self.selected_unit.x), int(self.selected_unit.y))
         if self.selected_unit.type == "Villager":
             for res in self.resources:
                 if (res.x, res.y) == landed_tile:
-                    actions.insert(2, "Gather")
-                    callbacks["Gather"] = lambda u=self.selected_unit, r=res: self.gather_action(u, r)
+                    options.insert(2, "Gather")
+                    actions["Gather"] = lambda u=self.selected_unit, r=res: self.gather_action(u, r)
                     break
 
         # Ranged attack logic
@@ -364,16 +375,16 @@ class GameplayState:
                 self.selected_unit.attack_range,
                 self.enemy_units
             ):
-                actions.insert(0, "Attack")
-                callbacks["Attack"] = lambda: self.attack_action(self.selected_unit)
+                options.insert(0, "Attack")
+                actions["Attack"] = lambda: self.attack_action(self.selected_unit)
 
         # Melee attack logic
         else:
             if self.target_aquisition.is_enemy_adjacent(self.selected_tile, self.enemy_units):
-                actions.insert(0, "Attack")
-                callbacks["Attack"] = lambda: self.attack_action(self.selected_unit)
+                options.insert(0, "Attack")
+                actions["Attack"] = lambda: self.attack_action(self.selected_unit)
 
-        self.popup_menu.open(actions, callbacks)
+        self.popup_menu.open(options, actions)
         self.popup_menu.set_position(
             (SCREEN_WIDTH - self.popup_menu.width) // 2,
             (SCREEN_HEIGHT - (self.popup_menu.item_height * len(self.popup_menu.options))) // 2
@@ -391,7 +402,7 @@ class GameplayState:
         selected_unit.vision_y = int(selected_unit.y)
 
         self.selected_unit_id = None
-        self.close_popup_menu()
+        self.popup_menu.close()
 
     # Returns the unit back to its original location
     def undo_move(self):
@@ -402,7 +413,7 @@ class GameplayState:
         if selected_unit:
             selected_unit.selected = False
         self.selected_unit_id = None
-        self.close_popup_menu()
+        self.popup_menu.close()
 
     # Displays a popup menu of the different buildings to construct and then calls the building selector
     def build_action(self):
@@ -454,7 +465,7 @@ class GameplayState:
 
     # Returns to the previous popup menu
     def cancel_action(self):
-        self.popup_menu.open(actions, callbacks)
+        self.popup_menu.open()
         self.popup_menu.set_position(
             (SCREEN_WIDTH - self.popup_menu.width) // 2,
             (SCREEN_HEIGHT - (self.popup_menu.item_height * len(self.popup_menu.options))) // 2
@@ -469,7 +480,7 @@ class GameplayState:
             unit.rest()
             unit.selected = False
         self.selected_unit_id = None
-        self.close_popup_menu()
+        self.popup_menu.close()
 
     # Unit enters target aquisition mode
     def attack_action(self, unit):
@@ -506,12 +517,12 @@ class GameplayState:
     # tile to select an enemy unit.
     def open_attack_confirm_menu(self):
         # Called after target selection (even if only one target)
-        actions = ["Attack", "Undo Move"]
-        callbacks = {
+        options = ["Attack", "Undo Move"]
+        actions = {
             "Attack": self.execute_attack,
             "Undo Move": self.undo_attack
         }
-        self.popup_menu.open(actions, callbacks)
+        self.popup_menu.open(options, actions)
         self.popup_menu.set_position(
             (SCREEN_WIDTH - self.popup_menu.width) // 2,
             (SCREEN_HEIGHT - (self.popup_menu.item_height * len(self.popup_menu.options))) // 2
@@ -529,7 +540,7 @@ class GameplayState:
             damage = ((selected_unit.attack * (1 + BONUS_MULTIPLYER))/enemy.defense) * 25 + FLAT_BONUS
             enemy.health -= damage
             dist = abs(selected_unit.x - enemy.x) + abs(selected_unit.y - enemy.y)
-            self.enemy_ai.enemy_retaliation(selected_unit, enemy, dist)
+            self.retaliate_attack(selected_unit, enemy, dist)
             print("enemy:", enemy.health)
             print("player:", selected_unit.health)
         elif kind == 'building':
@@ -573,27 +584,19 @@ class GameplayState:
                 building_callbacks = {
                     "Train": self.unit_selection,
                     "Research": self.research_action,
-                    "Cancel": self.cancel_building_action
+                    "Cancel": self.deselect
                 }
             else:
                 building_actions = ["Research", "Cancel"]
                 building_callbacks = {
                     "Research": self.research_action,
-                    "Cancel": self.cancel_building_action
+                    "Cancel": self.deselect
                 }
             self.popup_menu.open(building_actions, building_callbacks)
             self.popup_menu.set_position(
                 (SCREEN_WIDTH - self.popup_menu.width) // 2,
                 (SCREEN_HEIGHT - (self.popup_menu.item_height * len(self.popup_menu.options))) // 2
             )
-
-    # Returns to previous popup menu page for buildings
-    def cancel_building_action(self):
-        selected_building = next((b for b in self.buildings if b.id == self.selected_building_id), None)
-        if selected_building:
-            selected_building.selected = False
-        self.selected_building_id = None
-        self.popup_menu.close()
 
     # Displays a popup menu of the trainable units at the selected building, and spawns the unit
     def unit_selection(self):
@@ -607,51 +610,52 @@ class GameplayState:
             b_attr = RESOURCE_BUILDINGS[building_name]
         trainable_units = b_attr[6]
 
-        # Displaying the trainable units in a popup menu
-        actions = trainable_units + ["Cancel"]
-        callbacks = {
+        # Collect all affordable units
+        affordable_units = []
+        for unit_name in trainable_units:
+            # Aquires unit attribute list
+            u_attr = UNITS[unit_name]
+            food, wood, gold = u_attr[1], u_attr[2], u_attr[3]
+            if (self.food_amount >= food and
+                self.wood_amount >= wood and
+                self.gold_amount >= gold):
+                affordable_units.append(unit_name)
+
+        # Displaying the affordable units in a popup menu
+        options = affordable_units + ["Cancel"]
+        actions = {
             unit: (lambda u=unit: self.train_action(u, spawn_x, spawn_y))
             for unit in trainable_units
         }
-        callbacks["Cancel"] = lambda: self.building_actions(selected_building)
+        actions["Cancel"] = lambda: self.building_actions(selected_building)
 
-        self.popup_menu.open(actions, callbacks)
+        self.popup_menu.open(options, actions)
         self.popup_menu.set_position(
             (SCREEN_WIDTH - self.popup_menu.width) // 2,
             (SCREEN_HEIGHT - (self.popup_menu.item_height * len(self.popup_menu.options))) // 2
         )
 
-    # Checks if the player has enough resources to spawn the villager, and creates an instance with
-    # appropriate attributes.
+    # Creates an instance of a unit with appropriate attributes.
     def train_action(self, unit_name, spawn_x, spawn_y):
         # Finds the unit's attribute list consisting of type, cost, movement, and defense values
         u_attr = UNITS[unit_name]
-        # Checks if the player has enough resources to spawn the unit. Creates a unit instance with
-        # appropriate attributes. Then subtracts from the player's resources based on its cost.
-        if self.food_amount >= u_attr[1] and self.wood_amount >= u_attr[2] and self.gold_amount >= u_attr[3]:
-            new_unit = BaseUnits(spawn_x, spawn_y, u_attr[5], u_attr[6], u_attr[7], u_attr[8], type=unit_name)
-            # Sets the unit's action count to 2 and appends it to the player's unit list.
-            new_unit.unit_queued()
-            self.units.append(new_unit)
-            self.food_amount -= u_attr[1]
-            self.wood_amount -= u_attr[2]
-            self.gold_amount -= u_attr[3]
-            # Sets the building's action count to 2
-            selected_building = next((b for b in self.buildings if b.id == self.selected_building_id), None)
-            if selected_building:
-                selected_building.rest()
-                selected_building.rest()
-                selected_building.selected = False
-                self.selected_building_id = None
-            self.popup_menu.close()
-        # If the player doesn't have enough resources, a message box is displayed
-        else:
-            self.message_box.open("Insufficient funds")
-            selected_building = next((b for b in self.buildings if b.id == self.selected_building_id), None)
-            if selected_building:
-                selected_building.selected = False
+        # Creates a unit instance with appropriate attributes. Then subtracts from the player's 
+        # resources based on its cost.
+        new_unit = BaseUnits(spawn_x, spawn_y, u_attr[5], u_attr[6], u_attr[7], u_attr[8], type=unit_name)
+        # Sets the unit's action count to 2 and appends it to the player's unit list.
+        new_unit.unit_queued()
+        self.units.append(new_unit)
+        self.food_amount -= u_attr[1]
+        self.wood_amount -= u_attr[2]
+        self.gold_amount -= u_attr[3]
+        # Sets the building's action count to 2
+        selected_building = next((b for b in self.buildings if b.id == self.selected_building_id), None)
+        if selected_building:
+            selected_building.rest()
+            selected_building.rest()
+            selected_building.selected = False
             self.selected_building_id = None
-            self.popup_menu.close()
+        self.popup_menu.close()
 
     # Research in buildings. Needs fixing
     def research_action(self):
@@ -936,7 +940,7 @@ class GameplayState:
         self.popup_menu.open(["End Day", "Cancel"],
                             {
                                 "End Day": self.end_day,
-                                "Cancel": self.close_popup_menu
+                                "Cancel": self.popup_menu.close
                             }
         )
 
@@ -1016,19 +1020,26 @@ class GameplayState:
                 self.e_buildings.remove(eb)
 
 # === MISC. ===
-
-    # Closes the popup menu
-    def close_popup_menu(self):
-        self.popup_menu.close()
         
     # Iterates over all buildings to check if there is a building on the hovered tile
     def is_tile_occupied(self, x, y):
         return any(b.x == x and b.y == y for b in self.buildings)
 
+    def retaliate_attack(self, attacker, defender, distance):
+        defender_range = defender.attack_range
+        # Melee retaliation: only if defender is melee and distance==1
+        if defender_range == 1 and distance == 1:
+            damage = ((defender.attack * (1 + BONUS_MULTIPLYER)) / attacker.defense) * 25 + FLAT_BONUS
+            attacker.health -= damage
+        # Ranged retaliation: only if not melee (distance > 1 and ≤ range)
+        elif defender_range > 1 and 1 < distance < defender_range:
+            damage = ((defender.attack * (1 + BONUS_MULTIPLYER)) / attacker.defense) * 25 + FLAT_BONUS
+            attacker.health -= damage
+
 # === GAME LOOP ===
 
     def run(self):
-        global actions, callbacks
+        # global actions, callbacks
         if not self.game_over:
             # Events during the player's turn
             if self.player_turn:
@@ -1132,7 +1143,7 @@ class GameplayState:
                 if self.enemy_turn_phase == 'move':
                     # Animate movement
                     if enemy.path:
-                        enemy.move_along_path(self.enemy_units)
+                        enemy.move_along_path()
                         self.follow_enemy_camera(enemy)
                         # Only move one tile per frame or step (for clarity/animation)
                         self.enemy_turn_delay = 0  # Adjust as needed for game speed
@@ -1150,7 +1161,7 @@ class GameplayState:
                         if player.health > 0 and dist == 1:
                             damage = ((enemy.attack * (1 + BONUS_MULTIPLYER))/player.defense) * 25 + FLAT_BONUS
                             player.health -= damage
-                            self.enemy_ai.enemy_retaliation(enemy, player, dist)
+                            self.retaliate_attack(enemy, player, dist)
                             print("enemy:", enemy.health)
                             print("player:", player.health)
                             did_attack = True
@@ -1187,7 +1198,7 @@ class GameplayState:
 
         # When a player unit is moving
         if self.is_moving:
-            self.selected_unit.move_along_path(self.enemy_units)
+            self.selected_unit.move_along_path()
             # Stops gathering if the unit moves off the resource tile
             self.gathering_check()
             
@@ -1221,6 +1232,10 @@ class GameplayState:
             for tile in (self.reachable_tiles or []):
                 self.draw_tile_highlight(tile[0], tile[1], (0, 255, 255, 90))
 
+        # Displays hovered tile
+        if self.hovered_tile:
+            self.draw_tile_highlight_crimson(*self.hovered_tile)  # crimson outline
+
         # Draws resources
         for resource in self.resources:
             resource.draw(
@@ -1230,7 +1245,17 @@ class GameplayState:
             )
         # Draws player and enemy buildings
         for building in self.buildings:
-            building.draw(self.screen, OFFSET_X, OFFSET_Y, self.camera_x, self.camera_y, self.tile_width, self.tile_height)
+            building.draw(
+                self.screen,
+                OFFSET_X,
+                OFFSET_Y,
+                self.camera_x,
+                self.camera_y,
+                self.tile_width,
+                self.tile_height,
+                self.building_sprites
+            )
+
         for eb in self.e_buildings:
             ex, ey = int(eb.x), int(eb.y)
             if (
@@ -1238,7 +1263,16 @@ class GameplayState:
                 and 0 <= ey < len(VISIBILITY_MAP[0])
                 and VISIBILITY_MAP[ex][ey] == 2
             ):
-                eb.draw(self.screen, OFFSET_X, OFFSET_Y, self.camera_x, self.camera_y, self.tile_width, self.tile_height)
+                eb.draw(
+                self.screen,
+                OFFSET_X,
+                OFFSET_Y,
+                self.camera_x,
+                self.camera_y,
+                self.tile_width,
+                self.tile_height,
+                self.building_sprites
+            )
         # Draws player and enemy units
         for enemy in self.enemy_units:
             ex, ey = int(enemy.x), int(enemy.y)
@@ -1250,10 +1284,6 @@ class GameplayState:
                 enemy.draw(self.screen, OFFSET_X, OFFSET_Y, self.camera_x, self.camera_y, self.tile_width, self.tile_height)
         for unit in self.units:
             unit.draw(self.screen, OFFSET_X, OFFSET_Y, self.camera_x, self.camera_y, self.tile_width, self.tile_height)
-
-        # Displays hovered tile
-        if self.hovered_tile:
-            self.draw_tile_highlight_crimson(*self.hovered_tile)  # crimson outline
 
         # Displays the resource and population bar 
         bar_height = 25

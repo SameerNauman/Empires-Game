@@ -90,7 +90,7 @@ class EnemyAi():
 
             # Search constructed player buildings
             for building in player_buildings:
-                if getattr(building, 'is_constructed', True) and getattr(building, 'hitpoints', 1) > 0:
+                if building.hitpoints > 0:
                     dist = abs(enemy.x - building.x) + abs(enemy.y - building.y)
                     if dist < min_dist:
                         min_dist = dist
@@ -137,128 +137,115 @@ class EnemyAi():
             else:
                 enemy.path = []
 
-    def try_enemy_attack(self, enemy_units, player_units, player_buildings):
-        """
-        After movement, enemy units attack following same rules as player units:
-        - Ranged attacks: only targets at distance > 1 and ≤ attack_range
-        - Melee attacks: only targets at distance == 1
-        - Units on buildings prevent the building from being targeted
-        - Only one attack per enemy per turn
-        """
-        for enemy in enemy_units:
-            if enemy.health <= 0:
-                continue
+    # def try_enemy_attack(self, enemy_units, player_units, player_buildings):
+    #     """
+    #     After movement, enemy units attack following same rules as player units:
+    #     - Ranged attacks: only targets at distance > 1 and ≤ attack_range
+    #     - Melee attacks: only targets at distance == 1
+    #     - Units on buildings prevent the building from being targeted
+    #     - Only one attack per enemy per turn
+    #     """
+    #     for enemy in enemy_units:
+    #         if enemy.health <= 0:
+    #             continue
 
-            attacked = False
-            attack_range = getattr(enemy, "attack_range", 1)
+    #         attacked = False
+    #         attack_range = getattr(enemy, "attack_range", 1)
 
-            # --- RANGED ATTACK (distance > 1 and ≤ attack_range) ---
-            if attack_range > 1:
-                # Units
-                for player in player_units:
-                    dist = abs(enemy.x - player.x) + abs(enemy.y - player.y)
-                    if player.health > 0 and 1 < dist <= attack_range:
-                        damage = ((enemy.attack * (1 + BONUS_MULTIPLYER))/player.defense) * 25 + FLAT_BONUS
-                        player.health -= damage
-                        self.enemy_retaliation(enemy, player, dist)
-                        print("enemy (ranged):", enemy.health)
-                        print("player:", player.health)
-                        attacked = True
-                        break
-                if attacked:
-                    continue
-                # Buildings
-                for building in player_buildings:
-                    if getattr(building, 'is_constructed', True) and getattr(building, 'hitpoints', 1) > 0:
-                        dist = abs(enemy.x - building.x) + abs(enemy.y - building.y)
-                        if 1 < dist <= attack_range:
-                            bx, by = int(building.x), int(building.y)
-                            unit_on_building = any(
-                                int(u.x) == bx and int(u.y) == by and u.health > 0
-                                for u in player_units
-                            )
-                            if unit_on_building:
-                                continue
-                            damage = ((enemy.attack * (1 + BONUS_MULTIPLYER))/building.defense) * 25 + FLAT_BONUS
-                            building.hitpoints -= enemy.attack
-                            print("enemy (ranged):", enemy.health)
-                            print("player building:", building.hitpoints)
-                            attacked = True
-                            break
-                if attacked:
-                    continue
+    #         # --- RANGED ATTACK (distance > 1 and ≤ attack_range) ---
+    #         if attack_range > 1:
+    #             # Units
+    #             for player in player_units:
+    #                 dist = abs(enemy.x - player.x) + abs(enemy.y - player.y)
+    #                 if player.health > 0 and 1 < dist <= attack_range:
+    #                     damage = ((enemy.attack * (1 + BONUS_MULTIPLYER))/player.defense) * 25 + FLAT_BONUS
+    #                     player.health -= damage
+    #                     self.enemy_retaliation(enemy, player, dist)
+    #                     print("enemy (ranged):", enemy.health)
+    #                     print("player:", player.health)
+    #                     attacked = True
+    #                     break
+    #             if attacked:
+    #                 continue
+    #             # Buildings
+    #             for building in player_buildings:
+    #                 if getattr(building, 'is_constructed', True) and getattr(building, 'hitpoints', 1) > 0:
+    #                     dist = abs(enemy.x - building.x) + abs(enemy.y - building.y)
+    #                     if 1 < dist <= attack_range:
+    #                         bx, by = int(building.x), int(building.y)
+    #                         unit_on_building = any(
+    #                             int(u.x) == bx and int(u.y) == by and u.health > 0
+    #                             for u in player_units
+    #                         )
+    #                         if unit_on_building:
+    #                             continue
+    #                         damage = ((enemy.attack * (1 + BONUS_MULTIPLYER))/building.defense) * 25 + FLAT_BONUS
+    #                         building.hitpoints -= enemy.attack
+    #                         print("enemy (ranged):", enemy.health)
+    #                         print("player building:", building.hitpoints)
+    #                         attacked = True
+    #                         break
+    #             if attacked:
+    #                 continue
 
-            # --- MELEE ATTACK (distance == 1) ---
-            # Units
-            for player in player_units:
-                dist = abs(enemy.x - player.x) + abs(enemy.y - player.y)
-                if player.health > 0 and dist == 1:
-                    damage = ((enemy.attack * (1 + BONUS_MULTIPLYER))/player.defense) * 25 + FLAT_BONUS
-                    player.health -= damage
-                    self.enemy_retaliation(enemy, player, dist)
-                    print("enemy (melee):", enemy.health)
-                    print("player:", player.health)
-                    attacked = True
-                    break
-            if attacked:
-                continue
-            # Buildings
-            for building in player_buildings:
-                if getattr(building, 'is_constructed', True) and getattr(building, 'hitpoints', 1) > 0:
-                    dist = abs(enemy.x - building.x) + abs(enemy.y - building.y)
-                    if dist == 1:
-                        bx, by = int(building.x), int(building.y)
-                        unit_on_building = any(
-                            int(u.x) == bx and int(u.y) == by and u.health > 0
-                            for u in player_units
-                        )
-                        if unit_on_building:
-                            continue
-                        damage = ((enemy.attack * (1 + BONUS_MULTIPLYER))/building.defense) * 25 + FLAT_BONUS
-                        building.hitpoints -= enemy.attack
-                        print("enemy (melee):", enemy.health)
-                        print("player building:", building.hitpoints)
-                        break
+    #         # --- MELEE ATTACK (distance == 1) ---
+    #         # Units
+    #         for player in player_units:
+    #             dist = abs(enemy.x - player.x) + abs(enemy.y - player.y)
+    #             if player.health > 0 and dist == 1:
+    #                 damage = ((enemy.attack * (1 + BONUS_MULTIPLYER))/player.defense) * 25 + FLAT_BONUS
+    #                 player.health -= damage
+    #                 self.enemy_retaliation(enemy, player, dist)
+    #                 print("enemy (melee):", enemy.health)
+    #                 print("player:", player.health)
+    #                 attacked = True
+    #                 break
+    #         if attacked:
+    #             continue
+    #         # Buildings
+    #         for building in player_buildings:
+    #             if getattr(building, 'is_constructed', True) and getattr(building, 'hitpoints', 1) > 0:
+    #                 dist = abs(enemy.x - building.x) + abs(enemy.y - building.y)
+    #                 if dist == 1:
+    #                     bx, by = int(building.x), int(building.y)
+    #                     unit_on_building = any(
+    #                         int(u.x) == bx and int(u.y) == by and u.health > 0
+    #                         for u in player_units
+    #                     )
+    #                     if unit_on_building:
+    #                         continue
+    #                     damage = ((enemy.attack * (1 + BONUS_MULTIPLYER))/building.defense) * 25 + FLAT_BONUS
+    #                     building.hitpoints -= enemy.attack
+    #                     print("enemy (melee):", enemy.health)
+    #                     print("player building:", building.hitpoints)
+    #                     break
 
-    def enemy_retaliation(self, attacker, defender, distance):
-        """
-        attacker: the unit that attacked (could be player or enemy)
-        defender: the unit retaliating (could be enemy or player)
-        distance: Manhattan distance between attacker and defender at the time of the attack
-        """
-        defender_range = getattr(defender, "attack_range", 1)
-        # Melee retaliation: only if defender is melee and distance==1
-        if defender_range == 1 and distance == 1:
-            damage = ((defender.attack * (1 + BONUS_MULTIPLYER)) / attacker.defense) * 25 + FLAT_BONUS
-            attacker.health -= damage
-        # Ranged retaliation: only if not melee (distance > 1 and ≤ range)
-        elif defender_range > 1 and 1 < distance <= defender_range:
-            damage = ((defender.attack * (1 + BONUS_MULTIPLYER)) / attacker.defense) * 25 + FLAT_BONUS
-            attacker.health -= damage
-
+    # Enemy unit training
     def train_enemy_units(self, e_buildings, enemy_units, gameplay_state):
+        # Iterates over enemy buildings and skips over resource buildings or not constructed.
         for building in e_buildings:
-            if not getattr(building, 'is_constructed', False):
+            if not building.is_constructed:
                 continue
             if building.type not in BUILDINGS:
-                continue  # skip resource buildings
-
-            # Check if spawn location is blocked by any alive enemy unit
+                continue
+            # Check if spawn location is blocked by an enemy unit
             spawn_x, spawn_y = building.x, building.y
             spawn_blocked = any(
-                int(u.x) == spawn_x and int(u.y) == spawn_y and u.health > 0
-                for u in enemy_units
+                int(u.x) == spawn_x and int(u.y) == spawn_y for u in enemy_units
             )
+            # Skip training for this building this turn
             if spawn_blocked:
                 # Optionally print or log: print(f"Spawn at ({spawn_x},{spawn_y}) blocked for {building.type}")
-                continue  # Skip training for this building this turn
+                continue
 
+            # Aquires building attribute list
             b_attr = BUILDINGS[building.type]
             trainable_units = b_attr[6]
 
             # Collect all affordable units
             affordable_units = []
             for unit_name in trainable_units:
+                # Aquires unit attribute list
                 u_attr = UNITS[unit_name]
                 food, wood, gold = u_attr[1], u_attr[2], u_attr[3]
                 if (gameplay_state.enemy_food >= food and
@@ -266,6 +253,7 @@ class EnemyAi():
                     gameplay_state.enemy_gold >= gold):
                     affordable_units.append(unit_name)
 
+            # Randomly spawns an affordable unit
             if affordable_units:
                 unit_name = random.choice(affordable_units)
                 u_attr = UNITS[unit_name]
@@ -279,5 +267,6 @@ class EnemyAi():
                 gameplay_state.enemy_food -= food
                 gameplay_state.enemy_wood -= wood
                 gameplay_state.enemy_gold -= gold
+                building.rest()
                 building.rest()
                 # Only one unit per building per turn

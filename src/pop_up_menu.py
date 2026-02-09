@@ -38,6 +38,7 @@ class PopupMenu:
         self.x = x
         self.y = y  
         
+    # Choosing an option with the awsd keys
     def move_selection(self, direction):
         if self.is_open:
             self.selected_index = (self.selected_index + direction) % len(self.options)

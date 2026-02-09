@@ -14,8 +14,9 @@ class ResourceSource:
     def is_depleted(self):
         return self.amount <= 0
 
+    # Resource drawing
     def draw(self, screen, OFFSET_X, OFFSET_Y, CAMERA_X, CAMERA_Y, TILE_WIDTH, TILE_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT, resources, VISIBILITY_MAP=None):
-        # Only draw if tile is visible (default: fully visible)
+        # Only draw if tile is visible
         visible = True
         if VISIBILITY_MAP is not None:
             if 0 <= self.x < len(VISIBILITY_MAP) and 0 <= self.y < len(VISIBILITY_MAP[0]):
