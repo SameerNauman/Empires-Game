@@ -19,6 +19,11 @@ class BaseBuildings:
         BaseBuildings.next_id += 1
 
     def draw(self, screen, OFFSET_X, OFFSET_Y, CAMERA_X, CAMERA_Y, TILE_WIDTH, TILE_HEIGHT, building_sprites):
+        # Sprites
+        sprite_set = building_sprites[self.type]
+        self.sprite_normal = sprite_set["normal"]
+        self.sprite_selected = sprite_set["selected"]
+        
         draw_x = self.x + OFFSET_X
         draw_y = self.y + OFFSET_Y
 
@@ -26,37 +31,18 @@ class BaseBuildings:
         screen_y = (draw_x + draw_y) * TILE_HEIGHT // 2 + (SCREEN_HEIGHT // 4) + CAMERA_Y
 
         screen_y += TILE_HEIGHT
-
-        # Try to get a sprite
-        sprite = building_sprites.get(self.type, None)
-
-        if sprite:
-            sprite_rect = sprite.get_rect()
+        
+        if self.selected:
+                selected_rect = self.sprite_selected.get_rect()
+                selected_rect.midbottom = (screen_x, screen_y)
+                screen.blit(self.sprite_selected, selected_rect)
+        else:
+            sprite_rect = self.sprite_normal.get_rect()
             
             # Anchor bottom-center of sprite to the tile center
             sprite_rect.midbottom = (screen_x, screen_y)
 
-            screen.blit(sprite, sprite_rect)
-
-            if self.selected:
-                pygame.draw.rect(screen, (255, 255, 0), sprite_rect, 3)
-
-        else:
-            # Fallback rectangle
-            color = BUILDING_COLORS.get(self.type, (255, 255, 255))
-            tired_color = tuple(max(0, c // 4) for c in color)
-
-            rect = pygame.Rect(
-                screen_x - TILE_WIDTH // 2,
-                screen_y - TILE_HEIGHT // 2,
-                TILE_WIDTH,
-                TILE_HEIGHT
-            )
-
-            pygame.draw.rect(screen, tired_color if self.building_tired() else color, rect)
-
-            if self.selected:
-                pygame.draw.rect(screen, (255, 255, 0), rect, 3)
+            screen.blit(self.sprite_normal, sprite_rect)
 
         # Draw health bar
         if self.hitpoints < self.max_hitpoints:

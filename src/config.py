@@ -8,7 +8,8 @@ SCREEN_WIDTH, SCREEN_HEIGHT = 480, 272
 
 TERRAIN_SPRITES = {
             "P": "grass4.png",
-            "F": "forest1.png",
+            "F3": "forest3.png",
+            "F4": "forest4.png",
             "R1": "road1.png",
             "R2": "road2.png",
             "RC1": "roadcorner1.png",
@@ -41,14 +42,17 @@ TILE_DRAW_COLORS = {
 }
 
 TILE_TYPES = {
-    "P": 2, "S": None, "F": 4, "H": 3, "R1": 1,  "R2": 1, "RC1": 1, "RC2": 1, "RC3": 1, "RC4": 1,
-    "W": None, "FO": 2, "WO": 2, "GO": 2,  # You can use the same cost as plains, or None if impassable
+    "P": 2, "F3": 4, "F4": 4, "H": 3, "R1": 1,  "R2": 1, "RC1": 1, "RC2": 1, "RC3": 1, "RC4": 1,
+    "FO": 2, "WO": 2, "GO": 2,  # Same cost as plains, or None if impassable
 }
 
 TERRAIN_PATH = os.path.join("..", "assets", "terrain")
 
 BUILDING_SPRITES = {
-    "town_centre": "towncenter3.png"
+    "town_centre": {
+        "normal": "towncenter3.png",
+        "selected": "tc_selected2.png"
+    }
 }
 
 BUILDING_PATH = os.path.join("..", "assets", "buildings")

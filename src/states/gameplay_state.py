@@ -181,9 +181,19 @@ class GameplayState:
     
     # Loads the sprites for the buildings
     def load_building_sprites(self):
-        for tile_code, filename in BUILDING_SPRITES.items():
-            path = os.path.join(self.building_path, filename)
-            self.building_sprites[tile_code] = pygame.image.load(path).convert_alpha()
+        for building_type, sprite_info in BUILDING_SPRITES.items():
+
+            # If this building has multiple sprite states (normal, selected, etc.)
+            if isinstance(sprite_info, dict):
+                self.building_sprites[building_type] = {
+                    key: pygame.image.load(os.path.join(self.building_path, filename)).convert_alpha()
+                    for key, filename in sprite_info.items()
+                }
+
+            # Backwards compatibility: single-sprite buildings
+            else:
+                path = os.path.join(self.building_path, sprite_info)
+                self.building_sprites[building_type] = pygame.image.load(path).convert_alpha()
 
     # 'Cinematic' effect of following enemy units during enemy turn.
     def follow_enemy_camera(self, enemy):
