@@ -1111,24 +1111,29 @@ class GameplayState:
                             if not self.is_moving:
                                 self.tactical_map_mode = not self.tactical_map_mode
 
-                        # Selecting a tile
                         if event.key == pygame.K_LSHIFT:
-                            # If a player unit is on the hovered tile, it is selected
-                            unit_found = self.select_player_unit()
-                            # If a player unit isn't on the hovered tile, and instead a builing is, it
-                            # is selected.
-                            if not unit_found:
-                                building_found = self.select_player_building()
+                            # CASE 1: A unit is already selected and we are clicking an empty/different tile to move
+                            if self.selected_unit_id is not None:
+                                # Check if the hovered tile is within reachable range
+                                if self.hovered_tile in self.reachable_tiles:
+                                    self.selected_tile = self.hovered_tile # Set destination
+                                    self.mobile_unit()
+                                    # Return/Continue so we don't immediately re-select the unit we just moved
+                                else:
+                                    # If we clicked outside movement range, treat it as a deselection/re-selection attempt
+                                    unit_found = self.select_player_unit()
+                                    if not unit_found:
+                                        building_found = self.select_player_building()
+                                        if not building_found:
+                                            self.select_empty_tile()
 
-                            # If an empty tile is selected, then previously selected units and buildings are deselected.
-                            # Displays a popup menu to end the players turn.
-                            if not unit_found and not building_found:
-                                self.select_empty_tile()
-
-                        # If a unit is selected to move and space is pressed, the map is closed, the unit pathfinds
-                        # from the starting position (the units position) to the selected tile.
-                        if event.key == pygame.K_SPACE and self.selected_unit_id is not None:
-                            self.mobile_unit()
+                            # CASE 2: No unit is currently selected
+                            else:
+                                unit_found = self.select_player_unit()
+                                if not unit_found:
+                                    building_found = self.select_player_building()
+                                    if not building_found:
+                                        self.select_empty_tile()
             
             # Enemy turn
             else: 
