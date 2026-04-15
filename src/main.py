@@ -7,8 +7,6 @@ from config import *
 
 # make sure enemies gather resources.
 
-
-# this is a test comment to see if the commit works
 class Main():
     def __init__(self):
         # Initialize pygame
