@@ -130,11 +130,19 @@ BUILDING_COLORS = {
     # Add more as you expand!
 }
 
-# [name, food cost, wood cost, gold cost, pop cost, movement, attack, defense, attack_range=1]
+VILLAGER_DESC = ("Villagers gather resources and construct buildings. They are weak in combat but essential for your economy. \n\n" "50 / 25")
+
+ARCHER_DESC = ("Archers are ranged units that can attack from a distance. \n" 
+"Equipped with bows, and leather armor. \n\n" "150 / 100")
+
+SPEARMEN_DESC = ("Spearmen are melee units that excel at defending against cavalry.\n"
+"Equipped with spears, and leather armor. \n\n" "100 / 100")
+
+# [name, food cost, wood cost, gold cost, pop cost, movement, attack, defense, attack_range=1, description=""]
 UNITS = {
-    "Villager": ["Villager", 50, 0, 0, 1, 5, 50, 25, 1],
-    "Archers": ["Archers", 60, 60, 0, 1, 7, 150, 100, 3],
-    "Spearmen": ["Spearmen", 50, 50, 0, 1, 7, 100, 100, 1]
+    "Villager": ["Villager", 50, 0, 0, 1, 5, 50, 25, 1, VILLAGER_DESC],
+    "Archers": ["Archers", 60, 60, 0, 1, 7, 150, 100, 3, ARCHER_DESC],
+    "Spearmen": ["Spearmen", 50, 50, 0, 1, 7, 100, 100, 1, SPEARMEN_DESC]
 }
 
 UNIT_COLORS = {

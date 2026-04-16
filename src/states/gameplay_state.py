@@ -24,7 +24,7 @@ class GameplayState:
         self.last_key_pressed = None
         self.reachable_tiles = set()
         self.food_amount = 500
-        self.wood_amount = 100
+        self.wood_amount = 500
         self.gold_amount = 500
         self.enemy_food = 500
         self.enemy_wood = 500
@@ -866,6 +866,8 @@ class GameplayState:
                 self.selected_unit = unit
                 self.selected_unit_id = unit.id
 
+                u_attr = UNITS[self.selected_unit.type]
+
                 # Only show reachable tiles if unit is not tired
                 if not self.selected_unit.unit_tired():
                     self.selected_unit.selected = True
@@ -892,6 +894,9 @@ class GameplayState:
                         if prev_building:
                             prev_building.selected = False
                     self.selected_building_id = None
+
+                self.message_box.open(u_attr[9], False)
+
                 # Unit was found and processed
                 return True
         # No unit found on hovered tile
@@ -987,6 +992,8 @@ class GameplayState:
                         self.selected_unit.path = [(float(x), float(y)) for x, y in path]
                         self.is_moving = True
 
+        self.message_box.close()
+
     # Checks if unit is gathering at a resource tile. If a unit moves off, it stops gathering.
     def gathering_check(self):
         if self.selected_unit.is_gathering:
@@ -1070,13 +1077,6 @@ class GameplayState:
                                 self.popup_menu.select()
                         continue  # While popup is open, IGNORE ALL OTHER CONTROLS
 
-                    # Message box handling
-                    if self.message_box.visible:
-                        if event.type == pygame.KEYDOWN and event.key == pygame.K_LSHIFT:
-                            if self.message_box.ok_button_rect:
-                                self.message_box.close()
-                        continue
-
                     # Target selection
                     if self.target_select_mode:
                         if event.type == pygame.KEYDOWN:
@@ -1092,6 +1092,7 @@ class GameplayState:
                         # Deselect units or buildings
                         if event.key == pygame.K_ESCAPE:
                             self.deselect()
+                            self.message_box.close()
 
                         # Get the state of all keys
                         keys = pygame.key.get_pressed()
@@ -1131,6 +1132,7 @@ class GameplayState:
                                         building_found = self.select_player_building()
                                         if not building_found:
                                             self.select_empty_tile()
+                                    self.message_box.close()
 
                             # CASE 2: No unit is currently selected
                             else:

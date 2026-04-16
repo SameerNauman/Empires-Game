@@ -41,7 +41,7 @@ class PopupMenu:
             return
         
         height = self.item_height * len(self.options)
-        self.x = 20
+        self.x = MARGIN
         self.y = (SCREEN_HEIGHT - height) // 2
 
         self.set_position(self.x, self.y)
