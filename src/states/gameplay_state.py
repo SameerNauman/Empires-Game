@@ -36,6 +36,7 @@ class GameplayState:
         self.running = True
         self.camera_x = 0
         self.camera_y = 0
+        self.tile_move_delay = 5  # Throttle tile movement speed
 
         # Terrain sprites
         self.terrain_sprites = {}
@@ -1155,19 +1156,6 @@ class GameplayState:
                             self.deselect()
                             self.message_box.close()
 
-                        # Get the state of all keys
-                        keys = pygame.key.get_pressed()
-
-                        # Check each key (this will run every frame the key is held)
-                        if keys[pygame.K_w] and self.selected_tile[1] > 0:
-                            self.selected_tile = (self.selected_tile[0], self.selected_tile[1] - 1)
-                        if keys[pygame.K_s] and self.selected_tile[1] < PLAYABLE_HEIGHT - 1:
-                            self.selected_tile = (self.selected_tile[0], self.selected_tile[1] + 1)
-                        if keys[pygame.K_a] and self.selected_tile[0] > 0:
-                            self.selected_tile = (self.selected_tile[0] - 1, self.selected_tile[1])
-                        if keys[pygame.K_d] and self.selected_tile[0] < PLAYABLE_WIDTH - 1:
-                            self.selected_tile = (self.selected_tile[0] + 1, self.selected_tile[1])
-
                         # Cycles through available units
                         if event.key == pygame.K_TAB:
                             self.cycle_player_units()
@@ -1202,6 +1190,29 @@ class GameplayState:
                                     building_found = self.select_player_building()
                                     if not building_found:
                                         self.select_empty_tile()
+
+                # Get the state of all keys (runs every frame for continuous movement)
+                keys = pygame.key.get_pressed()
+
+                # Decrement movement delay
+                if self.tile_move_delay > 0:
+                    self.tile_move_delay -= 1
+
+                # Check each key (this will run every frame the key is held)
+                # Only move if delay counter is 0, and only allow ONE direction per cycle
+                if self.tile_move_delay == 0:
+                    if keys[pygame.K_w] and self.selected_tile[1] > 0:
+                        self.selected_tile = (self.selected_tile[0], self.selected_tile[1] - 1)
+                        self.tile_move_delay = 10  # Adjust this value to control speed (higher = slower)
+                    elif keys[pygame.K_s] and self.selected_tile[1] < PLAYABLE_HEIGHT - 1:
+                        self.selected_tile = (self.selected_tile[0], self.selected_tile[1] + 1)
+                        self.tile_move_delay = 10
+                    elif keys[pygame.K_a] and self.selected_tile[0] > 0:
+                        self.selected_tile = (self.selected_tile[0] - 1, self.selected_tile[1])
+                        self.tile_move_delay = 10
+                    elif keys[pygame.K_d] and self.selected_tile[0] < PLAYABLE_WIDTH - 1:
+                        self.selected_tile = (self.selected_tile[0] + 1, self.selected_tile[1])
+                        self.tile_move_delay = 10
             
             # Enemy turn
             else: 
