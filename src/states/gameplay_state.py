@@ -36,7 +36,7 @@ class GameplayState:
         self.running = True
         self.camera_x = 0
         self.camera_y = 0
-        self.tile_move_delay = 5  # Throttle tile movement speed
+        self.tile_move_delay = 5
 
         # Terrain sprites
         self.terrain_sprites = {}
