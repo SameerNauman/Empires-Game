@@ -2,7 +2,7 @@ import random
 import csv, os
 from resources.resource_source import ResourceSource
 
-SCREEN_WIDTH, SCREEN_HEIGHT = 480, 272
+SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
 
 # Define tile types and costs
 

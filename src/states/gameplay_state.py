@@ -24,7 +24,7 @@ class GameplayState:
         self.last_key_pressed = None
         self.reachable_tiles = set()
         self.food_amount = 500
-        self.wood_amount = 500
+        self.wood_amount = 100
         self.gold_amount = 500
         self.enemy_food = 500
         self.enemy_wood = 500
@@ -475,7 +475,7 @@ class GameplayState:
 
     # Returns to the previous popup menu
     def cancel_action(self):
-        self.popup_menu.open()
+        self.popup_menu.back()
         self.popup_menu.set_position(
             (SCREEN_WIDTH - self.popup_menu.width) // 2,
             (SCREEN_HEIGHT - (self.popup_menu.item_height * len(self.popup_menu.options))) // 2
@@ -1092,14 +1092,17 @@ class GameplayState:
                         if event.key == pygame.K_ESCAPE:
                             self.deselect()
 
-                        # Tile movement
-                        if event.key == pygame.K_w and self.selected_tile[1] > 0:
+                        # Get the state of all keys
+                        keys = pygame.key.get_pressed()
+
+                        # Check each key (this will run every frame the key is held)
+                        if keys[pygame.K_w] and self.selected_tile[1] > 0:
                             self.selected_tile = (self.selected_tile[0], self.selected_tile[1] - 1)
-                        if event.key == pygame.K_s and self.selected_tile[1] < PLAYABLE_HEIGHT - 1:
+                        if keys[pygame.K_s] and self.selected_tile[1] < PLAYABLE_HEIGHT - 1:
                             self.selected_tile = (self.selected_tile[0], self.selected_tile[1] + 1)
-                        if event.key == pygame.K_a and self.selected_tile[0] > 0:
+                        if keys[pygame.K_a] and self.selected_tile[0] > 0:
                             self.selected_tile = (self.selected_tile[0] - 1, self.selected_tile[1])
-                        if event.key == pygame.K_d and self.selected_tile[0] < PLAYABLE_WIDTH - 1:
+                        if keys[pygame.K_d] and self.selected_tile[0] < PLAYABLE_WIDTH - 1:
                             self.selected_tile = (self.selected_tile[0] + 1, self.selected_tile[1])
 
                         # Cycles through available units
@@ -1111,6 +1114,7 @@ class GameplayState:
                             if not self.is_moving:
                                 self.tactical_map_mode = not self.tactical_map_mode
 
+                        # Selection/Deselection and movement with shift key
                         if event.key == pygame.K_LSHIFT:
                             # CASE 1: A unit is already selected and we are clicking an empty/different tile to move
                             if self.selected_unit_id is not None:

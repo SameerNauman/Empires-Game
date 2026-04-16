@@ -1,4 +1,5 @@
 import pygame
+from config import *
 
 class PopupMenu:
     def __init__(self, options,actions, x, y, width=150, item_height=30):
@@ -12,12 +13,25 @@ class PopupMenu:
         self.is_open = False
         self.font = pygame.font.SysFont("Arial", 20)
 
-    def open(self, options, actions):
+        self.history = []  # Stack to keep track of menu history for nested menus
+
+    def open(self, options, actions, save_to_history=True):
+        if save_to_history and self.options is not None:
+            self.history.append((self.options, self.actions))
         self.options = options
         self.actions = actions
         self.selected_index = 0
         self.is_open = True
 
+    def back(self):
+        if self.history:
+            # Pop the last menu state from history
+            prev_options, prev_actions = self.history.pop()
+            # Open it without saving the current (bad) state to history
+            self.open(prev_options, prev_actions, save_to_history=False)
+        else:
+            self.is_open = False # Close if no history remains
+            
     def close(self):
         self.is_open = False
         self.menu_type = None
@@ -25,7 +39,13 @@ class PopupMenu:
     def draw(self, screen):
         if not self.is_open:
             return
+        
         height = self.item_height * len(self.options)
+        self.x = 20
+        self.y = (SCREEN_HEIGHT - height) // 2
+
+        self.set_position(self.x, self.y)
+
         pygame.draw.rect(screen, (0, 0, 0), (self.x, self.y, self.width, height))
         pygame.draw.rect(screen, (255, 255, 255), (self.x, self.y, self.width, height), 2)
 
