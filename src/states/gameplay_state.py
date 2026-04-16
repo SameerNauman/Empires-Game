@@ -235,17 +235,22 @@ class GameplayState:
 
 # === MAP DISPLAYING ===
 
-    # Displays the map when opened.
+    # Displays a circular mini map in the bottom right corner of the screen.
     def draw_tactical_map(self):
-        self.screen.fill((32, 32, 32))
-        tile_size = 25
-        half_width = tile_size // 2
-        half_height = tile_size // 4
-        map_width_px = (PLAYABLE_WIDTH + PLAYABLE_HEIGHT) * half_width
-        map_height_px = (PLAYABLE_WIDTH + PLAYABLE_HEIGHT) * half_height // 2
-        offset_draw_x = (SCREEN_WIDTH - map_width_px) // 2
-        offset_draw_y = (SCREEN_HEIGHT - map_height_px) // 2 - SCREEN_HEIGHT // 2
-
+        # Mini map dimensions and position
+        
+        # Create a surface for the circular mini map with per-pixel alpha
+        mini_map_surface = pygame.Surface((MINIMAP_SIZE, MINIMAP_SIZE), pygame.SRCALPHA)
+        
+        # Draw semi-transparent circular background - smaller circle
+        # circle_radius = int(RADIUS * 0.85)
+        pygame.draw.circle(mini_map_surface, (32, 32, 32, 200), (RADIUS, RADIUS), SMALLER_RADIUS)
+        
+        # Calculate offset to center the map on the minimap center
+        center_sum = (PLAYABLE_WIDTH + PLAYABLE_HEIGHT - 2) // 2
+        offset_x = RADIUS
+        offset_y = RADIUS - center_sum * MINI_MAP_SCALE
+        
         # Draw only visible tiles
         for x in range(PLAYABLE_WIDTH):
             for y in range(PLAYABLE_HEIGHT):
@@ -254,71 +259,127 @@ class GameplayState:
                     continue  # Skip tiles not visible
                 tile = PLAYABLE_MAP[x][y]
                 color = TILE_DRAW_COLORS.get(tile, (255, 0, 255))
-                draw_x = (x - y) * half_width + offset_draw_x + map_width_px // 2
-                draw_y = (x + y) * half_height + offset_draw_y + map_height_px // 2
-                pygame.draw.polygon(self.screen, color, [
-                    (draw_x, draw_y),
-                    (draw_x + half_width, draw_y + half_height),
-                    (draw_x, draw_y + 2 * half_height),
-                    (draw_x - half_width, draw_y + half_height)
-                ])
+                draw_x = int((x - y) * MINI_MAP_SCALE + offset_x)
+                draw_y = int((x + y) * MINI_MAP_SCALE + offset_y)
+                
+                # Check if point is within circle before drawing
+                dist_from_center = ((draw_x - RADIUS) ** 2 + (draw_y - RADIUS) ** 2) ** 0.5
+                if dist_from_center < SMALLER_RADIUS:
+                    # Top-down diamond tile
+                    pygame.draw.polygon(mini_map_surface, color, [
+                        (draw_x, draw_y - MINI_MAP_SCALE),
+                        (draw_x + MINI_MAP_SCALE, draw_y),
+                        (draw_x, draw_y + MINI_MAP_SCALE),
+                        (draw_x - MINI_MAP_SCALE, draw_y)
+                    ])
 
         # Only draw player units/buildings/resources if on visible tiles
         for unit in self.units:
             ux, uy = int(unit.x), int(unit.y)
             if 0 <= ux < PLAYABLE_WIDTH and 0 <= uy < PLAYABLE_HEIGHT and VISIBILITY_MAP[ux][uy] != 0:
-                self.draw_unit(ux, uy, half_width, half_height, offset_draw_x, offset_draw_y)
+                draw_x = int((ux - uy) * MINI_MAP_SCALE + offset_x)
+                draw_y = int((ux + uy) * MINI_MAP_SCALE + offset_y)
+                dist_from_center = ((draw_x - RADIUS) ** 2 + (draw_y - RADIUS) ** 2) ** 0.5
+                if dist_from_center < SMALLER_RADIUS:
+                    self.draw_unit(ux, uy, mini_map_surface, draw_x, draw_y)
+        
         for building in self.buildings:
             bx, by = int(building.x), int(building.y)
             if 0 <= bx < PLAYABLE_WIDTH and 0 <= by < PLAYABLE_HEIGHT and VISIBILITY_MAP[bx][by] != 0:
-                self.draw_building(bx, by, half_width, half_height, offset_draw_x, offset_draw_y)
+                draw_x = int((bx - by) * MINI_MAP_SCALE + offset_x)
+                draw_y = int((bx + by) * MINI_MAP_SCALE + offset_y)
+                dist_from_center = ((draw_x - RADIUS) ** 2 + (draw_y - RADIUS) ** 2) ** 0.5
+                if dist_from_center < SMALLER_RADIUS:
+                    self.draw_building(bx, by, mini_map_surface, draw_x, draw_y)
+        
         for res in self.resources:
             rx, ry = int(res.x), int(res.y)
             if 0 <= rx < PLAYABLE_WIDTH and 0 <= ry < PLAYABLE_HEIGHT and VISIBILITY_MAP[rx][ry] != 0:
-                self.draw_resource(rx, ry, half_width, half_height, offset_draw_x, offset_draw_y)
+                draw_x = int((rx - ry) * MINI_MAP_SCALE + offset_x)
+                draw_y = int((rx + ry) * MINI_MAP_SCALE + offset_y)
+                dist_from_center = ((draw_x - RADIUS) ** 2 + (draw_y - RADIUS) ** 2) ** 0.5
+                if dist_from_center < SMALLER_RADIUS:
+                    self.draw_resource(rx, ry, mini_map_surface, draw_x, draw_y)
         
-        # Draw camera view (isometric polygon)
+        self.map_outline(mini_map_surface, offset_x, offset_y)
+        
+        # Blit the mini map surface to the screen
+        self.screen.blit(mini_map_surface, (CENTER_X - RADIUS, CENTER_Y - RADIUS))
+        
+        # Draw circular border
+        pygame.draw.circle(self.screen, (200, 200, 200), (CENTER_X, CENTER_Y), SMALLER_RADIUS, 3)
+
+    def map_outline(self, surface, offset_x, offset_y):
+        # Draw yellow outline around playable map with margin
+        margin = -1  # tile margin inward from edges
         corners = [
-            (0, 0), (SCREEN_WIDTH, 0), (SCREEN_WIDTH, SCREEN_HEIGHT), (0, SCREEN_HEIGHT)
+            (margin, margin),                           # top-left
+            (PLAYABLE_WIDTH - 1 - margin, margin),      # top-right
+            (PLAYABLE_WIDTH - 1 - margin, PLAYABLE_HEIGHT - 1 - margin),  # bottom-right
+            (margin, PLAYABLE_HEIGHT - 1 - margin)      # bottom-left
         ]
-        iso_points = []
-        for sx, sy in corners:
-            world_x = (sx - SCREEN_WIDTH // 2) - self.camera_x
-            world_y = (sy - SCREEN_HEIGHT // 4) - self.camera_y
-            tile_y = ((2 * world_y - world_x) // self.tile_height) // 2
-            tile_x = ((2 * world_y + world_x) // self.tile_height) // 2
-            draw_x = (tile_x - tile_y) * half_width + offset_draw_x + map_width_px // 2
-            draw_y = (tile_x + tile_y) * half_height + offset_draw_y + map_height_px // 2
-            iso_points.append((draw_x, draw_y))
-        pygame.draw.polygon(self.screen, (255, 255, 0), iso_points, 2)
-        pygame.display.flip()
+        # Top-down diamond view (rotate 45 degrees without isometric compression)
+        corners_screen = []
+        for x, y in corners:
+            draw_x = int((x - y) * MINI_MAP_SCALE + offset_x)
+            draw_y = int((x + y) * MINI_MAP_SCALE + offset_y)
+            corners_screen.append([draw_x, draw_y])
+        # Draw diamond outline using polygon (unfilled, just the border)
+        if len(corners_screen) >= 3:
+            pygame.draw.polygon(surface, (255, 255, 0), corners_screen, 2)
 
     # Displays units on the map
-    def draw_unit(self, x, y, half_width, half_height, offset_draw_x, offset_draw_y):
-        draw_x = (x - y) * half_width + offset_draw_x + (PLAYABLE_WIDTH * half_width)
-        draw_y = (x + y) * half_height + offset_draw_y + (PLAYABLE_HEIGHT * half_height) // 2
+    def draw_unit(self, x, y, surface=None, pre_calc_x=None, pre_calc_y=None):
+        if surface is None:
+            surface = self.screen
+            if pre_calc_x is None or pre_calc_y is None:
+                draw_x = (x - y) * HALF_WIDTH + OFFSET_DRAW_X + (PLAYABLE_WIDTH * HALF_WIDTH)
+                draw_y = (x + y) * HALF_HEIGHT + OFFSET_DRAW_Y + (PLAYABLE_HEIGHT * HALF_HEIGHT) // 2
+            else:
+                draw_x = pre_calc_x
+                draw_y = pre_calc_y
+        else:
+            # Using pre-calculated coordinates for minimap
+            draw_x = pre_calc_x
+            draw_y = pre_calc_y
         triangle_points = [
-            (draw_x, draw_y - half_height),
-            (draw_x - half_width, draw_y + half_height),
-            (draw_x + half_width, draw_y + half_height),
+            (draw_x, draw_y - HALF_HEIGHT),
+            (draw_x - HALF_WIDTH, draw_y + HALF_HEIGHT),
+            (draw_x + HALF_WIDTH, draw_y + HALF_HEIGHT),
         ]
-        pygame.draw.polygon(self.screen, (255, 255, 255), triangle_points)
+        pygame.draw.polygon(surface, (255, 255, 255), triangle_points)
 
     # Displays buildings on the map
-    def draw_building(self, x, y, half_width, half_height, offset_draw_x, offset_draw_y):
-        draw_x = (x - y) * half_width + offset_draw_x + (PLAYABLE_WIDTH * half_width)
-        draw_y = (x + y) * half_height + offset_draw_y + (PLAYABLE_HEIGHT * half_height) // 2
-        size = half_width // 2
-        pygame.draw.rect(self.screen, (255, 255, 255), pygame.Rect(draw_x - size, draw_y - size, size * 2, size * 2))
+    def draw_building(self, x, y, surface=None, pre_calc_x=None, pre_calc_y=None):
+        if surface is None:
+            surface = self.screen
+            if pre_calc_x is None or pre_calc_y is None:
+                draw_x = (x - y) * HALF_WIDTH + OFFSET_DRAW_X + (PLAYABLE_WIDTH * HALF_WIDTH)
+                draw_y = (x + y) * HALF_HEIGHT + OFFSET_DRAW_Y + (PLAYABLE_HEIGHT * HALF_HEIGHT) // 2
+            else:
+                draw_x = pre_calc_x
+                draw_y = pre_calc_y
+        else:
+            # Using pre-calculated coordinates for minimap
+            draw_x = pre_calc_x
+            draw_y = pre_calc_y
+        size = HALF_WIDTH // 2
+        pygame.draw.rect(surface, (255, 255, 255), pygame.Rect(draw_x - size, draw_y - size, size * 2, size * 2))
 
     # Displays resources on the map
-    def draw_resource(self, x, y, half_width, half_height, offset_draw_x, offset_draw_y):
+    def draw_resource(self, x, y, surface=None, pre_calc_x=None, pre_calc_y=None):
+        if surface is None:
+            surface = self.screen
         # Only draw resources if tile is visible
         if 0 <= x < PLAYABLE_WIDTH and 0 <= y < PLAYABLE_HEIGHT and VISIBILITY_MAP[x][y] == 2:
-            draw_x = (x - y) * half_width + offset_draw_x + (PLAYABLE_WIDTH * half_width)
-            draw_y = (x + y) * half_height + offset_draw_y + (PLAYABLE_HEIGHT * half_height) // 2
-            radius = half_width // 2
-            pygame.draw.circle(self.screen, (255, 255, 255), (draw_x, draw_y), radius)
+            if pre_calc_x is None or pre_calc_y is None:
+                draw_x = (x - y) * HALF_WIDTH + OFFSET_DRAW_X + (PLAYABLE_WIDTH * HALF_WIDTH)
+                draw_y = (x + y) * HALF_HEIGHT + OFFSET_DRAW_Y + (PLAYABLE_HEIGHT * HALF_HEIGHT) // 2
+            else:
+                draw_x = pre_calc_x
+                draw_y = pre_calc_y
+            circle_radius = HALF_WIDTH // 2
+            pygame.draw.circle(surface, (255, 255, 255), (draw_x, draw_y), circle_radius)
 
     # Displays highlighted reachable tiles
     def draw_tile_highlight(self, tx, ty, color, alpha=128):
@@ -1229,12 +1290,6 @@ class GameplayState:
                 self.is_moving = False
                 self.display_unit_actions()
 
-        # Displays the map if it is opened
-        if self.tactical_map_mode:
-            self.draw_tactical_map()
-            self.clock.tick(30)
-            return
-
         # Updates the unit visibility
         self.update_VISIBILITY_MAP(vision_range=3)
 
@@ -1344,3 +1399,8 @@ class GameplayState:
 
         self.popup_menu.draw(self.screen)
         self.message_box.draw()
+        
+        # Draw the mini map in the bottom right corner
+        self.draw_tactical_map()
+        
+        pygame.display.flip()

@@ -4,6 +4,33 @@ from resources.resource_source import ResourceSource
 
 SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
 
+# Map dimensions
+PLAYABLE_WIDTH, PLAYABLE_HEIGHT = 20, 20
+BOUNDARY_WIDTH, BOUNDARY_HEIGHT = 20, 20
+
+# Mini Map dimensions and position
+MINIMAP_SIZE = 400
+
+# Calculate scaled tile size to fit map in mini map area
+MINI_TILE = 18
+HALF_WIDTH = MINI_TILE // 2
+HALF_HEIGHT = MINI_TILE // 4
+RADIUS = MINIMAP_SIZE // 2
+SMALLER_RADIUS = int(RADIUS * 0.85)
+
+# Top-down view scale (no isometric compression) - reduced size (0.40 is the multiplier)
+MINI_MAP_SCALE = int(RADIUS // (PLAYABLE_WIDTH // 2 + 1) * 0.40)
+
+# For proper isometric centering:
+# - Center X is where (x - y) = 0, so offset_draw_x should be at circle center
+# - Center Y is where (x + y) is at midpoint (PLAYABLE_HEIGHT - 1 for 20x20 map)
+# The isometric grid's center point is at screen coords (0, (PLAYABLE_HEIGHT-1) * half_height)
+# We want this at (radius, radius)
+OFFSET_DRAW_X = RADIUS
+OFFSET_DRAW_Y = RADIUS - (PLAYABLE_HEIGHT - 1) * HALF_HEIGHT
+CENTER_X = SCREEN_WIDTH - RADIUS - 10
+CENTER_Y = SCREEN_HEIGHT - RADIUS - 10
+
 # Define tile types and costs
 
 TERRAIN_SPRITES = {
@@ -56,10 +83,6 @@ BUILDING_SPRITES = {
 }
 
 BUILDING_PATH = os.path.join("..", "assets", "buildings")
-
-# Map dimensions
-PLAYABLE_WIDTH, PLAYABLE_HEIGHT = 20, 20
-BOUNDARY_WIDTH, BOUNDARY_HEIGHT = 20, 20
 
 # Create maps
 csv_path = os.path.join("..", "assets", "maps", "alps2.csv")
