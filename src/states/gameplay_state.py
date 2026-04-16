@@ -1213,6 +1213,18 @@ class GameplayState:
                     elif keys[pygame.K_d] and self.selected_tile[0] < PLAYABLE_WIDTH - 1:
                         self.selected_tile = (self.selected_tile[0] + 1, self.selected_tile[1])
                         self.tile_move_delay = 10
+                    elif keys[pygame.K_UP] and self.selected_tile[1] > 0:
+                        self.selected_tile = (self.selected_tile[0], self.selected_tile[1] - 1)
+                        self.tile_move_delay = 10  # Adjust this value to control speed (higher = slower)
+                    elif keys[pygame.K_DOWN] and self.selected_tile[1] < PLAYABLE_HEIGHT - 1:
+                        self.selected_tile = (self.selected_tile[0], self.selected_tile[1] + 1)
+                        self.tile_move_delay = 10
+                    elif keys[pygame.K_LEFT] and self.selected_tile[0] > 0:
+                        self.selected_tile = (self.selected_tile[0] - 1, self.selected_tile[1])
+                        self.tile_move_delay = 10
+                    elif keys[pygame.K_RIGHT] and self.selected_tile[0] < PLAYABLE_WIDTH - 1:
+                        self.selected_tile = (self.selected_tile[0] + 1, self.selected_tile[1])
+                        self.tile_move_delay = 10
             
             # Enemy turn
             else: 
