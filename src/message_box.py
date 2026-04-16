@@ -14,23 +14,29 @@ class MessageBox:
         self.start_time = 0
         self.duration = 2000 # Duration in milliseconds (2 seconds)
 
-    def open(self, message):
+    def open(self, message, error_message):
         self.message = message
+        self.error_message = error_message
         self.visible = True  # Reset visibility to ensure it is displayed
         self.start_time = pygame.time.get_ticks()  # Start the timer
 
     def close(self):
         self.visible = False
 
-    def draw(self):
-        if not self.visible:
-            return
-
+    def countdown(self):
+        
         # Timer logic
         current_time = pygame.time.get_ticks()
         if current_time - self.start_time >= self.duration:
             self.close()
             return
+
+    def draw(self):
+        if not self.visible:
+            return
+        
+        if self.error_message:
+            self.countdown()
 
         # Word wrapping
         words = self.message.split(' ')

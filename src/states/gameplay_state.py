@@ -84,6 +84,7 @@ class GameplayState:
         self.game_over = False
 
         self.message_box = MessageBox(self.screen, SCREEN_WIDTH, SCREEN_HEIGHT)
+        self.error_message = True
         self.popup_menu = PopupMenu([], {}, 10, 10)
         self.target_aquisition = TargetAquisition()
         self.enemy_ai = EnemyAi(self.enemy_units)
@@ -470,8 +471,8 @@ class GameplayState:
             self.gold_amount -= b_attr[3]
             self.selected_unit_id = None
         else:
-            self.message_box.open("Insufficient funds")
-            self.cancel_action()
+            self.message_box.open("Insufficient funds", self.error_message)
+            # self.cancel_action()
 
     # Returns to the previous popup menu
     def cancel_action(self):
