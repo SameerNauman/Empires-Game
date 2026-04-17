@@ -1216,11 +1216,6 @@ class GameplayState:
                         if event.key == pygame.K_TAB:
                             self.cycle_player_units()
 
-                        # Opens the map
-                        if event.key == pygame.K_m:
-                            if not self.is_moving:
-                                self.tactical_map_mode = not self.tactical_map_mode
-
                         # Selection/Deselection and movement with shift key
                         if event.key == pygame.K_LSHIFT:
                             # CASE 1: A unit is already selected and we are clicking an empty/different tile to move
