@@ -18,7 +18,7 @@ class BaseBuildings:
         self.id = BaseBuildings.next_id
         BaseBuildings.next_id += 1
 
-    def draw(self, screen, OFFSET_X, OFFSET_Y, CAMERA_X, CAMERA_Y, TILE_WIDTH, TILE_HEIGHT, building_sprites):
+    def draw(self, screen, camera_x, camera_y, building_sprites):
         # Sprites
         sprite_set = building_sprites[self.type]
         self.sprite_normal = sprite_set["normal"]
@@ -27,15 +27,15 @@ class BaseBuildings:
         draw_x = self.x + OFFSET_X
         draw_y = self.y + OFFSET_Y
 
-        screen_x = (draw_x - draw_y) * TILE_WIDTH // 2 + (SCREEN_WIDTH // 2) + CAMERA_X
-        screen_y = (draw_x + draw_y) * TILE_HEIGHT // 2 + (SCREEN_HEIGHT // 4) + CAMERA_Y
+        screen_x = (draw_x - draw_y) * BASE_TILE_WIDTH // 2 + (SCREEN_WIDTH // 2) + camera_x
+        screen_y = (draw_x + draw_y) * BASE_TILE_HEIGHT // 2 + (SCREEN_HEIGHT // 4) + camera_y
 
-        screen_y += TILE_HEIGHT
+        screen_y += BASE_TILE_HEIGHT
         
         if self.selected:
-                selected_rect = self.sprite_selected.get_rect()
-                selected_rect.midbottom = (screen_x, screen_y)
-                screen.blit(self.sprite_selected, selected_rect)
+            selected_rect = self.sprite_selected.get_rect()
+            selected_rect.midbottom = (screen_x, screen_y)
+            screen.blit(self.sprite_selected, selected_rect)
         else:
             sprite_rect = self.sprite_normal.get_rect()
             
@@ -46,10 +46,10 @@ class BaseBuildings:
 
         # Draw health bar
         if self.hitpoints < self.max_hitpoints:
-            bar_length = TILE_WIDTH // 2
+            bar_length = BASE_TILE_WIDTH // 2
             bar_height = 6
             bar_x = int(screen_x - bar_length // 2)
-            bar_y = int(screen_y - TILE_HEIGHT // 2 - bar_height - 18)
+            bar_y = int(screen_y - BASE_TILE_HEIGHT // 2 - bar_height - 18)
             self.draw_health_bar(screen, bar_x, bar_y, bar_length, bar_height,
                                 self.hitpoints, self.max_hitpoints)
 

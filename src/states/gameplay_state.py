@@ -45,6 +45,11 @@ class GameplayState:
         self.terrain_path = TERRAIN_PATH
         self.load_terrain_sprites()
 
+        # Unit sprites
+        self.unit_sprites = {}
+        self.unit_path = UNIT_PATH
+        self.load_unit_sprites()
+
         # Building sprites
         self.building_sprites = {}
         self.building_path = BUILDING_PATH
@@ -172,6 +177,19 @@ class GameplayState:
             path = os.path.join(self.terrain_path, filename)
             self.terrain_sprites[tile_code] = pygame.image.load(path).convert_alpha()
     
+    def load_unit_sprites(self):
+        for unit_type, sprite_info in UNIT_SPRITES.items():
+            
+            if isinstance(sprite_info, dict):
+                self.unit_sprites[unit_type] = {
+                    key: pygame.image.load(os.path.join(self.unit_path, filename)).convert_alpha()
+                    for key, filename in sprite_info.items()
+                }
+            
+            else:
+                path = os.path.join(self.unit_path, sprite_info)
+                self.unit_sprites[unit_type] = pygame.image.load(path).convert_alpha()
+
     # Loads the sprites for the buildings
     def load_building_sprites(self):
         for building_type, sprite_info in BUILDING_SPRITES.items():
@@ -1407,12 +1425,8 @@ class GameplayState:
         for building in self.buildings:
             building.draw(
                 self.screen,
-                OFFSET_X,
-                OFFSET_Y,
                 self.camera_x,
                 self.camera_y,
-                BASE_TILE_WIDTH,
-                BASE_TILE_HEIGHT,
                 self.building_sprites
             )
 
@@ -1441,21 +1455,15 @@ class GameplayState:
                 and 0 <= ey < len(VISIBILITY_MAP[0])
                 and VISIBILITY_MAP[ex][ey] == 2
             ):
-                enemy.draw(self.screen, 
-                           OFFSET_X, 
-                           OFFSET_Y, 
+                enemy.draw(self.screen,
                            self.camera_x, 
-                           self.camera_y, 
-                           BASE_TILE_WIDTH, 
-                           BASE_TILE_HEIGHT)
+                           self.camera_y,
+                           self.unit_sprites)
         for unit in self.units:
-            unit.draw(self.screen, 
-                      OFFSET_X, 
-                      OFFSET_Y, 
+            unit.draw(self.screen,
                       self.camera_x, 
-                      self.camera_y, 
-                      BASE_TILE_WIDTH, 
-                      BASE_TILE_HEIGHT)
+                      self.camera_y,
+                      self.unit_sprites)
 
         # Displays the resource and population bar 
         bar_height = 25

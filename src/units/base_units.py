@@ -57,27 +57,47 @@ class BaseUnits:
                 self.y += self.speed * (dy / dist)
 
     # Unit and unit health bar displaying
-    def draw(self, screen, offset_x, offset_y, camera_x, camera_y, TILE_WIDTH, TILE_HEIGHT):
-        draw_x = self.x + offset_x
-        draw_y = self.y + offset_y
-        screen_x = (draw_x - draw_y) * TILE_WIDTH // 2 + (SCREEN_WIDTH // 2) + camera_x
-        screen_y = (draw_x + draw_y) * TILE_HEIGHT // 2 + (SCREEN_HEIGHT // 4) + camera_y
-        screen_y += TILE_HEIGHT // 2
+    def draw(self, screen, camera_x, camera_y, unit_sprites):
+        # Sprites
+        sprite_set = unit_sprites[self.type]
+        self.sprite_normal = sprite_set["normal"]
+        self.sprite_selected = sprite_set["selected"]
 
-        color = UNIT_COLORS.get(self.type, (255, 255, 255))
-        tired_color = tuple(max(0, c // 4) for c in color)
-        if self.unit_tired():
-            pygame.draw.circle(screen, tired_color, (int(screen_x), int(screen_y)), 5)
+        draw_x = self.x + OFFSET_X
+        draw_y = self.y + OFFSET_Y
+
+        screen_x = (draw_x - draw_y) * BASE_TILE_WIDTH // 2 + (SCREEN_WIDTH // 2) + camera_x
+        screen_y = (draw_x + draw_y) * BASE_TILE_HEIGHT // 2 + (SCREEN_HEIGHT // 4) + camera_y
+
+        screen_y += BASE_TILE_HEIGHT // 2
+
+        if self.selected:
+            selected_rect = self.sprite_selected.get_rect()
+            selected_rect.midbottom = (screen_x, screen_y)
+            screen.blit(self.sprite_selected, selected_rect)
         else:
-            pygame.draw.circle(screen, color, (int(screen_x), int(screen_y)), 5)
-            if self.selected:
-                pygame.draw.circle(screen, (255, 255, 0), (int(screen_x), int(screen_y)), 8, 2)
+            sprite_rect = self.sprite_normal.get_rect()
+            
+            # Anchor bottom-center of sprite to the tile center
+            sprite_rect.midbottom = (screen_x, screen_y)
+
+            screen.blit(self.sprite_normal, sprite_rect)
+
+        # color = UNIT_COLORS.get(self.type, (255, 255, 255))
+        # tired_color = tuple(max(0, c // 4) for c in color)
+        # if self.unit_tired():
+        #     pygame.draw.circle(screen, tired_color, (int(screen_x), int(screen_y)), 5)
+        # else:
+        #     pygame.draw.circle(screen, color, (int(screen_x), int(screen_y)), 5)
+        #     if self.selected:
+        #         pygame.draw.circle(screen, (255, 255, 0), (int(screen_x), int(screen_y)), 8, 2)
+
         # Draw health bar only if not full health
         if self.health < self.max_health:
-            bar_length = TILE_WIDTH // 2
+            bar_length = BASE_TILE_WIDTH // 2
             bar_height = 6
             bar_x = int(screen_x - bar_length // 2)
-            bar_y = int(screen_y - TILE_HEIGHT // 2 - bar_height - 2)
+            bar_y = int(screen_y - BASE_TILE_HEIGHT // 2 - bar_height - 2)
             self.draw_health_bar(
                 screen, bar_x, bar_y, bar_length, bar_height,
                 self.health, self.max_health

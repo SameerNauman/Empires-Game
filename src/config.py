@@ -75,6 +75,15 @@ TILE_TYPES = {
 
 TERRAIN_PATH = os.path.join("..", "assets", "terrain")
 
+UNIT_SPRITES = {
+    "Villager": {
+        "normal": "model_left2.png",
+        "selected": "piskel2.png"
+    }
+}
+
+UNIT_PATH = os.path.join("..", "assets", "units")
+
 BUILDING_SPRITES = {
     "town_centre": {
         "normal": "towncenter3.png",
