@@ -26,6 +26,7 @@ class BaseUnits:
         self.is_building = False
         self.gather_resource_id = None
         self.queued = False
+        self.direction = "S"
 
     
     def rest(self):

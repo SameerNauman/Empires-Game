@@ -77,7 +77,7 @@ TERRAIN_PATH = os.path.join("..", "assets", "terrain")
 
 UNIT_SPRITES = {
     "Villager": {
-        "normal": "model_left2.png",
+        "normal": "Skoutatoi.png",
         "selected": "piskel2.png"
     }
 }
