@@ -1078,6 +1078,10 @@ class GameplayState:
                         self.selected_unit.path = [(float(x), float(y)) for x, y in path]
                         self.is_moving = True
 
+        old_x, old_y = self.selected_unit.x, self.selected_unit.y
+        unit_x, unit_y = self.selected_tile
+        self.selected_unit.update_direction(old_x, old_y, unit_x, unit_y)
+
         self.message_box.close()
 
     # Checks if unit is gathering at a resource tile. If a unit moves off, it stops gathering.

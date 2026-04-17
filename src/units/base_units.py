@@ -28,7 +28,6 @@ class BaseUnits:
         self.queued = False
         self.direction = "S"
 
-    
     def rest(self):
         self.action_count += 1
 
@@ -57,12 +56,28 @@ class BaseUnits:
                 self.x += self.speed * (dx / dist)
                 self.y += self.speed * (dy / dist)
 
+    def update_direction(self, old_x, old_y, new_x, new_y):
+        if new_x > old_x:
+            self.direction = "E"
+        elif new_x < old_x:
+            self.direction = "W"
+        elif new_y > old_y:
+            self.direction = "S"
+        elif new_y < old_y:
+            self.direction = "N"
+
     # Unit and unit health bar displaying
     def draw(self, screen, camera_x, camera_y, unit_sprites):
         # Sprites
+        # The key is now "normal_S", "normal_N", etc.
+        sprite_key = f"normal_{self.direction}"
+        
+        # If the unit is selected, you might want "selected_S", etc.
+        if self.selected:
+            sprite_key = f"selected_{self.direction}"
+
         sprite_set = unit_sprites[self.type]
-        self.sprite_normal = sprite_set["normal"]
-        self.sprite_selected = sprite_set["selected"]
+        self.sprite_to_draw = sprite_set[sprite_key]
 
         draw_x = self.x + OFFSET_X
         draw_y = self.y + OFFSET_Y
@@ -72,17 +87,9 @@ class BaseUnits:
 
         screen_y += BASE_TILE_HEIGHT // 2
 
-        if self.selected:
-            selected_rect = self.sprite_selected.get_rect()
-            selected_rect.midbottom = (screen_x, screen_y)
-            screen.blit(self.sprite_selected, selected_rect)
-        else:
-            sprite_rect = self.sprite_normal.get_rect()
-            
-            # Anchor bottom-center of sprite to the tile center
-            sprite_rect.midbottom = (screen_x, screen_y)
-
-            screen.blit(self.sprite_normal, sprite_rect)
+        sprite_rect = self.sprite_to_draw.get_rect()
+        sprite_rect.midbottom = (screen_x, screen_y)
+        screen.blit(self.sprite_to_draw, sprite_rect)
 
         # color = UNIT_COLORS.get(self.type, (255, 255, 255))
         # tired_color = tuple(max(0, c // 4) for c in color)
