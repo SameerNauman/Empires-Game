@@ -47,6 +47,10 @@ class BaseUnits:
     def move_along_path(self):
         if self.path:
             next_x, next_y = self.path[0]
+
+            # Update the sprite to face the tile we are currently walking toward
+            self.update_direction(self.x, self.y, next_x, next_y)
+
             dx, dy = next_x - self.x, next_y - self.y
             dist = (dx ** 2 + dy ** 2) ** 0.5
             if dist < self.speed:
