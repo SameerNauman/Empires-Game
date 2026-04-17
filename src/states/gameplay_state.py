@@ -13,8 +13,6 @@ class GameplayState:
     def __init__(self, screen, game_state_manager):
         self.game_state_manager = game_state_manager
         self.screen = screen
-        self.tile_width = BASE_TILE_WIDTH
-        self.tile_height = BASE_TILE_HEIGHT
         self.clock = pygame.time.Clock()
         self.selected_tile = (4, 4)
         self.hovered_tile = self.selected_tile
@@ -125,7 +123,7 @@ class GameplayState:
                                 VISIBILITY_MAP[tx][ty] = 2
 
     # Displays the sprites for the terrain, and magenta for missing sprites
-    def draw_map_with_fog(self, map_data, VISIBILITY_MAP, offset_tx=0, offset_ty=0):
+    def draw_map_with_fog(self, map_data, VISIBILITY_MAP):
         for tx in range(len(map_data)):
             for ty in range(len(map_data[tx])):
 
@@ -133,19 +131,8 @@ class GameplayState:
                 if VISIBILITY_MAP[tx][ty] == 0:
                     continue
 
-                draw_tx = tx + offset_tx
-                draw_ty = ty + offset_ty
-
-                screen_x = (
-                    (draw_tx - draw_ty) * self.tile_width // 2
-                    + (SCREEN_WIDTH // 2)
-                    + self.camera_x
-                )
-                screen_y = (
-                    (draw_tx + draw_ty) * self.tile_height // 2
-                    + (SCREEN_HEIGHT // 4)
-                    + self.camera_y
-                )
+                draw_tx, draw_ty = self.draw_coords(tx, ty)
+                screen_x, screen_y = self.screen_coords(draw_tx, draw_ty)
 
                 tile = map_data[tx][ty]
 
@@ -163,7 +150,7 @@ class GameplayState:
 
                     self.screen.blit(
                         sprite,
-                        (screen_x - self.tile_width // 2, screen_y)
+                        (screen_x - BASE_TILE_WIDTH // 2, screen_y)
                     )
 
                 else:
@@ -173,9 +160,9 @@ class GameplayState:
                         (255, 0, 255),
                         [
                             (screen_x, screen_y),
-                            (screen_x + self.tile_width // 2, screen_y + self.tile_height // 2),
-                            (screen_x, screen_y + self.tile_height),
-                            (screen_x - self.tile_width // 2, screen_y + self.tile_height // 2),
+                            (screen_x + BASE_TILE_WIDTH // 2, screen_y + BASE_TILE_HEIGHT // 2),
+                            (screen_x, screen_y + BASE_TILE_HEIGHT),
+                            (screen_x - BASE_TILE_WIDTH // 2, screen_y + BASE_TILE_HEIGHT // 2),
                         ],
                     )
 
@@ -203,10 +190,9 @@ class GameplayState:
 
     # 'Cinematic' effect of following enemy units during enemy turn.
     def follow_enemy_camera(self, enemy):
-        draw_x = enemy.x + OFFSET_X
-        draw_y = enemy.y + OFFSET_Y
-        screen_x = (draw_x - draw_y) * self.tile_width // 2 + (SCREEN_WIDTH // 2) + self.camera_x
-        screen_y = (draw_x + draw_y) * self.tile_height // 2 + (SCREEN_HEIGHT // 4) + self.camera_y
+        draw_x, draw_y = self.draw_coords(enemy.x, enemy.y)
+        screen_x, screen_y = self.screen_coords(draw_x, draw_y)
+
         if screen_x < MARGIN:
             self.camera_x += SCROLL_SPEED
         elif screen_x > SCREEN_WIDTH - MARGIN:
@@ -216,16 +202,14 @@ class GameplayState:
         elif screen_y > SCREEN_HEIGHT - MARGIN:
             self.camera_y -= SCROLL_SPEED
 
+    # Camera follows hovered tile
     def display_hovered_tile(self):
         # The hovered tile is selected
         self.hovered_tile = self.selected_tile
 
         # Convert hovered tile to screen coordinates
-        draw_x = self.hovered_tile[0] + OFFSET_X
-        draw_y = self.hovered_tile[1] + OFFSET_Y
-
-        screen_x = (draw_x - draw_y) * self.tile_width // 2 + (SCREEN_WIDTH // 2) + self.camera_x
-        screen_y = (draw_x + draw_y) * self.tile_height // 2 + (SCREEN_HEIGHT // 4) + self.camera_y
+        draw_x, draw_y = self.draw_coords(self.hovered_tile[0], self.hovered_tile[1])
+        screen_x, screen_y = self.screen_coords(draw_x, draw_y)
 
         # Camera follow
         if screen_x < MARGIN:
@@ -264,6 +248,7 @@ class GameplayState:
                     continue  # Skip tiles not visible
                 tile = PLAYABLE_MAP[x][y]
                 color = TILE_DRAW_COLORS.get(tile, (255, 0, 255))
+
                 draw_x = int((x - y) * MINI_MAP_SCALE + offset_x)
                 draw_y = int((x + y) * MINI_MAP_SCALE + offset_y)
                 
@@ -388,32 +373,29 @@ class GameplayState:
 
     # Displays highlighted reachable tiles
     def draw_tile_highlight(self, tx, ty, color, alpha=128):
-        draw_tx = tx + OFFSET_X
-        draw_ty = ty + OFFSET_Y
-        screen_x = (draw_tx - draw_ty) * self.tile_width // 2 + (SCREEN_WIDTH // 2) + self.camera_x
-        screen_y = (draw_tx + draw_ty) * self.tile_height // 2 + (SCREEN_HEIGHT // 4) + self.camera_y
-        overlay = pygame.Surface((self.tile_width, self.tile_height), pygame.SRCALPHA)
+        draw_tx, draw_ty = self.draw_coords(tx, ty)
+        screen_x, screen_y = self.screen_coords(draw_tx, draw_ty)
+
+        overlay = pygame.Surface((BASE_TILE_WIDTH, BASE_TILE_HEIGHT), pygame.SRCALPHA)
         pygame.draw.polygon(overlay, color, [
-            (self.tile_width // 2, 0),
-            (self.tile_width, self.tile_height // 2),
-            (self.tile_width // 2, self.tile_height),
-            (0, self.tile_height // 2)
+            (BASE_TILE_WIDTH // 2, 0),
+            (BASE_TILE_WIDTH, BASE_TILE_HEIGHT // 2),
+            (BASE_TILE_WIDTH // 2, BASE_TILE_HEIGHT),
+            (0, BASE_TILE_HEIGHT // 2)
         ])
-        self.screen.blit(overlay, (screen_x - self.tile_width // 2, screen_y))
+        self.screen.blit(overlay, (screen_x - BASE_TILE_WIDTH // 2, screen_y))
 
     # Displays the red hovered tile
     def draw_tile_highlight_crimson(self, tx, ty, color=(220, 20, 60)):
-        draw_tx = tx + OFFSET_X
-        draw_ty = ty + OFFSET_Y
-        screen_x = (draw_tx - draw_ty) * self.tile_width // 2 + (SCREEN_WIDTH // 2) + self.camera_x
-        screen_y = (draw_tx + draw_ty) * self.tile_height // 2 + (SCREEN_HEIGHT // 4) + self.camera_y
+        draw_tx, draw_ty = self.draw_coords(tx, ty)
+        screen_x, screen_y = self.screen_coords(draw_tx, draw_ty)
 
         # Define the diamond shape points
         points = [
             (screen_x, screen_y),  # top
-            (screen_x + self.tile_width // 2, screen_y + self.tile_height // 2),  # right
-            (screen_x, screen_y + self.tile_height),  # bottom
-            (screen_x - self.tile_width // 2, screen_y + self.tile_height // 2),  # left
+            (screen_x + BASE_TILE_WIDTH // 2, screen_y + BASE_TILE_HEIGHT // 2),  # right
+            (screen_x, screen_y + BASE_TILE_HEIGHT),  # bottom
+            (screen_x - BASE_TILE_WIDTH // 2, screen_y + BASE_TILE_HEIGHT // 2),  # left
         ]
 
         # Draw the outline, not a filled polygon
@@ -422,11 +404,8 @@ class GameplayState:
     # Centers the camera back onto the selected_tile.
     def camera_lerp(self):
         # 1. Calculate the destination coordinates
-        draw_x = self.selected_tile[0] + OFFSET_X
-        draw_y = self.selected_tile[1] + OFFSET_Y
-
-        world_x = (draw_x - draw_y) * self.tile_width // 2 + (SCREEN_WIDTH // 2)
-        world_y = (draw_x + draw_y) * self.tile_height // 2 + (SCREEN_HEIGHT // 4)
+        draw_x, draw_y = self.draw_coords(self.selected_tile[0], self.selected_tile[1])
+        world_x, world_y = self.screen_coords(draw_x, draw_y)
         
         target_x = (SCREEN_WIDTH // 2) - world_x
         target_y = (SCREEN_HEIGHT // 2) - world_y
@@ -1143,6 +1122,22 @@ class GameplayState:
             damage = ((defender.attack * (1 + BONUS_MULTIPLYER)) / attacker.defense) * 25 + FLAT_BONUS
             attacker.health -= damage
 
+    # Returns (draw_tx, draw_ty)
+    def draw_coords(self, x, y):
+        draw_tx = x + OFFSET_X
+        draw_ty = y + OFFSET_Y
+
+        return (draw_tx, draw_ty)
+    
+    def screen_coords(self, x, y):
+        draw_x = x
+        draw_y = y
+
+        screen_x = ((draw_x - draw_y) * BASE_TILE_WIDTH // 2 + (SCREEN_WIDTH // 2) + self.camera_x)
+        screen_y = ((draw_x + draw_y) * BASE_TILE_HEIGHT // 2 + (SCREEN_HEIGHT // 4) + self.camera_y)
+
+        return(screen_x, screen_y)
+    
 # === GAME LOOP ===
 
     def run(self):
@@ -1381,9 +1376,7 @@ class GameplayState:
         # Implements the fog of war
         self.draw_map_with_fog(
             PLAYABLE_MAP,
-            VISIBILITY_MAP,
-            OFFSET_X,
-            OFFSET_Y
+            VISIBILITY_MAP
         )
 
         # Only draw reachable tiles if a unit is selected
@@ -1398,9 +1391,17 @@ class GameplayState:
         # Draws resources
         for resource in self.resources:
             resource.draw(
-                self.screen, OFFSET_X, OFFSET_Y, self.camera_x, self.camera_y,
-                self.tile_width, self.tile_height, SCREEN_WIDTH, SCREEN_HEIGHT,
-                self.resources, VISIBILITY_MAP=VISIBILITY_MAP
+                self.screen, 
+                OFFSET_X, 
+                OFFSET_Y, 
+                self.camera_x, 
+                self.camera_y,
+                BASE_TILE_WIDTH, 
+                BASE_TILE_HEIGHT, 
+                SCREEN_WIDTH, 
+                SCREEN_HEIGHT,
+                self.resources, 
+                VISIBILITY_MAP=VISIBILITY_MAP
             )
         # Draws player and enemy buildings
         for building in self.buildings:
@@ -1410,8 +1411,8 @@ class GameplayState:
                 OFFSET_Y,
                 self.camera_x,
                 self.camera_y,
-                self.tile_width,
-                self.tile_height,
+                BASE_TILE_WIDTH,
+                BASE_TILE_HEIGHT,
                 self.building_sprites
             )
 
@@ -1423,15 +1424,15 @@ class GameplayState:
                 and VISIBILITY_MAP[ex][ey] == 2
             ):
                 eb.draw(
-                self.screen,
-                OFFSET_X,
-                OFFSET_Y,
-                self.camera_x,
-                self.camera_y,
-                self.tile_width,
-                self.tile_height,
-                self.building_sprites
-            )
+                    self.screen,
+                    OFFSET_X,
+                    OFFSET_Y,
+                    self.camera_x,
+                    self.camera_y,
+                    BASE_TILE_WIDTH,
+                    BASE_TILE_HEIGHT,
+                    self.building_sprites
+                )
         # Draws player and enemy units
         for enemy in self.enemy_units:
             ex, ey = int(enemy.x), int(enemy.y)
@@ -1440,9 +1441,21 @@ class GameplayState:
                 and 0 <= ey < len(VISIBILITY_MAP[0])
                 and VISIBILITY_MAP[ex][ey] == 2
             ):
-                enemy.draw(self.screen, OFFSET_X, OFFSET_Y, self.camera_x, self.camera_y, self.tile_width, self.tile_height)
+                enemy.draw(self.screen, 
+                           OFFSET_X, 
+                           OFFSET_Y, 
+                           self.camera_x, 
+                           self.camera_y, 
+                           BASE_TILE_WIDTH, 
+                           BASE_TILE_HEIGHT)
         for unit in self.units:
-            unit.draw(self.screen, OFFSET_X, OFFSET_Y, self.camera_x, self.camera_y, self.tile_width, self.tile_height)
+            unit.draw(self.screen, 
+                      OFFSET_X, 
+                      OFFSET_Y, 
+                      self.camera_x, 
+                      self.camera_y, 
+                      BASE_TILE_WIDTH, 
+                      BASE_TILE_HEIGHT)
 
         # Displays the resource and population bar 
         bar_height = 25
