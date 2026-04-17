@@ -36,6 +36,10 @@ class GameplayState:
         self.running = True
         self.camera_x = 0
         self.camera_y = 0
+        self.free_cam_active = False
+        self.camera_return = False
+        self.camera_target_x = 0
+        self.camera_target_y = 0
         self.tile_move_delay = 5
 
         # Terrain sprites
@@ -414,6 +418,29 @@ class GameplayState:
 
         # Draw the outline, not a filled polygon
         pygame.draw.polygon(self.screen, color, points, width=5)
+
+    # Centers the camera back onto the selected_tile.
+    def camera_lerp(self):
+        # 1. Calculate the destination coordinates
+        draw_x = self.selected_tile[0] + OFFSET_X
+        draw_y = self.selected_tile[1] + OFFSET_Y
+
+        world_x = (draw_x - draw_y) * self.tile_width // 2 + (SCREEN_WIDTH // 2)
+        world_y = (draw_x + draw_y) * self.tile_height // 2 + (SCREEN_HEIGHT // 4)
+        
+        target_x = (SCREEN_WIDTH // 2) - world_x
+        target_y = (SCREEN_HEIGHT // 2) - world_y
+
+        # 2. Lerp towards destination
+        lerp_speed = 0.1 
+        self.camera_x += (target_x - self.camera_x) * lerp_speed
+        self.camera_y += (target_y - self.camera_y) * lerp_speed
+
+        # 3. Check if we are close enough to stop
+        if abs(self.camera_x - target_x) < 1 and abs(self.camera_y - target_y) < 1:
+            self.camera_x = target_x
+            self.camera_y = target_y
+            self.camera_return = False
 
 # === UNIT ACTIONS ===
 
@@ -1135,6 +1162,10 @@ class GameplayState:
                                 self.popup_menu.move_selection(-1)
                             elif event.key == pygame.K_s:
                                 self.popup_menu.move_selection(1)
+                            elif event.key == pygame.K_UP:
+                                self.popup_menu.move_selection(-1)
+                            elif event.key == pygame.K_DOWN:
+                                self.popup_menu.move_selection(1)
                             elif event.key == pygame.K_LSHIFT:
                                 self.popup_menu.select()
                         continue  # While popup is open, IGNORE ALL OTHER CONTROLS
@@ -1194,37 +1225,65 @@ class GameplayState:
                 # Get the state of all keys (runs every frame for continuous movement)
                 keys = pygame.key.get_pressed()
 
-                # Decrement movement delay
-                if self.tile_move_delay > 0:
-                    self.tile_move_delay -= 1
+                # Only allow camera movement and tile movement if no popup menu is open
+                if not self.popup_menu.is_open:
 
-                # Check each key (this will run every frame the key is held)
-                # Only move if delay counter is 0, and only allow ONE direction per cycle
-                if self.tile_move_delay == 0:
-                    if keys[pygame.K_w] and self.selected_tile[1] > 0:
-                        self.selected_tile = (self.selected_tile[0], self.selected_tile[1] - 1)
-                        self.tile_move_delay = 10  # Adjust this value to control speed (higher = slower)
-                    elif keys[pygame.K_s] and self.selected_tile[1] < PLAYABLE_HEIGHT - 1:
-                        self.selected_tile = (self.selected_tile[0], self.selected_tile[1] + 1)
-                        self.tile_move_delay = 10
-                    elif keys[pygame.K_a] and self.selected_tile[0] > 0:
-                        self.selected_tile = (self.selected_tile[0] - 1, self.selected_tile[1])
-                        self.tile_move_delay = 10
-                    elif keys[pygame.K_d] and self.selected_tile[0] < PLAYABLE_WIDTH - 1:
-                        self.selected_tile = (self.selected_tile[0] + 1, self.selected_tile[1])
-                        self.tile_move_delay = 10
-                    elif keys[pygame.K_UP] and self.selected_tile[1] > 0:
-                        self.selected_tile = (self.selected_tile[0], self.selected_tile[1] - 1)
-                        self.tile_move_delay = 10  # Adjust this value to control speed (higher = slower)
-                    elif keys[pygame.K_DOWN] and self.selected_tile[1] < PLAYABLE_HEIGHT - 1:
-                        self.selected_tile = (self.selected_tile[0], self.selected_tile[1] + 1)
-                        self.tile_move_delay = 10
-                    elif keys[pygame.K_LEFT] and self.selected_tile[0] > 0:
-                        self.selected_tile = (self.selected_tile[0] - 1, self.selected_tile[1])
-                        self.tile_move_delay = 10
-                    elif keys[pygame.K_RIGHT] and self.selected_tile[0] < PLAYABLE_WIDTH - 1:
-                        self.selected_tile = (self.selected_tile[0] + 1, self.selected_tile[1])
-                        self.tile_move_delay = 10
+                    # Camera control
+                    if keys[pygame.K_c]:
+                        self.free_cam_active = True
+                        self.camera_return = False
+
+                        # Move camera directly instead of the tile
+                        if keys[pygame.K_w] or keys[pygame.K_UP]:
+                            self.camera_y += SCROLL_SPEED
+                        elif keys[pygame.K_s] or keys[pygame.K_DOWN]:
+                            self.camera_y -= SCROLL_SPEED
+                        elif keys[pygame.K_a] or keys[pygame.K_LEFT]:
+                            self.camera_x += SCROLL_SPEED
+                        elif keys[pygame.K_d] or keys[pygame.K_RIGHT]:
+                            self.camera_x -= SCROLL_SPEED
+                    else:
+                        # If we just let go of C, snap back
+                        if self.free_cam_active:
+                            self.camera_return = True
+                            self.free_cam_active = False
+
+                        # SMOOTH RETURN LOGIC
+                        if self.camera_return:
+                            self.camera_lerp()
+
+                        # Decrement movement delay
+                        if self.tile_move_delay > 0:
+                            self.tile_move_delay -= 1
+
+                        # Movement with WASD or arrow keys.
+                        # Check each key (this will run every frame the key is held)
+                        # Only move if delay counter is 0, and only allow ONE direction per cycle
+                        if self.tile_move_delay == 0:
+                            if keys[pygame.K_w] and self.selected_tile[1] > 0:
+                                self.selected_tile = (self.selected_tile[0], self.selected_tile[1] - 1)
+                                self.tile_move_delay = 10  # Adjust this value to control speed (higher = slower)
+                            elif keys[pygame.K_s] and self.selected_tile[1] < PLAYABLE_HEIGHT - 1:
+                                self.selected_tile = (self.selected_tile[0], self.selected_tile[1] + 1)
+                                self.tile_move_delay = 10
+                            elif keys[pygame.K_a] and self.selected_tile[0] > 0:
+                                self.selected_tile = (self.selected_tile[0] - 1, self.selected_tile[1])
+                                self.tile_move_delay = 10
+                            elif keys[pygame.K_d] and self.selected_tile[0] < PLAYABLE_WIDTH - 1:
+                                self.selected_tile = (self.selected_tile[0] + 1, self.selected_tile[1])
+                                self.tile_move_delay = 10
+                            elif keys[pygame.K_UP] and self.selected_tile[1] > 0:
+                                self.selected_tile = (self.selected_tile[0], self.selected_tile[1] - 1)
+                                self.tile_move_delay = 10  # Adjust this value to control speed (higher = slower)
+                            elif keys[pygame.K_DOWN] and self.selected_tile[1] < PLAYABLE_HEIGHT - 1:
+                                self.selected_tile = (self.selected_tile[0], self.selected_tile[1] + 1)
+                                self.tile_move_delay = 10
+                            elif keys[pygame.K_LEFT] and self.selected_tile[0] > 0:
+                                self.selected_tile = (self.selected_tile[0] - 1, self.selected_tile[1])
+                                self.tile_move_delay = 10
+                            elif keys[pygame.K_RIGHT] and self.selected_tile[0] < PLAYABLE_WIDTH - 1:
+                                self.selected_tile = (self.selected_tile[0] + 1, self.selected_tile[1])
+                                self.tile_move_delay = 10
             
             # Enemy turn
             else: 
