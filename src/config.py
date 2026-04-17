@@ -77,15 +77,18 @@ TERRAIN_PATH = os.path.join("..", "assets", "terrain")
 
 UNIT_SPRITES = {
     "Villager": {
-        "normal_N": "normal_S.png",
-        "normal_S": "normal_S.png",
-        "normal_E": "normal_S.png",
-        "normal_W": "normal_S.png",
+        "normal_N": "back_left.png",
+        "normal_S": "face_left.png",
+        "normal_E": "back_right.png",
+        "normal_W": "face_right.png",
+        "selected_N": "selected_N.png",
         "selected_S": "selected_S.png",
+        "selected_E": "selected_E.png",
+        "selected_W": "selected_W.png",
     }
 }
 
-UNIT_PATH = os.path.join("..", "assets", "units", "villager_male")
+UNIT_PATH = os.path.join("..", "assets", "units", "base_model")
 
 BUILDING_SPRITES = {
     "town_centre": {
