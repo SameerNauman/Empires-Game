@@ -80,7 +80,11 @@ UNIT_SPRITES = {
         "normal_N": "back_left.png",
         "normal_S": "face_left.png",
         "normal_E": "face_right.png",
-        "normal_W": "back_right.png"
+        "normal_W": "back_right.png",
+        "selected_N": "selected_N.png",
+        "selected_S": "selected_S.png",
+        "selected_E": "selected_E.png",
+        "selected_W": "selected_W.png",
     }
 }
 

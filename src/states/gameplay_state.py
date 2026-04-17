@@ -240,6 +240,14 @@ class GameplayState:
         elif screen_y > SCREEN_HEIGHT - MARGIN:
             self.camera_y -= SCROLL_SPEED
 
+        # If a unit is selected, make it look at the hovered tile
+        if self.selected_unit_id is not None:
+            # Find the actual unit object
+            unit = next((u for u in self.units if u.id == self.selected_unit_id), None)
+            if unit:
+                # Update direction: compare unit's position to where the "cursor" is
+                unit.update_direction(unit.x, unit.y, self.hovered_tile[0], self.hovered_tile[1])
+
 # === MAP DISPLAYING ===
 
     # Displays a circular mini map in the bottom right corner of the screen.
