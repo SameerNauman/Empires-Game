@@ -1047,10 +1047,10 @@ class GameplayState:
                 prev_building.selected = False
             self.selected_building_id = None
 
-        self.popup_menu.open(["End Day", "Cancel"],
-                            {
-                                "End Day": self.end_day,
-                                "Cancel": self.popup_menu.close
+        self.popup_menu.open(["End Day", "Cancel", "Quit"], 
+                             {"End Day": self.end_day,
+                              "Cancel": self.popup_menu.close,
+                              "Quit": self.quit
                             }
         )
 
@@ -1137,6 +1137,10 @@ class GameplayState:
 
 # === MISC. ===
         
+    # Quits the game.
+    def quit(self):
+        self.running = False
+
     # Iterates over all buildings to check if there is a building on the hovered tile
     def is_tile_occupied(self, x, y):
         return any(b.x == x and b.y == y for b in self.buildings)
