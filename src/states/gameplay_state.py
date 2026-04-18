@@ -47,7 +47,6 @@ class GameplayState:
 
         # Unit sprites
         self.unit_sprites = {}
-        # self.unit_path = UNIT_PATH
         self.unit_sprites = self.load_unit_sprites()
 
         # Building sprites
@@ -244,7 +243,7 @@ class GameplayState:
             self.camera_y -= SCROLL_SPEED
 
         # If a unit is selected, make it look at the hovered tile
-        if self.selected_unit_id is not None:
+        if self.selected_unit_id is not None and not self.selected_unit.unit_tired():
             # Find the actual unit object
             unit = next((u for u in self.units if u.id == self.selected_unit_id), None)
             if unit:
@@ -1248,6 +1247,8 @@ class GameplayState:
                                     building_found = self.select_player_building()
                                     if not building_found:
                                         self.select_empty_tile()
+                                        # self.selected_unit = None
+                                        # self.selected_unit_id = None
 
                 # Get the state of all keys (runs every frame for continuous movement)
                 keys = pygame.key.get_pressed()

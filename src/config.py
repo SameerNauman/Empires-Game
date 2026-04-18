@@ -82,10 +82,10 @@ UNIT_SPRITES_CONFIG = {
     "Villager": {
         "folder": "base_model",
         "files": {
-            "normal_N": "back_left.png",
-            "normal_S": "face_left.png",
-            "normal_E": "back_right.png",
-            "normal_W": "face_right.png",
+            "normal_N": "normal_N.png",
+            "normal_S": "normal_S.png",
+            "normal_E": "normal_E.png",
+            "normal_W": "normal_W.png",
             "selected_N": "selected_N.png",
             "selected_S": "selected_S.png",
             "selected_E": "selected_E.png",
