@@ -73,7 +73,7 @@ TILE_TYPES = {
     "FO": 2, "WO": 2, "GO": 2,  # Same cost as plains, or None if impassable
 }
 
-TERRAIN_PATH = os.path.join("..", "assets", "terrain")
+TERRAIN_PATH = os.path.join("..", "assets", "terrain2")
 
 # The base path for all unit assets
 UNIT_ASSETS_BASE = os.path.join("..", "assets", "units")
@@ -93,7 +93,7 @@ UNIT_SPRITES_CONFIG = {
         }
     },
     "Archers": {
-        "folder": "archer",
+        "folder": "archer2",
         "files": {
             "normal_N": "archer_N.png",
             "normal_S": "archer_S.png",
@@ -114,7 +114,7 @@ BUILDING_SPRITES = {
     }
 }
 
-BUILDING_PATH = os.path.join("..", "assets", "buildings")
+BUILDING_PATH = os.path.join("..", "assets", "buildings2")
 
 # Create maps
 csv_path = os.path.join("..", "assets", "maps", "alps2.csv")
@@ -163,7 +163,7 @@ MARGIN = 50
 SCROLL_SPEED = 10
 
 # Tile size and zoom
-BASE_TILE_WIDTH, BASE_TILE_HEIGHT = 64, 32
+BASE_TILE_WIDTH, BASE_TILE_HEIGHT = 128, 64
 
 DAMAGE = 0
 BONUS_MULTIPLYER = 0
