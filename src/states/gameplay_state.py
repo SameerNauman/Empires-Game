@@ -192,6 +192,35 @@ class GameplayState:
                 
         return loaded_sprites
 
+    # Draws player and enemy units
+    def display_units(self):
+        # Create a combined list of all units that should be drawn
+        units_to_draw = []
+
+        # Add player units
+        units_to_draw.extend(self.units)
+
+        # Add enemy units only if they are visible
+        for enemy in self.enemy_units:
+            ex, ey = int(enemy.x), int(enemy.y)
+            if (0 <= ex < len(VISIBILITY_MAP) and 
+                0 <= ey < len(VISIBILITY_MAP[0]) and 
+                VISIBILITY_MAP[ex][ey] == 2):
+                units_to_draw.append(enemy)
+
+        #Sort the COMBINED list by the Z-axis (x + y)
+        # Units with smaller x+y (further away) come first in the list
+        units_to_draw.sort(key=lambda u: u.x + u.y)
+
+        # Draw them all in a single pass
+        for unit in units_to_draw:
+            unit.draw(
+                self.screen, 
+                self.camera_x, 
+                self.camera_y, 
+                self.unit_sprites
+            )
+
     # Loads the sprites for the buildings
     def load_building_sprites(self):
         for building_type, sprite_info in BUILDING_SPRITES.items():
@@ -1463,23 +1492,8 @@ class GameplayState:
                     self.building_sprites
                 )
         # Draws player and enemy units
-        for enemy in self.enemy_units:
-            ex, ey = int(enemy.x), int(enemy.y)
-            if (
-                0 <= ex < len(VISIBILITY_MAP)
-                and 0 <= ey < len(VISIBILITY_MAP[0])
-                and VISIBILITY_MAP[ex][ey] == 2
-            ):
-                enemy.draw(self.screen,
-                           self.camera_x, 
-                           self.camera_y,
-                           self.unit_sprites)
-        for unit in self.units:
-            unit.draw(self.screen,
-                      self.camera_x, 
-                      self.camera_y,
-                      self.unit_sprites)
-
+        self.display_units()
+        
         # Displays the resource and population bar 
         bar_height = 25
         bar_color = (20, 20, 20)
