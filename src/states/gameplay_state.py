@@ -47,8 +47,8 @@ class GameplayState:
 
         # Unit sprites
         self.unit_sprites = {}
-        self.unit_path = UNIT_PATH
-        self.load_unit_sprites()
+        # self.unit_path = UNIT_PATH
+        self.unit_sprites = self.load_unit_sprites()
 
         # Building sprites
         self.building_sprites = {}
@@ -178,17 +178,20 @@ class GameplayState:
             self.terrain_sprites[tile_code] = pygame.image.load(path).convert_alpha()
     
     def load_unit_sprites(self):
-        for unit_type, sprite_info in UNIT_SPRITES.items():
+        loaded_sprites = {}
+    
+        for unit_name, config in UNIT_SPRITES_CONFIG.items():
+            unit_folder = config["folder"]
+            loaded_sprites[unit_name] = {}
             
-            if isinstance(sprite_info, dict):
-                self.unit_sprites[unit_type] = {
-                    key: pygame.image.load(os.path.join(self.unit_path, filename)).convert_alpha()
-                    for key, filename in sprite_info.items()
-                }
-            
-            else:
-                path = os.path.join(self.unit_path, sprite_info)
-                self.unit_sprites[unit_type] = pygame.image.load(path).convert_alpha()
+            for key, filename in config["files"].items():
+                # Combine: ../assets/units/ + folder_name + filename
+                full_path = os.path.join(UNIT_ASSETS_BASE, unit_folder, filename)
+                
+                # Load the surface (assuming Pygame)
+                loaded_sprites[unit_name][key] = pygame.image.load(full_path).convert_alpha()
+                
+        return loaded_sprites
 
     # Loads the sprites for the buildings
     def load_building_sprites(self):

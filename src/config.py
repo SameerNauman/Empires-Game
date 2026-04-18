@@ -75,20 +75,37 @@ TILE_TYPES = {
 
 TERRAIN_PATH = os.path.join("..", "assets", "terrain")
 
-UNIT_SPRITES = {
+# The base path for all unit assets
+UNIT_ASSETS_BASE = os.path.join("..", "assets", "units")
+
+UNIT_SPRITES_CONFIG = {
     "Villager": {
-        "normal_N": "back_left.png",
-        "normal_S": "face_left.png",
-        "normal_E": "back_right.png",
-        "normal_W": "face_right.png",
-        "selected_N": "selected_N.png",
-        "selected_S": "selected_S.png",
-        "selected_E": "selected_E.png",
-        "selected_W": "selected_W.png",
+        "folder": "base_model",
+        "files": {
+            "normal_N": "back_left.png",
+            "normal_S": "face_left.png",
+            "normal_E": "back_right.png",
+            "normal_W": "face_right.png",
+            "selected_N": "selected_N.png",
+            "selected_S": "selected_S.png",
+            "selected_E": "selected_E.png",
+            "selected_W": "selected_W.png",
+        }
+    },
+    "Archers": {
+        "folder": "archer",
+        "files": {
+            "normal_N": "archer_N.png",
+            "normal_S": "archer_S.png",
+            "normal_E": "archer_E.png",
+            "normal_W": "archer_W.png",
+            "selected_N": "selected_N.png",
+            "selected_S": "selected_S.png",
+            "selected_E": "selected_E.png",
+            "selected_W": "selected_W.png"
+        }
     }
 }
-
-UNIT_PATH = os.path.join("..", "assets", "units", "base_model")
 
 BUILDING_SPRITES = {
     "town_centre": {

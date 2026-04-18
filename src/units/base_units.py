@@ -73,22 +73,23 @@ class BaseUnits:
     # Unit and unit health bar displaying
     def draw(self, screen, camera_x, camera_y, unit_sprites):
         # Sprites
-        # The key is now "normal_S", "normal_N", etc.
-        sprite_key = f"normal_{self.direction}"
-        
-        # If the unit is selected, you might want "selected_S", etc.
-        if self.selected:
-            sprite_key = f"selected_{self.direction}"
+        # Determine the correct key based on selection and direction
+        state = "selected" if self.selected else "normal"
+        sprite_key = f"{state}_{self.direction}"
 
+        # Access the pre-loaded surface
+        # unit_sprites["Villager"]["normal_N"]
         sprite_set = unit_sprites[self.type]
         self.sprite_to_draw = sprite_set[sprite_key]
 
+        # Isometric Math
         draw_x = self.x + OFFSET_X
         draw_y = self.y + OFFSET_Y
 
         screen_x = (draw_x - draw_y) * BASE_TILE_WIDTH // 2 + (SCREEN_WIDTH // 2) + camera_x
         screen_y = (draw_x + draw_y) * BASE_TILE_HEIGHT // 2 + (SCREEN_HEIGHT // 4) + camera_y
 
+        # Offset to place feet on the tile
         screen_y += BASE_TILE_HEIGHT // 2
 
         sprite_rect = self.sprite_to_draw.get_rect()
