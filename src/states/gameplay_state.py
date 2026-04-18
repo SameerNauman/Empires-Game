@@ -1483,17 +1483,13 @@ class GameplayState:
             ):
                 eb.draw(
                     self.screen,
-                    OFFSET_X,
-                    OFFSET_Y,
                     self.camera_x,
                     self.camera_y,
-                    BASE_TILE_WIDTH,
-                    BASE_TILE_HEIGHT,
                     self.building_sprites
                 )
         # Draws player and enemy units
         self.display_units()
-        
+
         # Displays the resource and population bar 
         bar_height = 25
         bar_color = (20, 20, 20)
