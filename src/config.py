@@ -118,8 +118,11 @@ BUILDING_PATH = os.path.join("..", "assets", "buildings2")
 
 RESOURCE_ICONS_PATH = os.path.join("..", "assets", "resource_icons")
 
+# filename, x, y, rows, cols
 RESOURCE_ICONS = {
-    "gold": "gold.png",
+    "food": ["bread.png", (SCREEN_WIDTH - 300), 100, 1, 18],
+    "wood": ["wood.png", (SCREEN_WIDTH - 200), 97, 1, 34],
+    "gold": ["gold.png", (SCREEN_WIDTH - 100), 100, 1, 24]
 }
 
 # Create maps

@@ -244,40 +244,35 @@ class GameplayState:
     def load_resource_icons(self):
         self.resource_animations = {}
 
-        for res_type, filename in RESOURCE_ICONS.items():
+        for res_type, data in RESOURCE_ICONS.items():
+            filename = data[0]
             full_path = os.path.join(RESOURCE_ICONS_PATH, filename)
-            
-            # Check if it's gold to apply specific 24x1 settings
-            if res_type == "gold":
-                self.resource_animations[res_type] = AnimatedSprite(full_path, rows=1, cols=24)
-            else:
-                # Default for other icons (maybe they are just 1x1 static images)
-                self.resource_animations[res_type] = AnimatedSprite(full_path, rows=1, cols=1)
 
-    def display_resource_icons(self, res):
-        # "gold"
-        res_type = res
-        # 1. Get the animation template from your pre-loaded dict
+            rows = data[3]
+            cols = data[4]
+            
+            self.resource_animations[res_type] = AnimatedSprite(full_path, rows, cols)
+
+    def display_resource_icons(self, res_type):
+        # 1. Get the animation object
         anim = self.resource_animations.get(res_type)
-        if not anim:
+        
+        # 2. Get the config data (filename, x, y)
+        config_data = RESOURCE_ICONS.get(res_type)
+        
+        if not anim or not config_data:
             return
 
-        # 2. Get the current frame
+        # 3. Get the current frame
         sprite = anim.get_current_frame()
 
         if sprite:
-            # 3. Calculate Top-Right position
-            # PADDING ensures it's not hugging the very corner
-            PADDING = 100
-            
-            # We use 'topright' as the anchor point
-            # screen_x = Total width minus padding
-            # screen_y = Just the padding from the top
-            ui_x = SCREEN_WIDTH - PADDING
-            ui_y = PADDING
+            # Get x and y from the config list (indices 1 and 2)
+            res_x = config_data[1]
+            res_y = config_data[2]
 
-            # 4. Create the rect using the topright anchor
-            rect = sprite.get_rect(topright=(ui_x, ui_y))
+            # 4. Create the rect using the topright anchor as requested
+            rect = sprite.get_rect(topright=(res_x, res_y))
             
             # 5. Blit to screen
             self.screen.blit(sprite, rect)
@@ -1580,8 +1575,9 @@ class GameplayState:
 
         # Draw the text centered in the display bar
         self.screen.blit(text_surface, (center_x, center_y))
-
-        self.display_resource_icons("gold")
+        
+        for res_type in RESOURCE_ICONS.keys():
+            self.display_resource_icons(res_type)
         for anim in self.resource_animations.values():
             anim.update()
 
