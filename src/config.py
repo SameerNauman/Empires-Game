@@ -80,16 +80,10 @@ UNIT_ASSETS_BASE = os.path.join("..", "assets", "units")
 
 UNIT_SPRITES_CONFIG = {
     "Villager": {
-        "folder": "base_model",
+        "folder": "villager",
         "files": {
-            "normal_N": "normal_N.png",
-            "normal_S": "normal_S.png",
-            "normal_E": "normal_E.png",
-            "normal_W": "normal_W.png",
-            "selected_N": "selected_N.png",
-            "selected_S": "selected_S.png",
-            "selected_E": "selected_E.png",
-            "selected_W": "selected_W.png",
+            "normal_S": "villager_S.png",
+            "selected_S": "selected_S.png"
         }
     },
     "Archers": {
