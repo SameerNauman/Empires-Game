@@ -249,7 +249,7 @@ class GameplayState:
             
             # Check if it's gold to apply specific 24x1 settings
             if res_type == "gold":
-                self.resource_animations[res_type] = AnimatedSprite(full_path, rows=24, cols=1)
+                self.resource_animations[res_type] = AnimatedSprite(full_path, rows=1, cols=24)
             else:
                 # Default for other icons (maybe they are just 1x1 static images)
                 self.resource_animations[res_type] = AnimatedSprite(full_path, rows=1, cols=1)
@@ -1581,9 +1581,9 @@ class GameplayState:
         # Draw the text centered in the display bar
         self.screen.blit(text_surface, (center_x, center_y))
 
-        # self.display_resource_icons("gold")
-        # for anim in self.resource_animations.values():
-        #     anim.update()
+        self.display_resource_icons("gold")
+        for anim in self.resource_animations.values():
+            anim.update()
 
         self.popup_menu.draw(self.screen)
         self.message_box.draw()
