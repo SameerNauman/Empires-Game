@@ -1,7 +1,9 @@
 class TargetAquisition():
+
     def __init__(self):
         pass
 
+    # returns True if an enemy unit is adjacent to the selected tile, False otherwise
     def is_enemy_adjacent(self, selected_tile, enemy_units):
         adjacent_offsets = [
         (-1, 0),  # Top-left
@@ -22,6 +24,7 @@ class TargetAquisition():
 
         return False  # No enemy adjacent
     
+    # returns the enemy unit if an enemy unit is adjacent to the selected tile
     def adjacent_enemy(self, selected_tile, enemy_units):
         adjacent_offsets = [
         (-1, 0),  # Top-left
@@ -40,6 +43,7 @@ class TargetAquisition():
                 if enemy.x == adjacent_x and enemy.y == adjacent_y:
                     return enemy
                 
+    # returns an enmy unit if an enemy unit is within the attack range of the selected tile, none otherwise
     def ranged_enemy(self, selected_tile, attack_range, enemy_units):
         tx, ty = selected_tile
         for enemy in enemy_units:

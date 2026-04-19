@@ -510,13 +510,18 @@ class GameplayState:
                 self.selected_tile,
                 self.selected_unit.attack_range,
                 self.enemy_units
+            ) or self.target_aquisition.all_ranged_buildings(
+                self.selected_tile,
+                self.selected_unit.attack_range,
+                self.e_buildings,
+                self.enemy_units
             ):
                 options.insert(0, "Attack")
                 actions["Attack"] = lambda: self.attack_action(self.selected_unit)
 
         # Melee attack logic
         else:
-            if self.target_aquisition.is_enemy_adjacent(self.selected_tile, self.enemy_units):
+            if self.target_aquisition.is_enemy_adjacent(self.selected_tile, self.enemy_units) or self.target_aquisition.all_adjacent_buildings(self.selected_tile, self.e_buildings, self.enemy_units):
                 options.insert(0, "Attack")
                 actions["Attack"] = lambda: self.attack_action(self.selected_unit)
 
@@ -642,6 +647,7 @@ class GameplayState:
         # Always enter targeting mode, even for single target
         self.reachable_tiles = set()
         self.popup_menu.close()
+
         self.target_select_mode = True
         self.targetable_enemies = targets
         self.selected_target_index = 0
@@ -686,6 +692,11 @@ class GameplayState:
             print("building:", building.hitpoints)
         selected_unit.rest()
         self.reachable_tiles = set()
+
+        # Updates vision position
+        self.selected_unit.vision_x = int(self.selected_unit.x)
+        self.selected_unit.vision_y = int(self.selected_unit.y)
+
         if selected_unit:
             selected_unit.selected = False
         self.selected_unit_id = None
