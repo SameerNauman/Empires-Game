@@ -116,6 +116,12 @@ BUILDING_SPRITES = {
 
 BUILDING_PATH = os.path.join("..", "assets", "buildings2")
 
+RESOURCE_ICONS_PATH = os.path.join("..", "assets", "resource_icons")
+
+RESOURCE_ICONS = {
+    "gold": "gold.png",
+}
+
 # Create maps
 csv_path = os.path.join("..", "assets", "maps", "alps2.csv")
 PLAYABLE_MAP = []

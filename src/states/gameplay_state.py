@@ -7,6 +7,7 @@ from pop_up_menu import PopupMenu
 from path_finding import PathFinding
 from target_aquisition import TargetAquisition
 from enemy_ai import EnemyAi
+from animated_sprite import AnimatedSprite
 from config import *
 
 class GameplayState:
@@ -53,6 +54,9 @@ class GameplayState:
         self.building_sprites = {}
         self.building_path = BUILDING_PATH
         self.load_building_sprites()
+
+        # Resource icons
+        self.load_resource_icons()
 
         # Attack
         self.target_select_mode = False
@@ -237,6 +241,47 @@ class GameplayState:
                 path = os.path.join(self.building_path, sprite_info)
                 self.building_sprites[building_type] = pygame.image.load(path).convert_alpha()
 
+    def load_resource_icons(self):
+        self.resource_animations = {}
+
+        for res_type, filename in RESOURCE_ICONS.items():
+            full_path = os.path.join(RESOURCE_ICONS_PATH, filename)
+            
+            # Check if it's gold to apply specific 24x1 settings
+            if res_type == "gold":
+                self.resource_animations[res_type] = AnimatedSprite(full_path, rows=24, cols=1)
+            else:
+                # Default for other icons (maybe they are just 1x1 static images)
+                self.resource_animations[res_type] = AnimatedSprite(full_path, rows=1, cols=1)
+
+    def display_resource_icons(self, res):
+        # "gold"
+        res_type = res
+        # 1. Get the animation template from your pre-loaded dict
+        anim = self.resource_animations.get(res_type)
+        if not anim:
+            return
+
+        # 2. Get the current frame
+        sprite = anim.get_current_frame()
+
+        if sprite:
+            # 3. Calculate Top-Right position
+            # PADDING ensures it's not hugging the very corner
+            PADDING = 100
+            
+            # We use 'topright' as the anchor point
+            # screen_x = Total width minus padding
+            # screen_y = Just the padding from the top
+            ui_x = SCREEN_WIDTH - PADDING
+            ui_y = PADDING
+
+            # 4. Create the rect using the topright anchor
+            rect = sprite.get_rect(topright=(ui_x, ui_y))
+            
+            # 5. Blit to screen
+            self.screen.blit(sprite, rect)
+
     # 'Cinematic' effect of following enemy units during enemy turn.
     def follow_enemy_camera(self, enemy):
         draw_x, draw_y = self.draw_coords(enemy.x, enemy.y)
@@ -278,6 +323,26 @@ class GameplayState:
             if unit:
                 # Update direction: compare unit's position to where the "cursor" is
                 unit.update_direction(unit.x, unit.y, self.hovered_tile[0], self.hovered_tile[1])
+
+    # Centers the camera back onto the selected_tile.
+    def camera_lerp(self):
+        # 1. Calculate the destination coordinates
+        draw_x, draw_y = self.draw_coords(self.selected_tile[0], self.selected_tile[1])
+        world_x, world_y = self.screen_coords(draw_x, draw_y)
+        
+        target_x = (SCREEN_WIDTH // 2) - world_x
+        target_y = (SCREEN_HEIGHT // 2) - world_y
+
+        # 2. Lerp towards destination
+        lerp_speed = 0.1 
+        self.camera_x += (target_x - self.camera_x) * lerp_speed
+        self.camera_y += (target_y - self.camera_y) * lerp_speed
+
+        # 3. Check if we are close enough to stop
+        if abs(self.camera_x - target_x) < 1 and abs(self.camera_y - target_y) < 1:
+            self.camera_x = target_x
+            self.camera_y = target_y
+            self.camera_return = False
 
 # === MAP DISPLAYING ===
 
@@ -457,26 +522,6 @@ class GameplayState:
 
         # Draw the outline, not a filled polygon
         pygame.draw.polygon(self.screen, color, points, width=5)
-
-    # Centers the camera back onto the selected_tile.
-    def camera_lerp(self):
-        # 1. Calculate the destination coordinates
-        draw_x, draw_y = self.draw_coords(self.selected_tile[0], self.selected_tile[1])
-        world_x, world_y = self.screen_coords(draw_x, draw_y)
-        
-        target_x = (SCREEN_WIDTH // 2) - world_x
-        target_y = (SCREEN_HEIGHT // 2) - world_y
-
-        # 2. Lerp towards destination
-        lerp_speed = 0.1 
-        self.camera_x += (target_x - self.camera_x) * lerp_speed
-        self.camera_y += (target_y - self.camera_y) * lerp_speed
-
-        # 3. Check if we are close enough to stop
-        if abs(self.camera_x - target_x) < 1 and abs(self.camera_y - target_y) < 1:
-            self.camera_x = target_x
-            self.camera_y = target_y
-            self.camera_return = False
 
 # === UNIT ACTIONS ===
 
@@ -1535,6 +1580,10 @@ class GameplayState:
 
         # Draw the text centered in the display bar
         self.screen.blit(text_surface, (center_x, center_y))
+
+        # self.display_resource_icons("gold")
+        # for anim in self.resource_animations.values():
+        #     anim.update()
 
         self.popup_menu.draw(self.screen)
         self.message_box.draw()
