@@ -83,7 +83,7 @@ UNIT_SPRITES_CONFIG = {
         "folder": "villager",
         "files": {
             "normal_N": "villager_N.png",
-            "normal_S": "villager_S.png",
+            "normal_S": "basil_S.png",
             "normal_E": "villager_E.png",
             "normal_W": "villager_W.png",
             "selected_N": "selected_N.png",
