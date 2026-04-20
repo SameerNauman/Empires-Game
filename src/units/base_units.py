@@ -93,7 +93,7 @@ class BaseUnits:
         screen_y += BASE_TILE_HEIGHT // 2
 
         sprite_rect = self.sprite_to_draw.get_rect()
-        sprite_rect.midbottom = (screen_x, screen_y)
+        sprite_rect.midbottom = (screen_x, screen_y + 20)
         screen.blit(self.sprite_to_draw, sprite_rect)
 
         # color = UNIT_COLORS.get(self.type, (255, 255, 255))
