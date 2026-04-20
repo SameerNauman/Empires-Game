@@ -180,6 +180,7 @@ class GameplayState:
             path = os.path.join(self.terrain_path, filename)
             self.terrain_sprites[tile_code] = pygame.image.load(path).convert_alpha()
     
+    # loads the sprites for the units
     def load_unit_sprites(self):
         loaded_sprites = {}
     
@@ -241,6 +242,7 @@ class GameplayState:
                 path = os.path.join(self.building_path, sprite_info)
                 self.building_sprites[building_type] = pygame.image.load(path).convert_alpha()
 
+    # loads the sprites for ui resource icons
     def load_resource_icons(self):
         self.resource_animations = {}
 
@@ -253,6 +255,7 @@ class GameplayState:
             
             self.resource_animations[res_type] = AnimatedSprite(full_path, rows, cols)
 
+    # Displays the resource icons in the top right corner of the screen, with animation.
     def display_resource_icons(self, res_type):
         # 1. Get the animation object
         anim = self.resource_animations.get(res_type)
@@ -599,9 +602,11 @@ class GameplayState:
     # Displays a popup menu of the different buildings to construct and then calls the building selector
     def build_action(self):
         self.reachable_tiles = set()
-        self.popup_menu.open(["Town Centre", "Mill", "Cancel"], {
+        self.popup_menu.open(["Town Centre", "Market", "Mill", "Farm", "Cancel"], {
             "Town Centre": lambda: self.building_construction("town_centre"),
+            "Market": lambda: self.building_construction("market"),
             "Mill": lambda: self.building_construction("mill"),
+            "Farm": lambda: self.building_construction("farm"),
             "Cancel": self.cancel_action
         })
         self.popup_menu.set_position(

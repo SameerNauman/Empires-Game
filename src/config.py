@@ -109,12 +109,24 @@ UNIT_SPRITES_CONFIG = {
 
 BUILDING_SPRITES = {
     "town_centre": {
-        "normal": "towncenter3.png",
-        "selected": "tc_selected2.png"
+        "normal": "towncentre.png",
+        "selected": "tc_selected.png"
+    },
+    "market": {
+        "normal": "market.png",
+        "selected": "market_selected.png"
+    },
+    "mill": {
+        "normal": "mill.png",
+        "selected": "mill_selected.png"
+    },
+    "farm": {
+        "normal": "farm.png",
+        "selected": "farm.png"
     }
 }
 
-BUILDING_PATH = os.path.join("..", "assets", "buildings2")
+BUILDING_PATH = os.path.join("..", "assets", "buildings3")
 
 RESOURCE_ICONS_PATH = os.path.join("..", "assets", "resource_icons")
 
@@ -181,18 +193,20 @@ FLAT_BONUS = 0
 # Buildings = [name, food cost, wood cost, gold cost, hitpoints, pop capacity, 1_units, 2_units, 3_units, 4_units]
 BUILDINGS = {
     "town_centre": ["town_centre", 0, 400, 400, 500, 10, ["Villager", "Archers", "Spearmen"]],
+    "market": ["market", 0, 100, 100, 200, 0]
 }
 
 # [name, food cost, wood cost, gold cost, hitpoints, pop capacity]
 RESOURCE_BUILDINGS = {
-    "mill": ["mill", 0, 50, 0, 200, 0]
+    "mill": ["mill", 0, 50, 0, 200, 0],
+    "farm": ["farm", 0, 50, 0, 100, 0]
 }
 
-BUILDING_COLORS = {
-    "town_centre": (139, 69, 19),   # Brown
-    "mill": (255, 215, 0),          # Yellow
-    # Add more as you expand!
-}
+# BUILDING_COLORS = {
+#     "town_centre": (139, 69, 19),   # Brown
+#     "mill": (255, 215, 0),          # Yellow
+#     # Add more as you expand!
+# }
 
 VILLAGER_DESC = ("Villagers gather resources and construct buildings. They are weak in combat but essential for your economy. \n\n" "50 / 25")
 
