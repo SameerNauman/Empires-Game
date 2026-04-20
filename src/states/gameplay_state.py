@@ -55,6 +55,9 @@ class GameplayState:
         self.building_path = BUILDING_PATH
         self.load_building_sprites()
 
+        # Resource sprites
+        self.load_resource_sprites()
+        
         # Resource icons
         self.load_resource_icons()
 
@@ -242,6 +245,13 @@ class GameplayState:
                 path = os.path.join(self.building_path, sprite_info)
                 self.building_sprites[building_type] = pygame.image.load(path).convert_alpha()
 
+    # Loads the sprites for the resources
+    def load_resource_sprites(self):
+        self.resource_sprites = {}
+        for res_type, filename in RESOURCE_SPRITES.items():
+            full_path = os.path.join(RESOURCES_PATH, filename)
+            self.resource_sprites[res_type] = pygame.image.load(full_path).convert_alpha()
+
     # loads the sprites for ui resource icons
     def load_resource_icons(self):
         self.resource_animations = {}
@@ -342,6 +352,12 @@ class GameplayState:
             self.camera_y = target_y
             self.camera_return = False
 
+    # Removes a resource from the map when the tile is built on
+    def cover_resources(self, x, y):
+        for resource in self.resources:
+            if resource.x == x and resource.y == y:
+                self.resources.remove(resource)
+                
 # === MAP DISPLAYING ===
 
     # Displays a circular mini map in the bottom right corner of the screen.
@@ -602,13 +618,22 @@ class GameplayState:
     # Displays a popup menu of the different buildings to construct and then calls the building selector
     def build_action(self):
         self.reachable_tiles = set()
-        self.popup_menu.open(["Town Centre", "Market", "Mill", "Farm", "Cancel"], {
+
+        options = ["Town Centre", "Market", "Mill"]
+        actions = {
             "Town Centre": lambda: self.building_construction("town_centre"),
             "Market": lambda: self.building_construction("market"),
-            "Mill": lambda: self.building_construction("mill"),
-            "Farm": lambda: self.building_construction("farm"),
-            "Cancel": self.cancel_action
-        })
+            "Mill": lambda: self.building_construction("mill")
+        }
+
+        if self.is_adjacent_to_mill():
+            options.append("Farm")
+            actions["Farm"] = lambda: self.building_construction("farm")
+
+        options.append("Cancel")
+        actions["Cancel"] = self.cancel_action
+        
+        self.popup_menu.open(options, actions)
         self.popup_menu.set_position(
             (SCREEN_WIDTH - self.popup_menu.width) // 2,
             (SCREEN_HEIGHT - (self.popup_menu.item_height * len(self.popup_menu.options))) // 2
@@ -648,6 +673,8 @@ class GameplayState:
         else:
             self.message_box.open("Insufficient funds", self.error_message)
             # self.cancel_action()
+
+        self.cover_resources(selected_unit.x, selected_unit.y)
 
     # Returns to the previous popup menu
     def cancel_action(self):
@@ -1223,7 +1250,22 @@ class GameplayState:
                 self.e_buildings.remove(eb)
 
 # === MISC. ===
+
+    # Checks if the selected tile is adjacent to a mill for farm building   
+    def is_adjacent_to_mill(self):
+        tx, ty = self.selected_tile
+        # Get all 8 neighbors (North, South, East, West, and diagonals)
+        neighbors = [
+            (tx-1, ty), (tx+1, ty), (tx, ty-1), (tx, ty+1),
+            (tx-1, ty-1), (tx+1, ty-1), (tx-1, ty+1), (tx+1, ty+1)
+        ]
         
+        for b in self.buildings:
+            # Check if building is a Mill and its position matches any neighbor
+            if b.type == "mill" and (int(b.x), int(b.y)) in neighbors:
+                return True
+        return False
+
     # Quits the game.
     def quit(self):
         self.running = False
@@ -1511,14 +1553,14 @@ class GameplayState:
             resource.draw(
                 self.screen, 
                 OFFSET_X, 
-                OFFSET_Y, 
+                OFFSET_Y,
                 self.camera_x, 
                 self.camera_y,
                 BASE_TILE_WIDTH, 
-                BASE_TILE_HEIGHT, 
+                BASE_TILE_HEIGHT,
                 SCREEN_WIDTH, 
                 SCREEN_HEIGHT,
-                self.resources, 
+                self.resource_sprites,
                 VISIBILITY_MAP=VISIBILITY_MAP
             )
         # Draws player and enemy buildings

@@ -107,6 +107,8 @@ UNIT_SPRITES_CONFIG = {
     }
 }
 
+BUILDING_PATH = os.path.join("..", "assets", "buildings3")
+
 BUILDING_SPRITES = {
     "town_centre": {
         "normal": "towncentre.png",
@@ -126,7 +128,18 @@ BUILDING_SPRITES = {
     }
 }
 
-BUILDING_PATH = os.path.join("..", "assets", "buildings3")
+RESOURCES_PATH = os.path.join("..", "assets", "resources")
+
+RESOURCE_SPRITES = {
+    "wood": "tree.png"
+}
+
+# Resource type, amount defaults
+RESOURCE_TILE_TYPES = {
+    "FO": ("food", 500),
+    "WO": ("wood", 400),
+    "GO": ("gold", 2000),
+}
 
 RESOURCE_ICONS_PATH = os.path.join("..", "assets", "resource_icons")
 
@@ -137,37 +150,48 @@ RESOURCE_ICONS = {
     "gold": ["gold.png", (SCREEN_WIDTH - 100), 100, 1, 24]
 }
 
-# Create maps
-csv_path = os.path.join("..", "assets", "maps", "alps2.csv")
+# --- STEP 1: LOAD TERRAIN MAP ---
+MAP_CSV = os.path.join("..", "assets", "maps", "alps4.csv")
 PLAYABLE_MAP = []
-with open(csv_path, newline='') as csvfile:
+with open(MAP_CSV, newline='') as csvfile:
     reader = csv.reader(csvfile)
     for row in reader:
+        # Load exactly as is; these should now only be P, H, M, W, etc.
         clean_row = [cell.strip() for cell in row if cell.strip()]
         if clean_row:
             PLAYABLE_MAP.append(clean_row)
 
-# ADD THIS RIGHT AFTER LOADING
+# Transpose for [x][y] access
 if PLAYABLE_MAP:
     PLAYABLE_MAP = [list(row) for row in zip(*PLAYABLE_MAP)]
 
-# Resource type, amount defaults
-RESOURCE_TILE_TYPES = {
-    "FO": ("food", 500),
-    "WO": ("wood", 400),
-    "GO": ("gold", 2000),
-}
-
+# --- STEP 2: LOAD RESOURCE OVERLAY ---
+RESOURCE_CSV = os.path.join("..", "assets", "maps", "resources.csv")
 resources = []
+with open(RESOURCE_CSV, newline='') as csvfile:
+    reader = csv.reader(csvfile)
+    resource_data = []
+    for row in reader:
+        # Keep empty cells as None or empty strings to maintain grid alignment
+        resource_data.append([cell.strip() for cell in row])
 
-for x in range(len(PLAYABLE_MAP)):
-    for y in range(len(PLAYABLE_MAP[0])):
-        tile = PLAYABLE_MAP[x][y]
+# Transpose resource map to match terrain map [x][y]
+if resource_data:
+    resource_data = [list(row) for row in zip(*resource_data)]
+
+# --- STEP 3: POPULATE RESOURCE OBJECTS ---
+# Iterate through the resource_data grid
+for x in range(len(resource_data)):
+    for y in range(len(resource_data[0])):
+        tile = resource_data[x][y]
+        
+        # Check if this cell in the resource map contains a valid resource code
         if tile in RESOURCE_TILE_TYPES:
             r_type, r_amt = RESOURCE_TILE_TYPES[tile]
+            
+            # Create the resource source at these coordinates
+            # It will now sit "on top" of whatever is in PLAYABLE_MAP[x][y]
             resources.append(ResourceSource(x, y, r_type, r_amt))
-            PLAYABLE_MAP[x][y] = "P"  # Replace with base terrain for drawing/movement
-
 
 BOUNDARY_MAP = [[0 for _ in range(BOUNDARY_WIDTH)] for _ in range(BOUNDARY_HEIGHT)]
 
