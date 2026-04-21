@@ -569,22 +569,40 @@ class GameplayState:
 
         # Ranged attack logic
         if self.selected_unit.attack_range > 1:
-            if self.target_aquisition.any_ranged_enemy_in_range(
-                self.selected_tile,
-                self.selected_unit.attack_range,
-                self.enemy_units
-            ) or self.target_aquisition.all_ranged_buildings(
-                self.selected_tile,
-                self.selected_unit.attack_range,
-                self.e_buildings,
-                self.enemy_units
-            ):
+            # Get all potential targets
+            potential_enemies = self.target_aquisition.all_ranged_enemies(
+                self.selected_tile, self.selected_unit.attack_range, self.enemy_units
+            )
+            potential_buildings = self.target_aquisition.all_ranged_buildings(
+                self.selected_tile, self.selected_unit.attack_range, self.e_buildings, self.enemy_units
+            )
+
+            # Filter: Is at least one enemy unit visible?
+            visible_enemy_exists = any(
+                VISIBILITY_MAP[int(e.x)][int(e.y)] == 2 for e in potential_enemies
+            )
+            # Filter: Is at least one building visible? 
+            visible_building_exists = any(
+                VISIBILITY_MAP[int(b.x)][int(b.y)] == 2 for b in potential_buildings
+            )
+
+            if visible_enemy_exists or visible_building_exists:
                 options.insert(0, "Attack")
                 actions["Attack"] = lambda: self.attack_action(self.selected_unit)
 
         # Melee attack logic
         else:
-            if self.target_aquisition.is_enemy_adjacent(self.selected_tile, self.enemy_units) or self.target_aquisition.all_adjacent_buildings(self.selected_tile, self.e_buildings, self.enemy_units):
+            adj_enemies = self.target_aquisition.all_adjacent_enemies(self.selected_tile, self.enemy_units)
+            adj_buildings = self.target_aquisition.all_adjacent_buildings(self.selected_tile, self.e_buildings, self.enemy_units)
+
+            visible_enemy_exists = any(
+                VISIBILITY_MAP[int(e.x)][int(e.y)] == 2 for e in adj_enemies
+            )
+            visible_building_exists = any(
+                VISIBILITY_MAP[int(b.x)][int(b.y)] == 2 for b in adj_buildings
+            )
+
+            if visible_enemy_exists or visible_building_exists:
                 options.insert(0, "Attack")
                 actions["Attack"] = lambda: self.attack_action(self.selected_unit)
 
