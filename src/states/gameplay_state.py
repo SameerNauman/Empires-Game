@@ -61,6 +61,9 @@ class GameplayState:
         # Resource icons
         self.load_resource_icons()
 
+        # UI elements
+        self.load_ui_elements()
+
         # Attack
         self.target_select_mode = False
         self.targetable_enemies = []
@@ -97,7 +100,12 @@ class GameplayState:
 
         self.game_over = False
 
-        self.message_box = MessageBox(self.screen, SCREEN_WIDTH, SCREEN_HEIGHT)
+        self.message_box = MessageBox(
+            self.screen, 
+            SCREEN_WIDTH, 
+            SCREEN_HEIGHT, 
+            self.ui_elements["message_box"] # Pass the loaded sprite here
+        )
         self.error_message = True
         self.popup_menu = PopupMenu([], {}, 10, 10)
         self.target_aquisition = TargetAquisition()
@@ -289,6 +297,12 @@ class GameplayState:
             
             # 5. Blit to screen
             self.screen.blit(sprite, rect)
+
+    def load_ui_elements(self):
+        self.ui_elements = {}
+        for element_name, filename in UI_ELEMENTS.items():
+            full_path = os.path.join(UI_ELEMENTS_PATH, filename)
+            self.ui_elements[element_name] = pygame.image.load(full_path).convert_alpha()
 
     # 'Cinematic' effect of following enemy units during enemy turn.
     def follow_enemy_camera(self, enemy):
@@ -625,6 +639,7 @@ class GameplayState:
 
         self.selected_unit_id = None
         self.popup_menu.close()
+        self.message_box.close()
 
     # Returns the unit back to its original location
     def undo_move(self):
@@ -1228,7 +1243,7 @@ class GameplayState:
         unit_x, unit_y = self.selected_tile
         self.selected_unit.update_direction(old_x, old_y, unit_x, unit_y)
 
-        self.message_box.close()
+        # self.message_box.close()
 
     # Checks if unit is gathering at a resource tile. If a unit moves off, it stops gathering.
     def gathering_check(self):
@@ -1389,7 +1404,7 @@ class GameplayState:
                                         building_found = self.select_player_building()
                                         if not building_found:
                                             self.select_empty_tile()
-                                    self.message_box.close()
+                                            self.message_box.close()
 
                             # CASE 2: No unit is currently selected
                             else:
@@ -1398,8 +1413,6 @@ class GameplayState:
                                     building_found = self.select_player_building()
                                     if not building_found:
                                         self.select_empty_tile()
-                                        # self.selected_unit = None
-                                        # self.selected_unit_id = None
 
                 # Get the state of all keys (runs every frame for continuous movement)
                 keys = pygame.key.get_pressed()

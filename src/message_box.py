@@ -2,15 +2,18 @@ import pygame
 from config import *
 
 class MessageBox:
-    def __init__(self, screen, visible_width, visible_height):
+    def __init__(self, screen, visible_width, visible_height, sprite):
         self.screen = screen
+        self.sprite = sprite
         self.visible_width = visible_width
         self.visible_height = visible_height
         self.message = ""
         self.font = pygame.font.SysFont("Arial", 20)
         self.visible = False
         self.padding = 20
-        self.box_width = 400
+        self.padding_right = 80
+        self.box_width = 1000
+        self.box_height = 150
         # Timer variables
         self.start_time = 0
         self.duration = 2000 # Duration in milliseconds (2 seconds)
@@ -55,7 +58,7 @@ class MessageBox:
                 if not word: continue # Skip accidental double spaces
                 
                 test_line = f"{current_line} {word}".strip()
-                if self.font.size(test_line)[0] <= self.box_width - (2 * self.padding):
+                if self.font.size(test_line)[0] <= self.box_width - self.padding - self.padding_right:
                     current_line = test_line
                 else:
                     lines.append(current_line)
@@ -65,24 +68,17 @@ class MessageBox:
             if current_line:
                 lines.append(current_line)
 
-        # Calculate height
+        # Center position logic
+        box_x = 0
+        # We use self.box_height (300) now instead of a variable text_height
+        box_y = SCREEN_HEIGHT - self.box_height
+
+        # --- DRAW THE SPRITE ---
+        # This replaces the translucent_surf and the white border lines
+        self.screen.blit(self.sprite, (box_x, box_y))
+
+        # Draw text (Start from the same box_x/box_y)
         line_height = self.font.get_height()
-        text_height = line_height * len(lines)
-        box_height = text_height + 2 * self.padding 
-
-        # Center position based on visible screen
-        box_x = MARGIN
-        box_y = self.visible_height // 4
-
-        # --- Make translucent background for the message box ---
-        translucent_surf = pygame.Surface((self.box_width, box_height), pygame.SRCALPHA)
-        translucent_surf.fill((30, 30, 30, 180))  # (R,G,B,Alpha) - alpha 0-255, 180 is partial transparency
-        self.screen.blit(translucent_surf, (box_x, box_y))
-
-        # Draw border (solid, not translucent)
-        pygame.draw.rect(self.screen, (255, 255, 255), (box_x, box_y, self.box_width, box_height), 2)
-
-        # Draw text
         for i, line in enumerate(lines):
             text_surf = self.font.render(line, True, (255, 255, 255))
             text_x = box_x + self.padding

@@ -9,7 +9,7 @@ PLAYABLE_WIDTH, PLAYABLE_HEIGHT = 20, 20
 BOUNDARY_WIDTH, BOUNDARY_HEIGHT = 20, 20
 
 # Mini Map dimensions and position
-MINIMAP_SIZE = 400
+MINIMAP_SIZE = 300
 
 # Calculate scaled tile size to fit map in mini map area
 MINI_TILE = 18
@@ -28,8 +28,9 @@ MINI_MAP_SCALE = int(RADIUS // (PLAYABLE_WIDTH // 2 + 1) * 0.40)
 # We want this at (radius, radius)
 OFFSET_DRAW_X = RADIUS
 OFFSET_DRAW_Y = RADIUS - (PLAYABLE_HEIGHT - 1) * HALF_HEIGHT
-CENTER_X = SCREEN_WIDTH - RADIUS - 10
-CENTER_Y = SCREEN_HEIGHT - RADIUS - 10
+MINI_MAP_MARGIN = 0
+CENTER_X = SCREEN_WIDTH - RADIUS - MINI_MAP_MARGIN
+CENTER_Y = SCREEN_HEIGHT - RADIUS - MINI_MAP_MARGIN
 
 # Define tile types and costs
 
@@ -156,13 +157,19 @@ RESOURCE_TILE_TYPES = {
     "GO": ("gold", 2000)
 }
 
-RESOURCE_ICONS_PATH = os.path.join("..", "assets", "resource_icons")
+RESOURCE_ICONS_PATH = os.path.join("..", "assets", "ui", "resource_icons")
 
 # filename, x, y, rows, cols
 RESOURCE_ICONS = {
     "food": ["bread.png", (SCREEN_WIDTH - 300), 100, 1, 18],
     "wood": ["wood.png", (SCREEN_WIDTH - 200), 97, 1, 34],
     "gold": ["gold.png", (SCREEN_WIDTH - 100), 100, 1, 24]
+}
+
+UI_ELEMENTS_PATH = os.path.join("..", "assets", "ui")
+
+UI_ELEMENTS = {
+    "message_box": "message_box3.png",
 }
 
 # --- STEP 1: LOAD TERRAIN MAP ---
@@ -240,12 +247,6 @@ RESOURCE_BUILDINGS = {
     "mill": ["mill", 0, 50, 0, 200, 0, "food", 500000],
     "farm": ["farm", 0, 50, 0, 100, 0, "food", 500000]
 }
-
-# BUILDING_COLORS = {
-#     "town_centre": (139, 69, 19),   # Brown
-#     "mill": (255, 215, 0),          # Yellow
-#     # Add more as you expand!
-# }
 
 BASIL_DESC = ("Basil II is the Emperor of the Byzantine Empire. He is a cavalry unit that can move long distances. \n\n" "300 / 300")
 
