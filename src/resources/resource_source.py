@@ -38,9 +38,9 @@ class ResourceSource:
             screen.blit(sprite, rect)
 
         # Draw this resource only once, not for every resource in the list
-        if self.resource_type == "food":
-            pygame.draw.circle(screen, (128, 0, 128), (int(screen_x), int(screen_y)), 10)
-        elif self.resource_type == "gold":
+        # if self.resource_type == "food":
+        #     pygame.draw.circle(screen, (128, 0, 128), (int(screen_x), int(screen_y)), 10)
+        if self.resource_type == "gold":
             pygame.draw.circle(screen, (255, 165, 0), (int(screen_x), int(screen_y)), 10)
         # else:
         #     pygame.draw.circle(screen, (0, 100, 0), (int(screen_x), int(screen_y)), 10)

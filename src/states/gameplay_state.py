@@ -67,18 +67,18 @@ class GameplayState:
         self.selected_target_index = 0
 
         # Player units initialization
-        villager = BaseUnits(5, 5, 5, 50, 25, 1, type="Villager")
+        basil = BaseUnits(3, 3, 10, 300, 300, 1, type="Basil")
         # Player buildings initialization
         town_centre = BaseBuildings(3, 3, 500, 10, type="town_centre")
         town_centre.is_constructed = True
         # Enemy units initialization
-        enemy_villager = BaseUnits(7, 7, 5, 50, 25, 1, type="Villager")
+        enemy_villager = BaseUnits(6, 10, 5, 50, 25, 1, type="Villager")
         # Enemy buildings initialization
         e_town_centre = BaseBuildings(6, 10, 500, 10, type="town_centre")
         e_town_centre.is_constructed = True
 
         # Player unit and building lists
-        self.units = [villager]
+        self.units = [basil]
         self.buildings = [town_centre]
         self.resources = resources
         self.construction = {}
@@ -909,7 +909,7 @@ class GameplayState:
                         self.gold_amount += amount_gathered
                     if res.amount <= 0:
                         self.resources.remove(res)
-                        self.message_box.open(f"{res.resource_type} has been depleted.")
+                        self.message_box.open(f"{res.resource_type} has been depleted.", self.error_message)
                         unit.is_gathering = False
                         unit.gather_resource_id = None
 
@@ -1533,11 +1533,8 @@ class GameplayState:
         # Displays the screen
         self.screen.fill((32, 32, 32))
 
-        # Implements the fog of war
-        self.draw_map_with_fog(
-            PLAYABLE_MAP,
-            VISIBILITY_MAP
-        )
+        # 1. Draw the terrain tiles first (Pass 1)
+        self.draw_map_with_fog(PLAYABLE_MAP, VISIBILITY_MAP)
 
         # Only draw reachable tiles if a unit is selected
         if self.selected_unit:
@@ -1548,45 +1545,53 @@ class GameplayState:
         if self.hovered_tile:
             self.draw_tile_highlight_crimson(*self.hovered_tile)  # crimson outline
 
-        # Draws resources
-        for resource in self.resources:
-            resource.draw(
-                self.screen, 
-                OFFSET_X, 
-                OFFSET_Y,
-                self.camera_x, 
-                self.camera_y,
-                BASE_TILE_WIDTH, 
-                BASE_TILE_HEIGHT,
-                SCREEN_WIDTH, 
-                SCREEN_HEIGHT,
-                self.resource_sprites,
-                VISIBILITY_MAP=VISIBILITY_MAP
-            )
-        # Draws player and enemy buildings
-        for building in self.buildings:
-            building.draw(
-                self.screen,
-                self.camera_x,
-                self.camera_y,
-                self.building_sprites
-            )
+        # Combines all objects into a single list and sorts them by their y-coordinate for correct rendering order
+        render_queue = []
 
+        for r in self.resources:
+            render_queue.append(r)
+
+        # Player buildings and units
+        for b in self.buildings:
+            render_queue.append(b)
+        for u in self.units:
+            render_queue.append(u)
+
+        # Enemy Buildings (Only add if tile is '2' which is explored + currently visible)
         for eb in self.e_buildings:
             ex, ey = int(eb.x), int(eb.y)
-            if (
-                0 <= ex < len(VISIBILITY_MAP)
-                and 0 <= ey < len(VISIBILITY_MAP[0])
-                and VISIBILITY_MAP[ex][ey] == 2
-            ):
-                eb.draw(
-                    self.screen,
-                    self.camera_x,
-                    self.camera_y,
-                    self.building_sprites
+            if 0 <= ex < len(VISIBILITY_MAP) and 0 <= ey < len(VISIBILITY_MAP[0]):
+                if VISIBILITY_MAP[ex][ey] == 2:
+                    render_queue.append(eb)
+
+        # Enemy Units (Only add if tile is '2' which is explored + currently visible)
+        for eu in self.enemy_units:
+            eux, euy = int(eu.x), int(eu.y)
+            if 0 <= eux < len(VISIBILITY_MAP) and 0 <= euy < len(VISIBILITY_MAP[0]):
+                # Only display if the tile is currently within a player unit's vision range
+                if VISIBILITY_MAP[eux][euy] == 2:
+                    render_queue.append(eu)
+
+        # Sorting the render queue to ensure correct layering (objects with higher y are drawn on top)
+        render_queue.sort(key=lambda obj: (obj.x + obj.y))
+
+        # Drawing objects in order
+        for obj in render_queue:
+            # Resources
+            if isinstance(obj, ResourceSource):
+                obj.draw(
+                    self.screen, OFFSET_X, OFFSET_Y, self.camera_x, self.camera_y,
+                    BASE_TILE_WIDTH, BASE_TILE_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT,
+                    self.resource_sprites, VISIBILITY_MAP=VISIBILITY_MAP
                 )
-        # Draws player and enemy units
-        self.display_units()
+            
+            # Units
+            elif hasattr(obj, 'direction'):
+                obj.draw(self.screen, self.camera_x, self.camera_y, self.unit_sprites)
+            
+            # Buildings
+            elif hasattr(obj, 'hitpoints'):
+                obj.draw(self.screen, self.camera_x, self.camera_y, self.building_sprites)
 
         # Displays the resource and population bar 
         bar_height = 25

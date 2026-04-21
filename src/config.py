@@ -79,11 +79,24 @@ TERRAIN_PATH = os.path.join("..", "assets", "terrain2")
 UNIT_ASSETS_BASE = os.path.join("..", "assets", "units")
 
 UNIT_SPRITES_CONFIG = {
+    "Basil": {
+        "folder": "basil",
+        "files": {
+            "normal_N": "basil_N.png",
+            "normal_S": "basil_S.png",
+            "normal_E": "basil_E.png",
+            "normal_W": "basil_W.png",
+            "selected_N": "selected_N.png",
+            "selected_S": "selected_S.png",
+            "selected_E": "selected_E.png",
+            "selected_W": "selected_W.png"
+        }
+    },
     "Villager": {
         "folder": "villager",
         "files": {
             "normal_N": "villager_N.png",
-            "normal_S": "basil_S.png",
+            "normal_S": "villager_S.png",
             "normal_E": "villager_E.png",
             "normal_W": "villager_W.png",
             "selected_N": "selected_N.png",
@@ -131,7 +144,8 @@ BUILDING_SPRITES = {
 RESOURCES_PATH = os.path.join("..", "assets", "resources")
 
 RESOURCE_SPRITES = {
-    "wood": "tree.png"
+    "wood": "tree4.png",
+    "food": "berry_bush.png"
 }
 
 # Resource type, amount defaults
@@ -216,7 +230,7 @@ FLAT_BONUS = 0
 
 # Buildings = [name, food cost, wood cost, gold cost, hitpoints, pop capacity, 1_units, 2_units, 3_units, 4_units]
 BUILDINGS = {
-    "town_centre": ["town_centre", 0, 400, 400, 500, 10, ["Villager", "Archers", "Spearmen"]],
+    "town_centre": ["town_centre", 0, 400, 400, 500, 10, ["Villager"]],
     "market": ["market", 0, 100, 100, 200, 0]
 }
 
@@ -232,6 +246,8 @@ RESOURCE_BUILDINGS = {
 #     # Add more as you expand!
 # }
 
+BASIL_DESC = ("Basil II is the Emperor of the Byzantine Empire. He is a cavalry unit that can move long distances. \n\n" "300 / 300")
+
 VILLAGER_DESC = ("Villagers gather resources and construct buildings. They are weak in combat but essential for your economy. \n\n" "50 / 25")
 
 ARCHER_DESC = ("Archers are ranged units that can attack from a distance. \n" 
@@ -242,6 +258,7 @@ SPEARMEN_DESC = ("Spearmen are melee units that excel at defending against caval
 
 # [name, food cost, wood cost, gold cost, pop cost, movement, attack, defense, attack_range=1, description=""]
 UNITS = {
+    "Basil": ["Basil", 300, 0, 300, 1, 10, 300, 300, 1, BASIL_DESC],
     "Villager": ["Villager", 50, 0, 0, 1, 5, 50, 25, 1, VILLAGER_DESC],
     "Archers": ["Archers", 60, 60, 0, 1, 7, 150, 100, 3, ARCHER_DESC],
     "Spearmen": ["Spearmen", 50, 50, 0, 1, 7, 100, 100, 1, SPEARMEN_DESC]

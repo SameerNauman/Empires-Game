@@ -96,15 +96,6 @@ class BaseUnits:
         sprite_rect.midbottom = (screen_x, screen_y + 20)
         screen.blit(self.sprite_to_draw, sprite_rect)
 
-        # color = UNIT_COLORS.get(self.type, (255, 255, 255))
-        # tired_color = tuple(max(0, c // 4) for c in color)
-        # if self.unit_tired():
-        #     pygame.draw.circle(screen, tired_color, (int(screen_x), int(screen_y)), 5)
-        # else:
-        #     pygame.draw.circle(screen, color, (int(screen_x), int(screen_y)), 5)
-        #     if self.selected:
-        #         pygame.draw.circle(screen, (255, 255, 0), (int(screen_x), int(screen_y)), 8, 2)
-
         # Draw health bar only if not full health
         if self.health < self.max_health:
             bar_length = BASE_TILE_WIDTH // 2
