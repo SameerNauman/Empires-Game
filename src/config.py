@@ -161,15 +161,17 @@ RESOURCE_ICONS_PATH = os.path.join("..", "assets", "ui", "resource_icons")
 
 # filename, x, y, rows, cols
 RESOURCE_ICONS = {
-    "food": ["bread.png", (SCREEN_WIDTH - 300), 100, 1, 18],
-    "wood": ["wood.png", (SCREEN_WIDTH - 200), 97, 1, 34],
-    "gold": ["gold.png", (SCREEN_WIDTH - 100), 100, 1, 24]
+    "food": ["bread.png", (100), 2, 1, 18],
+    "wood": ["wood.png", (400), 0, 1, 34],
+    "gold": ["gold.png", (800), 2, 1, 24],
+    "population": ["population.png", (1100), 2, 1, 1]
 }
 
 UI_ELEMENTS_PATH = os.path.join("..", "assets", "ui")
 
 UI_ELEMENTS = {
     "message_box": "message_box3.png",
+    "resource_bar": "resource_bar4.png",
 }
 
 # --- STEP 1: LOAD TERRAIN MAP ---

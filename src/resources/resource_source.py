@@ -38,5 +38,3 @@ class ResourceSource:
             if sprite:
                 rect = sprite.get_rect(midbottom=(screen_x, screen_y + BASE_TILE_HEIGHT // 2))
                 screen.blit(sprite, rect)
-
-            

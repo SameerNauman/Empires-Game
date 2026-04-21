@@ -304,6 +304,47 @@ class GameplayState:
             full_path = os.path.join(UI_ELEMENTS_PATH, filename)
             self.ui_elements[element_name] = pygame.image.load(full_path).convert_alpha()
 
+    # Displays the resource bar at the top of the screen
+    def display_resource_bar(self):
+        bar_sprite = self.ui_elements.get("resource_bar")
+        if bar_sprite:
+            self.screen.blit(bar_sprite, (0, 0))
+
+        text_color = (255, 255, 255)
+        font = pygame.font.SysFont(None, 60)
+
+        # Population
+        self.population = len(self.units)
+        max_pop = 0  # Reset before accumulation
+        for building in self.buildings:
+            if building.is_constructed:
+                max_pop += building.population_limit
+
+        food_text = f" {self.food_amount}"
+        wood_text = f" {self.wood_amount}"
+        gold_text = f" {self.gold_amount}"
+        pop_text = f" {self.population} / {max_pop}"
+
+        f_surface = font.render(food_text, True, text_color)
+        w_surface = font.render(wood_text, True, text_color)
+        g_surface = font.render(gold_text, True, text_color)
+        p_surface = font.render(pop_text, True, text_color)
+
+        f_x = 150
+        w_x = 450
+        g_x = 850
+        p_x = 1150
+
+        f_y = (58 - f_surface.get_height())
+        w_y = (58 - w_surface.get_height())
+        g_y = (58 - g_surface.get_height())
+        p_y = (58 - p_surface.get_height())
+
+        self.screen.blit(f_surface, (f_x, f_y))
+        self.screen.blit(w_surface, (w_x, w_y))
+        self.screen.blit(g_surface, (g_x, g_y))
+        self.screen.blit(f_surface, (p_x, p_y))
+
     # 'Cinematic' effect of following enemy units during enemy turn.
     def follow_enemy_camera(self, enemy):
         draw_x, draw_y = self.draw_coords(enemy.x, enemy.y)
@@ -1096,6 +1137,9 @@ class GameplayState:
             (int(self.selected_unit.x), int(self.selected_unit.y)),
             self.selected_unit.movement_range
         )
+
+        u_attr = UNITS[self.selected_unit.type]
+        self.message_box.open(u_attr[9], False)
         
     # Unit selection
     def select_player_unit(self):
@@ -1631,40 +1675,8 @@ class GameplayState:
                 obj.draw(self.screen, self.camera_x, self.camera_y, self.building_sprites)
 
         # Displays the resource and population bar 
-        bar_height = 25
-        bar_color = (20, 20, 20)
-        text_color = (255, 255, 255)
-        font = pygame.font.SysFont(None, 24)
+        self.display_resource_bar()
 
-        # Fill top bar background
-        pygame.draw.rect(self.screen, bar_color, (0, 0, SCREEN_WIDTH, bar_height))
-
-        # Population
-        self.population = len(self.units)
-        max_pop = 0  # Reset before accumulation
-        for building in self.buildings:
-            if building.is_constructed:
-                max_pop += building.population_limit
-
-        # Resource display
-        resource_text = (
-            f"| Food: {self.food_amount} "
-            f"| Wood: {self.wood_amount} "
-            f"| Gold: {self.gold_amount} "
-            f"| Pop: {self.population} / {max_pop} |"
-        )
-        text_surface = font.render(resource_text, True, text_color)
-
-        # Calculate the x-coordinate to center the text horizontally
-        text_width = text_surface.get_width()
-        center_x = (SCREEN_WIDTH - text_width) // 2
-
-        # Calculate the y-coordinate to center the text vertically
-        center_y = (bar_height - text_surface.get_height()) // 2
-
-        # Draw the text centered in the display bar
-        self.screen.blit(text_surface, (center_x, center_y))
-        
         for res_type in RESOURCE_ICONS.keys():
             self.display_resource_icons(res_type)
         for anim in self.resource_animations.values():
