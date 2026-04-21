@@ -548,20 +548,24 @@ class GameplayState:
             "Undo Move": self.undo_move
         }
 
+        landed_tile = (int(self.selected_unit.x), int(self.selected_unit.y))
+
         # If the unit is a villager, allow building if tile is empty
         if self.selected_unit.type == "Villager":
             if not self.is_tile_occupied(*self.hovered_tile):
                 options.insert(1, "Build")
                 actions["Build"] = self.build_action
-
-        # If the villager is on a resource tile, allow gathering
-        landed_tile = (int(self.selected_unit.x), int(self.selected_unit.y))
-        if self.selected_unit.type == "Villager":
-            for res in self.resources:
-                if (res.x, res.y) == landed_tile:
-                    options.insert(2, "Gather")
-                    actions["Gather"] = lambda u=self.selected_unit, r=res: self.gather_action(u, r)
-                    break
+                for res in self.resources:
+                    if (res.x, res.y) == landed_tile:
+                        options.insert(2, "Gather")
+                        actions["Gather"] = lambda u=self.selected_unit, r=res: self.gather_action(u, r)
+                        break
+            else:
+                for res in self.resources:
+                    if (res.x, res.y) == landed_tile:
+                        options.insert(1, "Gather")
+                        actions["Gather"] = lambda u=self.selected_unit, r=res: self.gather_action(u, r)
+                        break
 
         # Ranged attack logic
         if self.selected_unit.attack_range > 1:
@@ -650,6 +654,7 @@ class GameplayState:
         # If player's resources are enough, subtract cost, and create building instance, append to 
         # building list.
         if self.food_amount >= b_attr[1] and self.wood_amount >= b_attr[2] and self.gold_amount >= b_attr[3]:
+            self.cover_resources(selected_unit.x, selected_unit.y)
             new_building_id = max([b.id for b in self.buildings], default=0) + 1
             new_building = BaseBuildings(self.selected_tile[0], self.selected_tile[1], b_attr[4], b_attr[5])
             new_building.id = new_building_id
@@ -657,6 +662,9 @@ class GameplayState:
             new_building.building_queued()
             new_building.is_constructed = False
             self.buildings.append(new_building)
+            if building_name in RESOURCE_BUILDINGS:
+                new_resource = ResourceSource(self.selected_tile[0], self.selected_tile[1], b_attr[6], b_attr[7], True)
+                self.resources.append(new_resource)
             self.popup_menu.close()
             if selected_unit:
                 selected_unit.rest()
@@ -673,8 +681,6 @@ class GameplayState:
         else:
             self.message_box.open("Insufficient funds", self.error_message)
             # self.cancel_action()
-
-        self.cover_resources(selected_unit.x, selected_unit.y)
 
     # Returns to the previous popup menu
     def cancel_action(self):

@@ -144,15 +144,16 @@ BUILDING_SPRITES = {
 RESOURCES_PATH = os.path.join("..", "assets", "resources")
 
 RESOURCE_SPRITES = {
+    "food": "berry_bush.png",
     "wood": "tree4.png",
-    "food": "berry_bush.png"
+    "gold": "gold2.png"
 }
 
 # Resource type, amount defaults
 RESOURCE_TILE_TYPES = {
     "FO": ("food", 500),
     "WO": ("wood", 400),
-    "GO": ("gold", 2000),
+    "GO": ("gold", 2000)
 }
 
 RESOURCE_ICONS_PATH = os.path.join("..", "assets", "resource_icons")
@@ -205,7 +206,7 @@ for x in range(len(resource_data)):
             
             # Create the resource source at these coordinates
             # It will now sit "on top" of whatever is in PLAYABLE_MAP[x][y]
-            resources.append(ResourceSource(x, y, r_type, r_amt))
+            resources.append(ResourceSource(x, y, r_type, r_amt, False))
 
 BOUNDARY_MAP = [[0 for _ in range(BOUNDARY_WIDTH)] for _ in range(BOUNDARY_HEIGHT)]
 
@@ -234,10 +235,10 @@ BUILDINGS = {
     "market": ["market", 0, 100, 100, 200, 0]
 }
 
-# [name, food cost, wood cost, gold cost, hitpoints, pop capacity]
+# [name, food cost, wood cost, gold cost, hitpoints, pop capacity, resource type, resource amount]
 RESOURCE_BUILDINGS = {
-    "mill": ["mill", 0, 50, 0, 200, 0],
-    "farm": ["farm", 0, 50, 0, 100, 0]
+    "mill": ["mill", 0, 50, 0, 200, 0, "food", 500000],
+    "farm": ["farm", 0, 50, 0, 100, 0, "food", 500000]
 }
 
 # BUILDING_COLORS = {
