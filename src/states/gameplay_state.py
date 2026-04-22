@@ -1402,12 +1402,12 @@ class GameplayState:
 
 # === GAME LOOP ===
 
-    def run(self):
+    def run(self, events):
         # global actions, callbacks
         if not self.game_over:
             # Events during the player's turn
             if self.player_turn:
-                for event in pygame.event.get():
+                for event in events:
                     if event.type == pygame.QUIT:
                         self.running = False
                         return

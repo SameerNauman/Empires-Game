@@ -26,8 +26,8 @@ class Menu():
 
         self.selected_button = self.start_b
 
-    def run(self):
-        for event in pygame.event.get():
+    def run(self, events):
+        for event in events:
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
