@@ -341,7 +341,7 @@ class GameplayState:
         f_x = 150
         w_x = 450
         g_x = 850
-        p_x = 1150
+        p_x = 1125
 
         f_y = (58 - f_surface.get_height())
         w_y = (58 - w_surface.get_height())
@@ -351,7 +351,7 @@ class GameplayState:
         self.screen.blit(f_surface, (f_x, f_y))
         self.screen.blit(w_surface, (w_x, w_y))
         self.screen.blit(g_surface, (g_x, g_y))
-        self.screen.blit(f_surface, (p_x, p_y))
+        self.screen.blit(p_surface, (p_x, p_y))
 
     # 'Cinematic' effect of following enemy units during enemy turn.
     def follow_enemy_camera(self, enemy):
