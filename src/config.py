@@ -180,8 +180,8 @@ UI_ELEMENTS = {
     "message_box": "message_box3.png",
     "resource_bar": "resource_bar4.png",
     "popup_menu": {
-        "normal": "popup2.png",
-        "selected": "selected_popup3.png"
+        "normal": "popup.png",
+        "selected": "selected_popup.png"
     }
 }
 
