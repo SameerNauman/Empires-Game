@@ -107,7 +107,7 @@ class GameplayState:
             self.ui_elements["message_box"] # Pass the loaded sprite here
         )
         self.error_message = True
-        self.popup_menu = PopupMenu([], {}, 10, 10)
+        self.popup_menu = PopupMenu([], {}, 10, 10, self.ui_elements, width=150, item_height=30)
         self.target_aquisition = TargetAquisition()
         self.enemy_ai = EnemyAi(self.enemy_units)
 
@@ -299,10 +299,18 @@ class GameplayState:
             self.screen.blit(sprite, rect)
 
     def load_ui_elements(self):
-        self.ui_elements = {}
-        for element_name, filename in UI_ELEMENTS.items():
-            full_path = os.path.join(UI_ELEMENTS_PATH, filename)
-            self.ui_elements[element_name] = pygame.image.load(full_path).convert_alpha()
+            self.ui_elements = {}
+            for element_name, data in UI_ELEMENTS.items():
+                # Check if it's a dictionary (like your popup_menu)
+                if isinstance(data, dict):
+                    self.ui_elements[element_name] = {}
+                    for state, filename in data.items():
+                        full_path = os.path.join(UI_ELEMENTS_PATH, filename)
+                        self.ui_elements[element_name][state] = pygame.image.load(full_path).convert_alpha()
+                else:
+                    # It's a regular string (like message_box)
+                    full_path = os.path.join(UI_ELEMENTS_PATH, data)
+                    self.ui_elements[element_name] = pygame.image.load(full_path).convert_alpha()
 
     # Displays the resource bar at the top of the screen
     def display_resource_bar(self):
@@ -663,7 +671,7 @@ class GameplayState:
 
         self.popup_menu.open(options, actions)
         self.popup_menu.set_position(
-            (SCREEN_WIDTH - self.popup_menu.width) // 2,
+            POPUP_X,
             (SCREEN_HEIGHT - (self.popup_menu.item_height * len(self.popup_menu.options))) // 2
         )
 
@@ -713,7 +721,7 @@ class GameplayState:
         
         self.popup_menu.open(options, actions)
         self.popup_menu.set_position(
-            (SCREEN_WIDTH - self.popup_menu.width) // 2,
+            POPUP_X,
             (SCREEN_HEIGHT - (self.popup_menu.item_height * len(self.popup_menu.options))) // 2
         )
     
@@ -760,7 +768,7 @@ class GameplayState:
     def cancel_action(self):
         self.popup_menu.back()
         self.popup_menu.set_position(
-            (SCREEN_WIDTH - self.popup_menu.width) // 2,
+            POPUP_X,
             (SCREEN_HEIGHT - (self.popup_menu.item_height * len(self.popup_menu.options))) // 2
         )
 
@@ -818,7 +826,7 @@ class GameplayState:
         }
         self.popup_menu.open(options, actions)
         self.popup_menu.set_position(
-            (SCREEN_WIDTH - self.popup_menu.width) // 2,
+            POPUP_X,
             (SCREEN_HEIGHT - (self.popup_menu.item_height * len(self.popup_menu.options))) // 2
         )
 
@@ -893,10 +901,9 @@ class GameplayState:
                 }
             self.popup_menu.open(building_actions, building_callbacks)
             self.popup_menu.set_position(
-                (SCREEN_WIDTH - self.popup_menu.width) // 2,
+                POPUP_X,
                 (SCREEN_HEIGHT - (self.popup_menu.item_height * len(self.popup_menu.options))) // 2
-            )
-
+                )
     # Displays a popup menu of the trainable units at the selected building, and spawns the unit
     def unit_selection(self):
         selected_building = next((b for b in self.buildings if b.id == self.selected_building_id), None)
@@ -930,7 +937,7 @@ class GameplayState:
 
         self.popup_menu.open(options, actions)
         self.popup_menu.set_position(
-            (SCREEN_WIDTH - self.popup_menu.width) // 2,
+            POPUP_X,
             (SCREEN_HEIGHT - (self.popup_menu.item_height * len(self.popup_menu.options))) // 2
         )
 
@@ -1266,7 +1273,7 @@ class GameplayState:
         )
 
         self.popup_menu.set_position(
-            (SCREEN_WIDTH - self.popup_menu.width) // 2,
+            POPUP_X,
             (SCREEN_HEIGHT - (self.popup_menu.item_height * len(self.popup_menu.options))) // 2
         )
 

@@ -32,6 +32,8 @@ MINI_MAP_MARGIN = 0
 CENTER_X = SCREEN_WIDTH - RADIUS - MINI_MAP_MARGIN
 CENTER_Y = SCREEN_HEIGHT - RADIUS - MINI_MAP_MARGIN
 
+POPUP_X = 25
+
 # Define tile types and costs
 
 TERRAIN_SPRITES = {
@@ -172,6 +174,10 @@ UI_ELEMENTS_PATH = os.path.join("..", "assets", "ui")
 UI_ELEMENTS = {
     "message_box": "message_box3.png",
     "resource_bar": "resource_bar4.png",
+    "popup_menu": {
+        "normal": "popup.png",
+        "selected": "selected_popup.png"
+    }
 }
 
 # --- STEP 1: LOAD TERRAIN MAP ---

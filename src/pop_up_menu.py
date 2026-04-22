@@ -2,16 +2,17 @@ import pygame
 from config import *
 
 class PopupMenu:
-    def __init__(self, options,actions, x, y, width=150, item_height=30):
+    def __init__(self, options,actions, x, y, sprites, width=150, item_height=50):
         self.options = options
         self.actions = actions #dictionary to map options to actions
         self.x = x
         self.y = y
+        self.sprites = sprites
         self.width = width
         self.item_height = item_height
         self.selected_index = 0
         self.is_open = False
-        self.font = pygame.font.SysFont("Arial", 20)
+        self.font = pygame.font.SysFont("Arial", 25)
 
         self.history = []  # Stack to keep track of menu history for nested menus
 
@@ -40,19 +41,41 @@ class PopupMenu:
         if not self.is_open:
             return
         
-        height = self.item_height * len(self.options)
-        self.x = MARGIN
-        self.y = (SCREEN_HEIGHT - height) // 2
-
-        self.set_position(self.x, self.y)
-
-        pygame.draw.rect(screen, (0, 0, 0), (self.x, self.y, self.width, height))
-        pygame.draw.rect(screen, (255, 255, 255), (self.x, self.y, self.width, height), 2)
+        # 1. Get the dictionary of sprites
+        menu_sprites = self.sprites.get("popup_menu")
+        spacing = 40 
 
         for i, option in enumerate(self.options):
-            color = (255, 255, 0) if i == self.selected_index else (255, 255, 255)
-            text = self.font.render(option, True, color)
-            screen.blit(text, (self.x + 10, self.y + i * self.item_height + 5))
+            # Calculate the Y position for this specific menu item slot
+            item_y = self.y + (i * (self.item_height + spacing))
+            
+            # Determine state-based visuals
+            if i == self.selected_index:
+                sprite = menu_sprites.get("selected") if menu_sprites else None
+                text_color = (0, 255, 255) # Cyan highlight
+            else:
+                sprite = menu_sprites.get("normal") if menu_sprites else None
+                text_color = (255, 255, 255) # Standard white
+                
+            # --- DRAW BACKGROUND ---
+            if sprite:
+                screen.blit(sprite, (self.x, item_y))
+            else:
+                # Fallback if sprite is missing
+                pygame.draw.rect(screen, (30, 30, 30, 180), (self.x, item_y, self.width, self.item_height))
+                pygame.draw.rect(screen, (255, 255, 255), (self.x, item_y, self.width, self.item_height), 1)
+                
+            # --- DRAW CENTERED TEXT ---
+            text_surf = self.font.render(option, True, text_color)
+            
+            # Horizontal Centering: (Total Width - Text Width) / 2
+            text_x_offset = 15
+            
+            # Vertical Centering: (Total Height - Text Height) / 2
+            text_y_offset = 15
+            
+            # Blit the text relative to the sprite's current position
+            screen.blit(text_surf, (self.x + text_x_offset, item_y + text_y_offset))
 
     def set_position(self, x, y):
         self.x = x
