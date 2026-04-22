@@ -46,7 +46,7 @@ class PopupMenu:
         
         # Get the dictionary of sprites
         menu_sprites = self.sprites.get("popup_menu")
-        spacing = 40 
+        spacing = 20 
 
         for i, option in enumerate(self.options):
             # Calculate the Y position for this specific menu item slot
