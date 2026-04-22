@@ -488,7 +488,7 @@ class GameplayState:
         self.screen.blit(mini_map_surface, (CENTER_X - RADIUS, CENTER_Y - RADIUS))
         
         # Draw circular border
-        pygame.draw.circle(self.screen, (200, 200, 200), (CENTER_X, CENTER_Y), SMALLER_RADIUS, 3)
+        pygame.draw.circle(self.screen, (205, 195, 183), (CENTER_X, CENTER_Y), SMALLER_RADIUS, 5)
 
     def map_outline(self, surface, offset_x, offset_y):
         # Draw yellow outline around playable map with margin
