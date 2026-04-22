@@ -33,6 +33,7 @@ CENTER_X = SCREEN_WIDTH - RADIUS - MINI_MAP_MARGIN
 CENTER_Y = SCREEN_HEIGHT - RADIUS - MINI_MAP_MARGIN
 
 POPUP_X = 25
+MESSAGE_BOX_TOP = SCREEN_HEIGHT - 150
 
 # Define tile types and costs
 
@@ -171,12 +172,16 @@ RESOURCE_ICONS = {
 
 UI_ELEMENTS_PATH = os.path.join("..", "assets", "ui")
 
+# popup.png / selected_popup.png --> text_x/y_offset = 15, spacing = 40, POPUP_X = 25, POPUP_Y = (SCREEN_HEIGHT - (self.popup_menu.item_height * len(self.popup_menu.options))) // 2
+
+# popup2.png / selected_popup3.png --> 
+
 UI_ELEMENTS = {
     "message_box": "message_box3.png",
     "resource_bar": "resource_bar4.png",
     "popup_menu": {
-        "normal": "popup.png",
-        "selected": "selected_popup.png"
+        "normal": "popup2.png",
+        "selected": "selected_popup3.png"
     }
 }
 

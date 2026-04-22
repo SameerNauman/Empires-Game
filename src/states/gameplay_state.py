@@ -670,10 +670,7 @@ class GameplayState:
                 actions["Attack"] = lambda: self.attack_action(self.selected_unit)
 
         self.popup_menu.open(options, actions)
-        self.popup_menu.set_position(
-            POPUP_X,
-            (SCREEN_HEIGHT - (self.popup_menu.item_height * len(self.popup_menu.options))) // 2
-        )
+        self.position_popup_above_messagebox()
 
     # Moves a unit and increases the action count by 1, deselects the unit, then closes the popup menu
     def move_action(self):
@@ -720,10 +717,7 @@ class GameplayState:
         actions["Cancel"] = self.cancel_action
         
         self.popup_menu.open(options, actions)
-        self.popup_menu.set_position(
-            POPUP_X,
-            (SCREEN_HEIGHT - (self.popup_menu.item_height * len(self.popup_menu.options))) // 2
-        )
+        self.position_popup_above_messagebox()
     
     # Creates instance of chosen building and subtracts resource cost.
     def building_construction(self, building_name):
@@ -767,10 +761,7 @@ class GameplayState:
     # Returns to the previous popup menu
     def cancel_action(self):
         self.popup_menu.back()
-        self.popup_menu.set_position(
-            POPUP_X,
-            (SCREEN_HEIGHT - (self.popup_menu.item_height * len(self.popup_menu.options))) // 2
-        )
+        self.position_popup_above_messagebox()
 
     # Unit gathers the resource from the resource tile its on and increases the action count by 1
     def gather_action(self, unit, resource):
@@ -825,10 +816,7 @@ class GameplayState:
             "Undo Move": self.undo_attack
         }
         self.popup_menu.open(options, actions)
-        self.popup_menu.set_position(
-            POPUP_X,
-            (SCREEN_HEIGHT - (self.popup_menu.item_height * len(self.popup_menu.options))) // 2
-        )
+        self.position_popup_above_messagebox()
 
     # Executes the players attack and calculates resulting damage. Also runs enemy retaliation
     def execute_attack(self):
@@ -900,10 +888,8 @@ class GameplayState:
                     "Cancel": self.deselect
                 }
             self.popup_menu.open(building_actions, building_callbacks)
-            self.popup_menu.set_position(
-                POPUP_X,
-                (SCREEN_HEIGHT - (self.popup_menu.item_height * len(self.popup_menu.options))) // 2
-                )
+            self.position_popup_above_messagebox()
+
     # Displays a popup menu of the trainable units at the selected building, and spawns the unit
     def unit_selection(self):
         selected_building = next((b for b in self.buildings if b.id == self.selected_building_id), None)
@@ -936,10 +922,7 @@ class GameplayState:
         actions["Cancel"] = lambda: self.building_actions(selected_building)
 
         self.popup_menu.open(options, actions)
-        self.popup_menu.set_position(
-            POPUP_X,
-            (SCREEN_HEIGHT - (self.popup_menu.item_height * len(self.popup_menu.options))) // 2
-        )
+        self.position_popup_above_messagebox()
 
     # Creates an instance of a unit with appropriate attributes.
     def train_action(self, unit_name, spawn_x, spawn_y):
@@ -1272,10 +1255,7 @@ class GameplayState:
                             }
         )
 
-        self.popup_menu.set_position(
-            POPUP_X,
-            (SCREEN_HEIGHT - (self.popup_menu.item_height * len(self.popup_menu.options))) // 2
-        )
+        self.position_popup_above_messagebox()
 
     # Unit movement
     def mobile_unit(self):
@@ -1405,6 +1385,21 @@ class GameplayState:
 
         return(screen_x, screen_y)
     
+    # Inside the method where you open or position the menu
+    def position_popup_above_messagebox(self):
+        spacing = 20 # match with popup.draw
+        total_options = len(self.popup_menu.options)
+        
+        # Calculate the total height the menu occupies
+        # (Number of items * their height) + (The gaps between them)
+        total_menu_height = (total_options * self.popup_menu.item_height) + ((total_options - 1) * spacing)
+        
+        # Set self.y so the bottom of the menu sits just above the message box
+        gap_between_ui = 50 
+        new_y = MESSAGE_BOX_TOP - total_menu_height - gap_between_ui
+        
+        self.popup_menu.set_position(POPUP_X, new_y)
+
 # === GAME LOOP ===
 
     def run(self):

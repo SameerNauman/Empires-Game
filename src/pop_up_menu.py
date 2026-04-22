@@ -41,9 +41,9 @@ class PopupMenu:
         if not self.is_open:
             return
         
-        # 1. Get the dictionary of sprites
+        # Get the dictionary of sprites
         menu_sprites = self.sprites.get("popup_menu")
-        spacing = 40 
+        spacing = 20 
 
         for i, option in enumerate(self.options):
             # Calculate the Y position for this specific menu item slot
@@ -57,7 +57,7 @@ class PopupMenu:
                 sprite = menu_sprites.get("normal") if menu_sprites else None
                 text_color = (255, 255, 255) # Standard white
                 
-            # --- DRAW BACKGROUND ---
+            # Background
             if sprite:
                 screen.blit(sprite, (self.x, item_y))
             else:
@@ -65,13 +65,11 @@ class PopupMenu:
                 pygame.draw.rect(screen, (30, 30, 30, 180), (self.x, item_y, self.width, self.item_height))
                 pygame.draw.rect(screen, (255, 255, 255), (self.x, item_y, self.width, self.item_height), 1)
                 
-            # --- DRAW CENTERED TEXT ---
+            # Text
             text_surf = self.font.render(option, True, text_color)
             
-            # Horizontal Centering: (Total Width - Text Width) / 2
             text_x_offset = 15
-            
-            # Vertical Centering: (Total Height - Text Height) / 2
+          
             text_y_offset = 15
             
             # Blit the text relative to the sprite's current position
