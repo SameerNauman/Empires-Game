@@ -238,16 +238,21 @@ DAMAGE = 0
 BONUS_MULTIPLYER = 0
 FLAT_BONUS = 0
 
+TOWN_CENTRE_DESC = ("The Town Centre can train Villagers. It is the beginning of your civilization.")
+MARKET_DESC = ("The Market is a building where you can exchange resources.")
+MILL_DESC = ("The Mill is a resource building, where Villagers can gather food.")
+FARM_DESC = ("The Farm is a resource building, which can only be built on tiles adjacent to Mills. Villagers can gather food from farms.")
+
 # Buildings = [name, food cost, wood cost, gold cost, hitpoints, pop capacity, 1_units, 2_units, 3_units, 4_units]
 BUILDINGS = {
-    "town_centre": ["town_centre", 0, 400, 400, 500, 10, ["Villager"]],
-    "market": ["market", 0, 100, 100, 200, 0]
+    "town_centre": ["town_centre", 0, 400, 400, 500, 10, ["Villager"], TOWN_CENTRE_DESC],
+    "market": ["market", 0, 100, 100, 200, 0, [], MARKET_DESC]
 }
 
 # [name, food cost, wood cost, gold cost, hitpoints, pop capacity, resource type, resource amount]
 RESOURCE_BUILDINGS = {
-    "mill": ["mill", 0, 50, 0, 200, 0, "food", 500000],
-    "farm": ["farm", 0, 50, 0, 100, 0, "food", 500000]
+    "mill": ["mill", 0, 50, 0, 200, 0, "food", 500000, MILL_DESC],
+    "farm": ["farm", 0, 50, 0, 100, 0, "food", 500000, FARM_DESC]
 }
 
 BASIL_DESC = ("Basil II is the Emperor of the Byzantine Empire. He is a cavalry unit that can move long distances. \n\n" "300 / 300")

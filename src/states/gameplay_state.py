@@ -955,10 +955,11 @@ class GameplayState:
             selected_building.selected = False
             self.selected_building_id = None
         self.popup_menu.close()
+        self.message_box.close()
 
     # Research in buildings. Needs fixing
     def research_action(self):
-        self.message_box.open("Researching upgrades")
+        self.message_box.open("Researching upgrades", True)
         selected_building = next((b for b in self.buildings if b.id == self.selected_building_id), None)
         if selected_building:
             selected_building.selected = False
@@ -1094,6 +1095,7 @@ class GameplayState:
         self.selected_building = None
         self.selected_building_id = None
         self.popup_menu.close()
+        self.message_box.close()
 
     # Cycle through available player units
     def cycle_player_units(self):
@@ -1209,6 +1211,13 @@ class GameplayState:
                 self.selected_building = building
                 self.selected_building_id = building.id
 
+                if self.selected_building.type in BUILDINGS:
+                    b_attr = BUILDINGS[self.selected_building.type]
+                    b_desc = b_attr[7]
+                elif self.selected_building.type in RESOURCE_BUILDINGS:
+                    b_attr = RESOURCE_BUILDINGS[self.selected_building.type]
+                    b_desc = b_attr[8]
+
                 # Deselect any selected unit
                 if self.selected_unit_id is not None:
                     prev_unit = next((u for u in self.units if u.id == self.selected_unit_id), None)
@@ -1220,6 +1229,9 @@ class GameplayState:
 
                 # Trigger building actions popup
                 self.building_actions(self.selected_building)
+
+                self.message_box.open(b_desc, False)
+
                 # Building found and processed
                 return True
         # No building found on hovered tile  
@@ -1243,6 +1255,8 @@ class GameplayState:
             if prev_building:
                 prev_building.selected = False
             self.selected_building_id = None
+
+        self.message_box.close()
 
         self.popup_menu.open(["End Day", "Cancel", "Quit"], 
                              {"End Day": self.end_day,

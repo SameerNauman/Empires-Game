@@ -11,7 +11,7 @@ class MessageBox:
         self.font = pygame.font.SysFont("Arial", 20)
         self.visible = False
         self.padding = 20
-        self.padding_right = 80
+        self.padding_right = 100
         self.box_width = 1000
         self.box_height = 150
         # Timer variables
@@ -73,7 +73,6 @@ class MessageBox:
         # We use self.box_height (300) now instead of a variable text_height
         box_y = SCREEN_HEIGHT - self.box_height
 
-        # --- DRAW THE SPRITE ---
         # This replaces the translucent_surf and the white border lines
         self.screen.blit(self.sprite, (box_x, box_y))
 
