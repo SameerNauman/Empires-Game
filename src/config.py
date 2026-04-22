@@ -174,7 +174,7 @@ UI_ELEMENTS_PATH = os.path.join("..", "assets", "ui")
 
 # popup.png / selected_popup.png --> text_x/y_offset = 15, spacing = 40, POPUP_X = 25, POPUP_Y = (SCREEN_HEIGHT - (self.popup_menu.item_height * len(self.popup_menu.options))) // 2
 
-# popup2.png / selected_popup3.png --> 
+# popup2.png / selected_popup3.png --> spacing = 20, position_popup_above_messagebox()
 
 UI_ELEMENTS = {
     "message_box": "message_box3.png",

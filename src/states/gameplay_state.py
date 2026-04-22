@@ -107,7 +107,7 @@ class GameplayState:
             self.ui_elements["message_box"] # Pass the loaded sprite here
         )
         self.error_message = True
-        self.popup_menu = PopupMenu([], {}, 10, 10, self.ui_elements, width=150, item_height=30)
+        self.popup_menu = PopupMenu([], {}, 10, 10, self.ui_elements, self.message_box, width=150, item_height=30)
         self.target_aquisition = TargetAquisition()
         self.enemy_ai = EnemyAi(self.enemy_units)
 

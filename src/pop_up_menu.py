@@ -2,12 +2,13 @@ import pygame
 from config import *
 
 class PopupMenu:
-    def __init__(self, options,actions, x, y, sprites, width=150, item_height=50):
+    def __init__(self, options,actions, x, y, sprites, message_box, width=150, item_height=50):
         self.options = options
         self.actions = actions #dictionary to map options to actions
         self.x = x
         self.y = y
         self.sprites = sprites
+        self.message_box = message_box
         self.width = width
         self.item_height = item_height
         self.selected_index = 0
@@ -23,6 +24,8 @@ class PopupMenu:
         self.actions = actions
         self.selected_index = 0
         self.is_open = True
+        
+        self._update_description()
 
     def back(self):
         if self.history:
@@ -82,7 +85,10 @@ class PopupMenu:
     # Choosing an option with the awsd keys
     def move_selection(self, direction):
         if self.is_open:
+            # Change the index
             self.selected_index = (self.selected_index + direction) % len(self.options)
+            
+            self._update_description()
 
     def select(self):
         if self.is_open:
@@ -94,3 +100,25 @@ class PopupMenu:
                 print(f"WARNING: No action defined for '{selected_option}'")
             return selected_option
         return None
+    
+    def _update_description(self):
+        if not self.options:
+            return
+
+        current_text = self.options[self.selected_index]
+        
+        # Convert "Town Centre" -> "town_centre"
+        code_key = current_text.lower().replace(" ", "_")
+
+        desc = None
+        # Check BUILDINGS (Index 7)
+        if code_key in BUILDINGS:
+            desc = BUILDINGS[code_key][7]
+        # Check RESOURCE_BUILDINGS (Index 8)
+        elif code_key in RESOURCE_BUILDINGS:
+            desc = RESOURCE_BUILDINGS[code_key][8]
+        else:
+            self.message_box.close()
+
+        if desc:
+            self.message_box.open(desc, False)
