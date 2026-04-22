@@ -11,7 +11,7 @@ class Main():
     def __init__(self):
         # Initialize pygame
         pygame.init()
-        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
         pygame.display.set_caption("Empires PSP")
         self.clock = pygame.time.Clock()
 
@@ -24,11 +24,24 @@ class Main():
     
     def run(self):
         while self.gameplay_state.running:
-            self.states[self.game_state_manager.get_state()].run()
+            # Gather ALL events here
+            events = pygame.event.get()
+            
+            for event in events:
+                if event.type == pygame.QUIT:
+                    self.gameplay_state.running = False
+                elif event.type == pygame.VIDEORESIZE:
+                    new_width, new_height = event.size
+                    self.screen = pygame.display.set_mode((new_width, new_height), pygame.RESIZABLE)
+                    for state in self.states.values():
+                        if hasattr(state, "resize"):
+                            state.resize(new_width, new_height)
+
+            # Pass the events list to the current state
+            self.states[self.game_state_manager.get_state()].run(events)
+            
             pygame.display.flip()
             self.clock.tick(60)
-        pygame.quit()
-        sys.exit()
 
 class GameStateManager():
     def __init__(self, current_state):
