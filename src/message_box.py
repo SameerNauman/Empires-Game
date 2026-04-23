@@ -36,8 +36,6 @@ class MessageBox:
             return
         
     def update_position(self, new_width, new_height):
-        # Update the width of the message box to match the window
-        self.box_width = new_width 
         # Store the new height so we can reposition the box
         self.visible_height = new_height
 

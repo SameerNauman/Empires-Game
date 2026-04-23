@@ -145,6 +145,16 @@ BUILDING_SPRITES = {
     }
 }
 
+BUILDING_ICONS_PATH = os.path.join("..", "assets", "buildings")
+
+BUILDING_ICONS = {
+    "town_centre": "towncenter4.png",
+    "market": "market2.png",
+    "mill": "mill2.png",
+    "farm": "farm.png"
+
+}
+
 RESOURCES_PATH = os.path.join("..", "assets", "resources")
 
 RESOURCE_SPRITES = {
@@ -184,8 +194,8 @@ UI_ELEMENTS = {
         "selected": "selected_popup3.png"
     },
     "building_menu": {
-        "normal": "b_menu.png",
-        "selected": "b_menu_selected.png"
+        "normal": "b_menu3.png",
+        "selected": "b_menu_selected2.png"
     }
 }
 

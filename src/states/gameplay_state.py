@@ -68,6 +68,8 @@ class GameplayState:
         # Resource sprites
         self.load_resource_sprites()
         
+        self.load_building_icons()
+
         # Resource icons
         self.load_resource_icons()
 
@@ -80,7 +82,8 @@ class GameplayState:
         self.selected_target_index = 0
 
         # Player units initialization
-        basil = BaseUnits(3, 3, 10, 300, 300, 1, type="Basil")
+        # basil = BaseUnits(3, 3, 10, 300, 300, 1, type="Basil")
+        villager = BaseUnits(3, 3, 10, 300, 300, 1, type="Villager")
         # Player buildings initialization
         town_centre = BaseBuildings(3, 3, 500, 10, type="town_centre")
         town_centre.is_constructed = True
@@ -91,7 +94,7 @@ class GameplayState:
         e_town_centre.is_constructed = True
 
         # Player unit and building lists
-        self.units = [basil]
+        self.units = [villager]
         self.buildings = [town_centre]
         self.resources = resources
         self.construction = {}
@@ -272,6 +275,18 @@ class GameplayState:
                 path = os.path.join(self.building_path, sprite_info)
                 self.building_sprites[building_type] = pygame.image.load(path).convert_alpha()
 
+    def load_building_icons(self):
+        self.building_icons = {}
+        for building_name, filename in BUILDING_ICONS.items():
+            # Build the full path
+            full_path = os.path.join(BUILDING_ICONS_PATH, filename)
+            try:
+                # Load and convert for better performance
+                sprite = pygame.image.load(full_path).convert_alpha()
+                self.building_icons[building_name] = sprite
+            except pygame.error as e:
+                print(f"Unable to load icon {filename} from {BUILDING_ICONS_PATH}: {e}")
+                
     # Loads the sprites for the resources
     def load_resource_sprites(self):
         self.resource_sprites = {}
@@ -746,6 +761,21 @@ class GameplayState:
         options.append("Cancel")
         actions["Cancel"] = self.cancel_action
         
+        # Map icons to display names
+        icon_mapping = {
+            "Town Centre": self.building_icons.get("town_centre"),
+            "Market": self.building_icons.get("market"),
+            "Mill": self.building_icons.get("mill"),
+            "Farm": self.building_icons.get("farm"),
+            "Cancel": None
+        }
+
+        # Store icons in a dedicated 'building_icons' key
+        self.building_menu.sprites["building_icons"] = icon_mapping
+        
+        # Keep this as 'building_menu' so it still finds your hexagons!
+        self.building_menu.sprite_key = "building_menu" 
+
         self.popup_menu.close()
         self.building_menu.open(options, actions)
     
@@ -790,7 +820,8 @@ class GameplayState:
 
     # Returns to the previous popup menu
     def cancel_action(self):
-        self.popup_menu.back()
+        self.building_menu.close()
+        self.popup_menu.is_open = True
 
     # Unit gathers the resource from the resource tile its on and increases the action count by 1
     def gather_action(self, unit, resource):
@@ -1456,9 +1487,7 @@ class GameplayState:
                                 self.building_menu.move_selection(1)
                             elif event.key == pygame.K_LSHIFT:
                                 self.building_menu.select()
-                            elif event.key == pygame.K_ESCAPE:
-                                self.building_menu.close()
-                            continue # Block all other inputs while this specific menu is open
+                            continue
 
                         # Popup menu
                         if self.popup_menu.is_open:
@@ -1468,9 +1497,7 @@ class GameplayState:
                                 self.popup_menu.move_selection(1)
                             elif event.key == pygame.K_LSHIFT:
                                 self.popup_menu.select()
-                            elif event.key == pygame.K_ESCAPE:
-                                self.popup_menu.close()
-                            continue # Block all other inputs
+                            return # Block all other inputs
 
                         # Target selection
                         if self.target_select_mode:
@@ -1478,6 +1505,9 @@ class GameplayState:
                                 self.cycle_target()
                             elif event.key == pygame.K_LSHIFT:
                                 self.open_attack_confirm_menu()
+                            elif event.key == pygame.K_ESCAPE:
+                                self.target_select_mode = False
+                                self.popup_menu.is_open = True
                             return
                         
                         # Deselect units or buildings
