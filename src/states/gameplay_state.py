@@ -14,6 +14,7 @@ class GameplayState:
     def __init__(self, screen, game_state_manager):
         self.game_state_manager = game_state_manager
         self.screen = screen
+        w, h = screen.get_size()
         self.clock = pygame.time.Clock()
         self.selected_tile = (4, 4)
         self.hovered_tile = self.selected_tile
@@ -40,6 +41,15 @@ class GameplayState:
         self.camera_target_x = 0
         self.camera_target_y = 0
         self.tile_move_delay = 5
+
+        self.minimap_size = int(h * 0.42)
+        self.radius = self.minimap_size // 2
+        self.smaller_radius = int(self.radius * 0.85)
+        
+        # Scale and positioning
+        self.mini_map_scale = int(self.radius // (PLAYABLE_WIDTH // 2 + 1) * 0.40)
+        self.mini_map_center_x = w - self.radius - 20
+        self.mini_map_center_y = h - self.radius - 20
 
         # Terrain sprites
         self.terrain_sprites = {}
@@ -428,16 +438,16 @@ class GameplayState:
         # Mini map dimensions and position
         
         # Create a surface for the circular mini map with per-pixel alpha
-        mini_map_surface = pygame.Surface((MINIMAP_SIZE, MINIMAP_SIZE), pygame.SRCALPHA)
+        mini_map_surface = pygame.Surface((self.minimap_size, self.minimap_size), pygame.SRCALPHA)
         
         # Draw semi-transparent circular background - smaller circle
         # circle_radius = int(RADIUS * 0.85)
-        pygame.draw.circle(mini_map_surface, (32, 32, 32, 200), (RADIUS, RADIUS), SMALLER_RADIUS)
+        pygame.draw.circle(mini_map_surface, (32, 32, 32, 200), (self.radius, self.radius), self.smaller_radius)
         
         # Calculate offset to center the map on the minimap center
         center_sum = (PLAYABLE_WIDTH + PLAYABLE_HEIGHT - 2) // 2
-        offset_x = RADIUS
-        offset_y = RADIUS - center_sum * MINI_MAP_SCALE
+        offset_x = self.radius
+        offset_y = self.radius - center_sum * self.mini_map_scale
         
         # Draw only visible tiles
         for x in range(PLAYABLE_WIDTH):
@@ -448,55 +458,55 @@ class GameplayState:
                 tile = PLAYABLE_MAP[x][y]
                 color = TILE_DRAW_COLORS.get(tile, (255, 0, 255))
 
-                draw_x = int((x - y) * MINI_MAP_SCALE + offset_x)
-                draw_y = int((x + y) * MINI_MAP_SCALE + offset_y)
+                draw_x = int((x - y) * self.mini_map_scale + offset_x)
+                draw_y = int((x + y) * self.mini_map_scale + offset_y)
                 
                 # Check if point is within circle before drawing
-                dist_from_center = ((draw_x - RADIUS) ** 2 + (draw_y - RADIUS) ** 2) ** 0.5
-                if dist_from_center < SMALLER_RADIUS:
+                dist_from_center = ((draw_x - self.radius) ** 2 + (draw_y - self.radius) ** 2) ** 0.5
+                if dist_from_center < self.smaller_radius:
                     # Top-down diamond tile
                     pygame.draw.polygon(mini_map_surface, color, [
-                        (draw_x, draw_y - MINI_MAP_SCALE),
-                        (draw_x + MINI_MAP_SCALE, draw_y),
-                        (draw_x, draw_y + MINI_MAP_SCALE),
-                        (draw_x - MINI_MAP_SCALE, draw_y)
+                        (draw_x, draw_y - self.mini_map_scale),
+                        (draw_x + self.mini_map_scale, draw_y),
+                        (draw_x, draw_y + self.mini_map_scale),
+                        (draw_x - self.mini_map_scale, draw_y)
                     ])
 
         # Only draw player units/buildings/resources if on visible tiles
         for unit in self.units:
             ux, uy = int(unit.x), int(unit.y)
             if 0 <= ux < PLAYABLE_WIDTH and 0 <= uy < PLAYABLE_HEIGHT and VISIBILITY_MAP[ux][uy] != 0:
-                draw_x = int((ux - uy) * MINI_MAP_SCALE + offset_x)
-                draw_y = int((ux + uy) * MINI_MAP_SCALE + offset_y)
-                dist_from_center = ((draw_x - RADIUS) ** 2 + (draw_y - RADIUS) ** 2) ** 0.5
-                if dist_from_center < SMALLER_RADIUS:
+                draw_x = int((ux - uy) * self.mini_map_scale + offset_x)
+                draw_y = int((ux + uy) * self.mini_map_scale + offset_y)
+                dist_from_center = ((draw_x - self.radius) ** 2 + (draw_y - self.radius) ** 2) ** 0.5
+                if dist_from_center < self.smaller_radius:
                     self.draw_unit(ux, uy, mini_map_surface, draw_x, draw_y)
         
         for building in self.buildings:
             bx, by = int(building.x), int(building.y)
             if 0 <= bx < PLAYABLE_WIDTH and 0 <= by < PLAYABLE_HEIGHT and VISIBILITY_MAP[bx][by] != 0:
-                draw_x = int((bx - by) * MINI_MAP_SCALE + offset_x)
-                draw_y = int((bx + by) * MINI_MAP_SCALE + offset_y)
-                dist_from_center = ((draw_x - RADIUS) ** 2 + (draw_y - RADIUS) ** 2) ** 0.5
-                if dist_from_center < SMALLER_RADIUS:
+                draw_x = int((bx - by) * self.mini_map_scale + offset_x)
+                draw_y = int((bx + by) * self.mini_map_scale + offset_y)
+                dist_from_center = ((draw_x - self.radius) ** 2 + (draw_y - self.radius) ** 2) ** 0.5
+                if dist_from_center < self.smaller_radius:
                     self.draw_building(bx, by, mini_map_surface, draw_x, draw_y)
         
         for res in self.resources:
             rx, ry = int(res.x), int(res.y)
             if 0 <= rx < PLAYABLE_WIDTH and 0 <= ry < PLAYABLE_HEIGHT and VISIBILITY_MAP[rx][ry] != 0:
-                draw_x = int((rx - ry) * MINI_MAP_SCALE + offset_x)
-                draw_y = int((rx + ry) * MINI_MAP_SCALE + offset_y)
-                dist_from_center = ((draw_x - RADIUS) ** 2 + (draw_y - RADIUS) ** 2) ** 0.5
-                if dist_from_center < SMALLER_RADIUS:
+                draw_x = int((rx - ry) * self.mini_map_scale + offset_x)
+                draw_y = int((rx + ry) * self.mini_map_scale + offset_y)
+                dist_from_center = ((draw_x - self.radius) ** 2 + (draw_y - self.radius) ** 2) ** 0.5
+                if dist_from_center < self.smaller_radius:
                     self.draw_resource(rx, ry, mini_map_surface, draw_x, draw_y)
         
         self.map_outline(mini_map_surface, offset_x, offset_y)
         
         # Blit the mini map surface to the screen
-        self.screen.blit(mini_map_surface, (CENTER_X - RADIUS, CENTER_Y - RADIUS))
+        self.screen.blit(mini_map_surface, (self.mini_map_center_x - self.radius, self.mini_map_center_y - self.radius))
         
         # Draw circular border
-        pygame.draw.circle(self.screen, (205, 195, 183), (CENTER_X, CENTER_Y), SMALLER_RADIUS, 5)
+        pygame.draw.circle(self.screen, (205, 195, 183), (self.mini_map_center_x, self.mini_map_center_y), self.smaller_radius, 5)
 
     def map_outline(self, surface, offset_x, offset_y):
         # Draw yellow outline around playable map with margin
@@ -510,8 +520,8 @@ class GameplayState:
         # Top-down diamond view (rotate 45 degrees without isometric compression)
         corners_screen = []
         for x, y in corners:
-            draw_x = int((x - y) * MINI_MAP_SCALE + offset_x)
-            draw_y = int((x + y) * MINI_MAP_SCALE + offset_y)
+            draw_x = int((x - y) * self.mini_map_scale + offset_x)
+            draw_y = int((x + y) * self.mini_map_scale + offset_y)
             corners_screen.append([draw_x, draw_y])
         # Draw diamond outline using polygon (unfilled, just the border)
         if len(corners_screen) >= 3:
@@ -670,7 +680,6 @@ class GameplayState:
                 actions["Attack"] = lambda: self.attack_action(self.selected_unit)
 
         self.popup_menu.open(options, actions)
-        self.position_popup_above_messagebox()
 
     # Moves a unit and increases the action count by 1, deselects the unit, then closes the popup menu
     def move_action(self):
@@ -717,7 +726,6 @@ class GameplayState:
         actions["Cancel"] = self.cancel_action
         
         self.popup_menu.open(options, actions)
-        self.position_popup_above_messagebox()
     
     # Creates instance of chosen building and subtracts resource cost.
     def building_construction(self, building_name):
@@ -761,7 +769,6 @@ class GameplayState:
     # Returns to the previous popup menu
     def cancel_action(self):
         self.popup_menu.back()
-        self.position_popup_above_messagebox()
 
     # Unit gathers the resource from the resource tile its on and increases the action count by 1
     def gather_action(self, unit, resource):
@@ -816,7 +823,6 @@ class GameplayState:
             "Undo Move": self.undo_attack
         }
         self.popup_menu.open(options, actions)
-        self.position_popup_above_messagebox()
 
     # Executes the players attack and calculates resulting damage. Also runs enemy retaliation
     def execute_attack(self):
@@ -888,7 +894,6 @@ class GameplayState:
                     "Cancel": self.deselect
                 }
             self.popup_menu.open(building_actions, building_callbacks)
-            self.position_popup_above_messagebox()
 
     # Displays a popup menu of the trainable units at the selected building, and spawns the unit
     def unit_selection(self):
@@ -922,7 +927,6 @@ class GameplayState:
         actions["Cancel"] = lambda: self.building_actions(selected_building)
 
         self.popup_menu.open(options, actions)
-        self.position_popup_above_messagebox()
 
     # Creates an instance of a unit with appropriate attributes.
     def train_action(self, unit_name, spawn_x, spawn_y):
@@ -1255,8 +1259,6 @@ class GameplayState:
                             }
         )
 
-        self.position_popup_above_messagebox()
-
     # Unit movement
     def mobile_unit(self):
         # Find the unit object by its ID
@@ -1384,21 +1386,29 @@ class GameplayState:
         screen_y = ((draw_x + draw_y) * BASE_TILE_HEIGHT // 2 + (SCREEN_HEIGHT // 4) + self.camera_y)
 
         return(screen_x, screen_y)
-    
-    # Inside the method where you open or position the menu
-    def position_popup_above_messagebox(self):
-        spacing = 20 # match with popup.draw
-        total_options = len(self.popup_menu.options)
+
+    # Resize 
+    def resize(self, w, h):
+        self.screen = pygame.display.get_surface()
+
+        # Mini-map Sizing
+        self.minimap_size = int(h * 0.42) 
+        self.radius = self.minimap_size // 2
+        self.smaller_radius = int(self.radius * 0.85)
         
-        # Calculate the total height the menu occupies
-        # (Number of items * their height) + (The gaps between them)
-        total_menu_height = (total_options * self.popup_menu.item_height) + ((total_options - 1) * spacing)
-        
-        # Set self.y so the bottom of the menu sits just above the message box
-        gap_between_ui = 50 
-        new_y = MESSAGE_BOX_TOP - total_menu_height - gap_between_ui
-        
-        self.popup_menu.set_position(POPUP_X, new_y)
+        # Recalculate scale so the map fills the new circle size
+        self.mini_map_scale = int(self.radius // (PLAYABLE_WIDTH // 2 + 1) * 0.40)
+
+        # Update Mini-map center (Bottom Right)
+        self.mini_map_center_x = w - self.radius - 20 # 20px margin
+        self.mini_map_center_y = h - self.radius - 20
+
+        # Update the Message Box position
+        self.message_box.update_position(w, h)
+
+        # Update the Popup menu position
+        if self.popup_menu.is_open:
+            self.popup_menu.resize(w, h)
 
 # === GAME LOOP ===
 

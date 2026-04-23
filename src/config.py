@@ -9,7 +9,7 @@ PLAYABLE_WIDTH, PLAYABLE_HEIGHT = 20, 20
 BOUNDARY_WIDTH, BOUNDARY_HEIGHT = 20, 20
 
 # Mini Map dimensions and position
-MINIMAP_SIZE = 300
+MINIMAP_SIZE = 400
 
 # Calculate scaled tile size to fit map in mini map area
 MINI_TILE = 18

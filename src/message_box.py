@@ -34,6 +34,12 @@ class MessageBox:
         if current_time - self.start_time >= self.duration:
             self.close()
             return
+        
+    def update_position(self, new_width, new_height):
+        # Update the width of the message box to match the window
+        self.box_width = new_width 
+        # Store the new height so we can reposition the box
+        self.visible_height = new_height
 
     def draw(self):
         if not self.visible:
@@ -70,13 +76,13 @@ class MessageBox:
 
         # Center position logic
         box_x = 0
-        # We use self.box_height (300) now instead of a variable text_height
-        box_y = SCREEN_HEIGHT - self.box_height
+        # Use self.visible_height instead of SCREEN_HEIGHT
+        box_y = self.visible_height - self.box_height
 
-        # This replaces the translucent_surf and the white border lines
+        # Draw the sprite
         self.screen.blit(self.sprite, (box_x, box_y))
 
-        # Draw text (Start from the same box_x/box_y)
+        # Draw text
         line_height = self.font.get_height()
         for i, line in enumerate(lines):
             text_surf = self.font.render(line, True, (255, 255, 255))

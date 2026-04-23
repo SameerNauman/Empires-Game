@@ -24,6 +24,9 @@ class PopupMenu:
         self.actions = actions
         self.selected_index = 0
         self.is_open = True
+
+        w, h = pygame.display.get_surface().get_size()
+        self.resize(w, h)
         
         self._update_description()
 
@@ -77,6 +80,17 @@ class PopupMenu:
             
             # Blit the text relative to the sprite's current position
             screen.blit(text_surf, (self.x + text_x_offset, item_y + text_y_offset))
+
+    def resize(self, new_width, new_height):
+        spacing = 20
+        total_menu_height = (len(self.options) * self.item_height) + ((len(self.options) - 1) * spacing)
+        
+        # message_box_top = new_height - self.message_box.box_height
+        # self.y = message_box_top - total_menu_height - 15 (margin)
+        
+        # Simplified: Puts it in the same relative spot regardless of window height
+        message_box_top = new_height - self.message_box.box_height
+        self.y = message_box_top - total_menu_height - 20
 
     def set_position(self, x, y):
         self.x = x
