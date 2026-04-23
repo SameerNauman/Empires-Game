@@ -85,12 +85,8 @@ class PopupMenu:
         spacing = 20
         total_menu_height = (len(self.options) * self.item_height) + ((len(self.options) - 1) * spacing)
         
-        # message_box_top = new_height - self.message_box.box_height
-        # self.y = message_box_top - total_menu_height - 15 (margin)
-        
-        # Simplified: Puts it in the same relative spot regardless of window height
         message_box_top = new_height - self.message_box.box_height
-        self.y = message_box_top - total_menu_height - 20
+        self.y = message_box_top - total_menu_height - 30
 
     def set_position(self, x, y):
         self.x = x
