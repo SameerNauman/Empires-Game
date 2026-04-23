@@ -2,7 +2,7 @@ import pygame
 from config import *
 
 class PopupMenu:
-    def __init__(self, options,actions, x, y, sprites, message_box, width=150, item_height=50):
+    def __init__(self, options,actions, x, y, sprites, message_box, width=150, item_height=50, sprite_key="popup_menu", side="left"):
         self.options = options
         self.actions = actions #dictionary to map options to actions
         self.x = x
@@ -11,6 +11,8 @@ class PopupMenu:
         self.message_box = message_box
         self.width = width
         self.item_height = item_height
+        self.sprite_key = sprite_key
+        self.side = side
         self.selected_index = 0
         self.is_open = False
         self.font = pygame.font.SysFont("Arial", 25)
@@ -48,7 +50,7 @@ class PopupMenu:
             return
         
         # Get the dictionary of sprites
-        menu_sprites = self.sprites.get("popup_menu")
+        menu_sprites = self.sprites.get(self.sprite_key)
         spacing = 20 
 
         for i, option in enumerate(self.options):
@@ -69,7 +71,6 @@ class PopupMenu:
             else:
                 # Fallback if sprite is missing
                 pygame.draw.rect(screen, (30, 30, 30, 180), (self.x, item_y, self.width, self.item_height))
-                pygame.draw.rect(screen, (255, 255, 255), (self.x, item_y, self.width, self.item_height), 1)
                 
             # Text
             text_surf = self.font.render(option, True, text_color)
@@ -83,10 +84,16 @@ class PopupMenu:
 
     def resize(self, new_width, new_height):
         spacing = 20
-        total_menu_height = (len(self.options) * self.item_height) + ((len(self.options) - 1) * spacing)
+        total_height = (len(self.options) * self.item_height) + (max(0, len(self.options)-1) * spacing)
         
         message_box_top = new_height - self.message_box.box_height
-        self.y = message_box_top - total_menu_height - 30
+        self.y = message_box_top - total_height - 30
+
+        # Calculate X based on side
+        if self.side == "left":
+            self.x = 25
+        else:
+            self.x = new_width - self.width - 25 # Pin to right
 
     def set_position(self, x, y):
         self.x = x

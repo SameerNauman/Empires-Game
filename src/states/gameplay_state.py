@@ -117,7 +117,16 @@ class GameplayState:
             self.ui_elements["message_box"] # Pass the loaded sprite here
         )
         self.error_message = True
-        self.popup_menu = PopupMenu([], {}, 10, 10, self.ui_elements, self.message_box, width=150, item_height=30)
+
+        self.popup_menu = PopupMenu(
+            [], {}, 0, 0, self.ui_elements, self.message_box, 
+            sprite_key="popup_menu", side="left"
+        )
+        self.building_menu = PopupMenu(
+            [], {}, 0, 0, self.ui_elements, self.message_box, 
+            sprite_key="building_menu", side="right"
+        )
+        
         self.target_aquisition = TargetAquisition()
         self.enemy_ai = EnemyAi(self.enemy_units)
 
@@ -737,7 +746,8 @@ class GameplayState:
         options.append("Cancel")
         actions["Cancel"] = self.cancel_action
         
-        self.popup_menu.open(options, actions)
+        self.popup_menu.close()
+        self.building_menu.open(options, actions)
     
     # Creates instance of chosen building and subtracts resource cost.
     def building_construction(self, building_name):
@@ -1419,8 +1429,11 @@ class GameplayState:
         self.message_box.update_position(w, h)
 
         # Update the Popup menu position
-        if self.popup_menu.is_open:
-            self.popup_menu.resize(w, h)
+        self.popup_menu.x = 25
+        self.popup_menu.resize(w, h)
+
+        self.building_menu.resize(w, h) 
+        self.building_menu.x = w - self.building_menu.width - 25
 
 # === GAME LOOP ===
 
@@ -1434,44 +1447,50 @@ class GameplayState:
                         self.running = False
                         return
 
-                    # popup menu handling
-                    if self.popup_menu.is_open:
-                        if event.type == pygame.KEYDOWN:
-                            if event.key == pygame.K_w:
+                    if event.type == pygame.KEYDOWN:
+                        # Building menu
+                        if self.building_menu.is_open:
+                            if event.key in [pygame.K_w, pygame.K_UP]:
+                                self.building_menu.move_selection(-1)
+                            elif event.key in [pygame.K_s, pygame.K_DOWN]:
+                                self.building_menu.move_selection(1)
+                            elif event.key == pygame.K_LSHIFT:
+                                self.building_menu.select()
+                            elif event.key == pygame.K_ESCAPE:
+                                self.building_menu.close()
+                            continue # Block all other inputs while this specific menu is open
+
+                        # Popup menu
+                        if self.popup_menu.is_open:
+                            if event.key in [pygame.K_w, pygame.K_UP]:
                                 self.popup_menu.move_selection(-1)
-                            elif event.key == pygame.K_s:
-                                self.popup_menu.move_selection(1)
-                            elif event.key == pygame.K_UP:
-                                self.popup_menu.move_selection(-1)
-                            elif event.key == pygame.K_DOWN:
+                            elif event.key in [pygame.K_s, pygame.K_DOWN]:
                                 self.popup_menu.move_selection(1)
                             elif event.key == pygame.K_LSHIFT:
                                 self.popup_menu.select()
-                        continue  # While popup is open, IGNORE ALL OTHER CONTROLS
+                            elif event.key == pygame.K_ESCAPE:
+                                self.popup_menu.close()
+                            continue # Block all other inputs
 
-                    # Target selection
-                    if self.target_select_mode:
-                        if event.type == pygame.KEYDOWN:
+                        # Target selection
+                        if self.target_select_mode:
                             if event.key == pygame.K_TAB and self.targetable_enemies:
                                 self.cycle_target()
                             elif event.key == pygame.K_LSHIFT:
                                 self.open_attack_confirm_menu()
                             return
-
-                    # Normal gameplay input (when not in popup, message, or target select mode) 
-                    if event.type == pygame.KEYDOWN:
-
+                        
                         # Deselect units or buildings
                         if event.key == pygame.K_ESCAPE:
                             self.deselect()
                             self.message_box.close()
 
                         # Cycles through available units
-                        if event.key == pygame.K_TAB:
+                        elif event.key == pygame.K_TAB:
                             self.cycle_player_units()
 
                         # Selection/Deselection and movement with shift key
-                        if event.key == pygame.K_LSHIFT:
+                        elif event.key == pygame.K_LSHIFT:
                             # CASE 1: A unit is already selected and we are clicking an empty/different tile to move
                             if self.selected_unit_id is not None:
                                 # Check if the hovered tile is within reachable range
@@ -1495,12 +1514,13 @@ class GameplayState:
                                     building_found = self.select_player_building()
                                     if not building_found:
                                         self.select_empty_tile()
+                                pass
 
                 # Get the state of all keys (runs every frame for continuous movement)
                 keys = pygame.key.get_pressed()
 
                 # Only allow camera movement and tile movement if no popup menu is open
-                if not self.popup_menu.is_open:
+                if not self.popup_menu.is_open and not self.building_menu.is_open:
 
                     # Camera control
                     if keys[pygame.K_c]:
@@ -1722,6 +1742,7 @@ class GameplayState:
 
         self.popup_menu.draw(self.screen)
         self.message_box.draw()
+        self.building_menu.draw(self.screen)
         
         # Draw the mini map in the bottom right corner
         self.draw_tactical_map()

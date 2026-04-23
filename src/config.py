@@ -182,6 +182,10 @@ UI_ELEMENTS = {
     "popup_menu": {
         "normal": "popup2.png",
         "selected": "selected_popup3.png"
+    },
+    "building_menu": {
+        "normal": "b_menu.png",
+        "selected": "b_menu_selected.png"
     }
 }
 
