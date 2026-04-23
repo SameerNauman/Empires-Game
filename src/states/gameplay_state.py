@@ -285,29 +285,26 @@ class GameplayState:
 
     # Displays the resource icons in the top right corner of the screen, with animation.
     def display_resource_icons(self, res_type):
-        # 1. Get the animation object
         anim = self.resource_animations.get(res_type)
+        if not anim: return
         
-        # 2. Get the config data (filename, x, y)
-        config_data = RESOURCE_ICONS.get(res_type)
-        
-        if not anim or not config_data:
-            return
-
-        # 3. Get the current frame
+        w, h = self.screen.get_size()
         sprite = anim.get_current_frame()
 
-        if sprite:
-            # Get x and y from the config list (indices 1 and 2)
-            res_x = config_data[1]
-            res_y = config_data[2]
+        icon_positions = {
+            "food": w * 0.11,
+            "wood": w * 0.34,
+            "gold": w * 0.64,
+            "population": w * 0.87
+        }
 
-            # 4. Create the rect using the topright anchor as requested
-            rect = sprite.get_rect(topright=(res_x, res_y))
-            
-            # 5. Blit to screen
-            self.screen.blit(sprite, rect)
+        res_x = icon_positions.get(res_type, 0)
+        res_y = 2
+        
+        rect = sprite.get_rect(topright=(res_x, res_y))
+        self.screen.blit(sprite, rect)
 
+    # Loads the sprites for the UI elements
     def load_ui_elements(self):
             self.ui_elements = {}
             for element_name, data in UI_ELEMENTS.items():
@@ -325,15 +322,29 @@ class GameplayState:
     # Displays the resource bar at the top of the screen
     def display_resource_bar(self):
         bar_sprite = self.ui_elements.get("resource_bar")
+        w, h = self.screen.get_size() # Get live width
+
         if bar_sprite:
-            self.screen.blit(bar_sprite, (0, 0))
+            # 3 slice
+            edge_width = 50 
+            
+            # Left Cap
+            self.screen.blit(bar_sprite, (0, 0), (0, 0, edge_width, bar_sprite.get_height()))
+            
+            # Middle (Stretched)
+            middle_section = bar_sprite.subsurface((edge_width, 0, bar_sprite.get_width() - (edge_width * 2), bar_sprite.get_height()))
+            stretched_middle = pygame.transform.scale(middle_section, (w - (edge_width * 2), bar_sprite.get_height()))
+            self.screen.blit(stretched_middle, (edge_width, 0))
+            
+            # Right Cap
+            self.screen.blit(bar_sprite, (w - edge_width, 0), (bar_sprite.get_width() - edge_width, 0, edge_width, bar_sprite.get_height()))
 
         text_color = (255, 255, 255)
         font = pygame.font.SysFont(None, 60)
 
         # Population
         self.population = len(self.units)
-        max_pop = 0  # Reset before accumulation
+        max_pop = 0
         for building in self.buildings:
             if building.is_constructed:
                 max_pop += building.population_limit
@@ -348,10 +359,11 @@ class GameplayState:
         g_surface = font.render(gold_text, True, text_color)
         p_surface = font.render(pop_text, True, text_color)
 
-        f_x = 150
-        w_x = 450
-        g_x = 850
-        p_x = 1125
+        # dynamic text positions.
+        f_x = w * 0.12  # Food at ~12%
+        w_x = w * 0.35  # Wood at ~35%
+        g_x = w * 0.65  # Gold at ~65%
+        p_x = w * 0.88  # Pop at ~88%
 
         f_y = (58 - f_surface.get_height())
         w_y = (58 - w_surface.get_height())
