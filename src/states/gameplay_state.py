@@ -1770,8 +1770,8 @@ class GameplayState:
         for anim in self.resource_animations.values():
             anim.update()
 
-        self.popup_menu.draw(self.screen)
         self.message_box.draw()
+        self.popup_menu.draw(self.screen)
         self.building_menu.draw(self.screen)
         
         # Draw the mini map in the bottom right corner

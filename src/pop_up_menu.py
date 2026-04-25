@@ -13,11 +13,113 @@ class PopupMenu:
         self.item_height = item_height
         self.sprite_key = sprite_key
         self.side = side
-        self.base_side = side
         self.selected_index = 0
         self.is_open = False
         self.font = pygame.font.SysFont("Arial", 25)
         self.history = []
+
+    # === Displaying Menus ===
+
+    def draw(self, screen):
+        if not self.is_open:
+            return
+        
+        # Iterates through the options of the menus and positions the sprites.
+        for i, option in enumerate(self.options):
+            # Get Position
+            if self.sprite_key == "building_menu":
+                item_x, item_y = self._get_build_menu_pos(i)
+            else:
+                item_x, item_y = self._get_standard_pos(i)
+
+            # Render Item
+            if self.sprite_key == "building_menu":
+                self._draw_build_menu_item(screen, i, option, item_x, item_y)
+            else:
+                self._draw_standard_item(screen, i, option, item_x, item_y)
+
+    # === POSITIONING METHODS ===
+    
+    # Calculates x and y values for the standard menu
+    def _get_standard_pos(self, index):
+        spacing = 20
+        item_x = self.x
+        item_y = self.y + (index * (self.item_height + spacing))
+
+        return item_x, item_y
+
+    # Calculates x and y values for the build menu
+    def _get_build_menu_pos(self, index):
+        x_margin = 10
+        y_margin = 0
+        v_step = self.item_height + y_margin
+        h_step = (self.width // 2) + x_margin
+        
+        # Zig-zag offset
+        current_x_offset = h_step if index % 2 != 0 else 0
+        item_x = self.x + current_x_offset
+        item_y = self.y + (index * v_step)
+
+        return item_x, item_y
+
+    # === DISPLAYING METHODS ===
+
+    # Displays the standard menu with background and text.
+    def _draw_standard_item(self, screen, index, option, x, y):
+        if index == self.selected_index:
+            state = "selected"
+        else:
+            state = "normal"
+
+        menu_sprites = self.sprites.get("popup_menu", {})
+        sprite = menu_sprites.get(state)
+
+        if sprite:
+            screen.blit(sprite, (x, y))
+        else:
+            pygame.draw.rect(screen, (30, 30, 30), (x, y, self.width, self.item_height))
+
+        # Text rendering
+        if index == self.selected_index:
+            color = (0, 255, 255)
+        else:
+            color = (255, 255, 255)
+
+        text_surf = self.font.render(option, True, color)
+        screen.blit(text_surf, (x + 10, y + 10))
+
+    # Displays the build menu with hexagonal background and icons.
+    def _draw_build_menu_item(self, screen, index, option, x, y):
+        slot_center = (x + self.width // 2, y + self.item_height // 2)
+
+        if index == self.selected_index:
+            state = "selected"
+        else:
+            state = "normal"
+        
+        # Layer 1: The Hexagon Slot
+        build_sprites = self.sprites.get("building_menu", {})
+        base_sprite = build_sprites.get(state)
+        if base_sprite:
+            rect = base_sprite.get_rect(center=slot_center)
+            screen.blit(base_sprite, rect)
+
+        # Layer 2: The Building Icon
+        icon_map = self.sprites.get("building_icons", {})
+        icon_surface = icon_map.get(option)
+        
+        if icon_surface:
+            icon_rect = icon_surface.get_rect(center=slot_center)
+            screen.blit(icon_surface, icon_rect)
+        
+        # Layer 3: Text (For 'Cancel' or if the icon is missing)
+        if option == "Cancel" or not icon_surface:
+            color = (0, 255, 255) if index == self.selected_index else (255, 255, 255)
+            text_surf = self.font.render(option, True, color)
+            text_rect = text_surf.get_rect(center=slot_center)
+            screen.blit(text_surf, text_rect)
+
+    # --- SHARED UTILITIES ---
 
     def open(self, options, actions, save_to_history=True):
         if save_to_history and self.options is not None:
@@ -26,103 +128,37 @@ class PopupMenu:
         self.actions = actions
         self.selected_index = 0
         self.is_open = True
-
-        w, h = pygame.display.get_surface().get_size()
-        self.resize(w, h)
+        self.resize(*pygame.display.get_surface().get_size())
         self._update_description()
 
-    def back(self):
-        if self.history:
-            prev_options, prev_actions = self.history.pop()
-            self.open(prev_options, prev_actions, save_to_history=False)
+    def resize(self, new_width, new_height):
+        y_margin = 0
+        spacing = 20
+        v_step = self.item_height + y_margin
+        
+        standard_h = (len(self.options) * self.item_height) + (max(0, len(self.options)-1) * spacing)
+        zigzag_h = (len(self.options) * v_step) - y_margin
+
+        if self.sprite_key == "building_menu":
+            if new_width <= 1280:
+                base_y_offset = 200
+            else:
+                base_y_offset = 50
+            self.y = (new_height - base_y_offset) - zigzag_h
         else:
-            self.close()
+            mb_top = new_height - self.message_box.box_height
+            self.y = mb_top - standard_h - 10
+
+        if new_width <= 1280 or self.side == "left":
+            self.x = 25
+            self.y = (new_height - 200) - zigzag_h
+        else:
+            right_margin = 50
             
+            self.x = self.message_box.box_width - self.width + 200
+
     def close(self):
         self.is_open = False
-
-    def resize(self, new_width, new_height):
-        # 1. Calculate Heights for both styles
-        spacing = 20
-        y_margin = -5 # Matches the zigzag logic in draw()
-        
-        # Height for standard list
-        standard_total_height = (len(self.options) * self.item_height) + (max(0, len(self.options)-1) * spacing)
-        
-        # Height for zigzag menu
-        # Note: We subtract y_margin at the end because the last item doesn't need a gap below it
-        v_step = self.item_height + y_margin
-        zigzag_total_height = (len(self.options) * v_step) - y_margin
-
-        # 2. Y POSITIONING
-        if self.sprite_key == "building_menu":
-            # We want the BOTTOM of the menu to be 150px from the screen bottom
-            # So: (Screen Bottom - 150) - (Total Height of the menu)
-            self.y = (new_height - 50) - zigzag_total_height
-        else:
-            # Anchor just above the message box
-            message_box_top = new_height - self.message_box.box_height
-            self.y = message_box_top - standard_total_height - 10
-
-        # 3. X POSITIONING
-        if new_width <= 1280:
-            self.x = 25
-        else:
-            if self.side == "left":
-                self.x = 25
-            else:
-                margin = 200
-                mb_right_edge = self.message_box.box_width
-                self.x = mb_right_edge - self.width + margin
-
-    def draw(self, screen):
-        if not self.is_open:
-            return
-        
-        # 1. Get the base menu sprites (the hexagons/rectangles)
-        # We look this up using the original sprite_key (e.g., 'building_menu')
-        menu_sprites = self.sprites.get(self.sprite_key)
-        
-        # 2. Get the building icons (from the new 'building_icons' key)
-        icon_map = self.sprites.get("building_icons", {})
-
-        for i, option in enumerate(self.options):
-            # --- POSITIONING ---
-            if self.sprite_key == "building_menu":
-                y_margin, x_margin = 0, 10
-                v_step = self.item_height + y_margin
-                h_step = (self.width // 2) + x_margin
-                current_x_offset = h_step if i % 2 != 0 else 0
-                item_x = self.x + current_x_offset
-                item_y = self.y + (i * v_step)
-            else:
-                item_x, item_y = self.x, self.y + (i * (self.item_height + 20))
-
-            slot_center = (item_x + self.width // 2, item_y + self.item_height // 2)
-
-            # --- LAYER 1: DRAW THE MENU SLOT ---
-            state = "selected" if i == self.selected_index else "normal"
-            base_sprite = menu_sprites.get(state) if menu_sprites else None
-            
-            if base_sprite:
-                sprite_rect = base_sprite.get_rect(center=slot_center)
-                screen.blit(base_sprite, sprite_rect)
-            else:
-                # Fallback rect if no hexagon sprite found
-                pygame.draw.rect(screen, (30, 30, 30), (item_x, item_y, self.width, self.item_height))
-
-            # --- LAYER 2: DRAW THE BUILDING ICON ---
-            icon_surface = icon_map.get(option)
-            if icon_surface:
-                icon_rect = icon_surface.get_rect(center=slot_center)
-                screen.blit(icon_surface, icon_rect)
-            
-            # --- LAYER 3: DRAW TEXT (CANCEL ONLY) ---
-            if option == "Cancel" or not icon_surface:
-                text_color = (0, 255, 255) if i == self.selected_index else (255, 255, 255)
-                text_surf = self.font.render(option, True, text_color)
-                text_rect = text_surf.get_rect(center=slot_center)
-                screen.blit(text_surf, text_rect)
 
     def move_selection(self, direction):
         if self.is_open:
@@ -131,20 +167,14 @@ class PopupMenu:
 
     def select(self):
         if self.is_open:
-            selected_option = self.options[self.selected_index]
-            selected_action = self.actions.get(selected_option)
-            if selected_action:
-                selected_action()
-            return selected_option
+            sel = self.options[self.selected_index]
+            if self.actions.get(sel): self.actions[sel]()
+            return sel
         return None
-    
+
     def _update_description(self):
         if not self.options: return
-        current_text = self.options[self.selected_index]
-        code_key = current_text.lower().replace(" ", "_")
-        desc = None
-        if code_key in BUILDINGS: desc = BUILDINGS[code_key][7]
-        elif code_key in RESOURCE_BUILDINGS: desc = RESOURCE_BUILDINGS[code_key][8]
-        else: self.message_box.close()
-
+        key = self.options[self.selected_index].lower().replace(" ", "_")
+        desc = BUILDINGS.get(key, [None]*8)[7] or RESOURCE_BUILDINGS.get(key, [None]*9)[8]
         if desc: self.message_box.open(desc, False)
+        else: self.message_box.close()
