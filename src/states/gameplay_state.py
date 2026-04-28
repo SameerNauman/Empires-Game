@@ -747,9 +747,10 @@ class GameplayState:
     def build_action(self):
         self.reachable_tiles = set()
 
-        options = ["Town Centre", "Market", "Mill"]
+        options = ["Town Centre", "House", "Market", "Mill"]
         actions = {
             "Town Centre": lambda: self.building_construction("town_centre"),
+            "House": lambda: self.building_construction("house"),
             "Market": lambda: self.building_construction("market"),
             "Mill": lambda: self.building_construction("mill")
         }
@@ -764,6 +765,7 @@ class GameplayState:
         # Map icons to display names
         icon_mapping = {
             "Town Centre": self.building_icons.get("town_centre"),
+            "House": self.building_icons.get("house"),
             "Market": self.building_icons.get("market"),
             "Mill": self.building_icons.get("mill"),
             "Farm": self.building_icons.get("farm"),
@@ -802,6 +804,7 @@ class GameplayState:
                 new_resource = ResourceSource(self.selected_tile[0], self.selected_tile[1], b_attr[6], b_attr[7], True)
                 self.resources.append(new_resource)
             self.popup_menu.close()
+            self.building_menu.close()
             if selected_unit:
                 selected_unit.rest()
                 self.construction[selected_unit] = new_building

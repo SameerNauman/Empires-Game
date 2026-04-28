@@ -140,6 +140,11 @@ BUILDING_SPRITES = {
         "selected": "tc_selected.png",
         "rested": "tc_rested.png"
     },
+    "house": {
+        "normal": "house.png",
+        "selected": "house_selected.png",
+        "rested": "house_rested.png"
+    },
     "market": {
         "normal": "market.png",
         "selected": "market_selected.png",
@@ -160,6 +165,7 @@ BUILDING_ICONS_PATH = os.path.join("..", "assets", "buildings")
 
 BUILDING_ICONS = {
     "town_centre": "towncenter4.png",
+    "house": "house.png",
     "market": "market2.png",
     "mill": "mill2.png",
     "farm": "farm.png"
@@ -275,6 +281,7 @@ BONUS_MULTIPLYER = 0
 FLAT_BONUS = 0
 
 TOWN_CENTRE_DESC = ("The Town Centre can train Villagers. It is the beginning of your civilization.")
+HOUSE_DESC = ("The House increases the maximum population.")
 MARKET_DESC = ("The Market is a building where you can exchange resources.")
 MILL_DESC = ("The Mill is a resource building, where Villagers can gather food.")
 FARM_DESC = ("The Farm is a resource building, which can only be built on tiles adjacent to Mills. Villagers can gather food from farms.")
@@ -282,6 +289,7 @@ FARM_DESC = ("The Farm is a resource building, which can only be built on tiles 
 # Buildings = [name, food cost, wood cost, gold cost, hitpoints, pop capacity, 1_units, 2_units, 3_units, 4_units]
 BUILDINGS = {
     "town_centre": ["town_centre", 0, 400, 400, 500, 10, ["Villager"], TOWN_CENTRE_DESC],
+    "house": ["house", 0, 100, 0, 100, 10, [], HOUSE_DESC],
     "market": ["market", 0, 100, 100, 200, 0, [], MARKET_DESC]
 }
 
