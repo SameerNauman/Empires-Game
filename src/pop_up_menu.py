@@ -86,7 +86,7 @@ class PopupMenu:
             color = (255, 255, 255)
 
         text_surf = self.font.render(option, True, color)
-        screen.blit(text_surf, (x + 10, y + 10))
+        screen.blit(text_surf, (x + 10, y + 15))
 
     # Displays the build menu with hexagonal background and icons.
     def _draw_build_menu_item(self, screen, index, option, x, y):
@@ -151,7 +151,6 @@ class PopupMenu:
 
         if new_width <= 1280 or self.side == "left":
             self.x = 25
-            self.y = (new_height - 200) - zigzag_h
         else:
             right_margin = 50
             

@@ -1462,12 +1462,9 @@ class GameplayState:
         # Update the Message Box position
         self.message_box.update_position(w, h)
 
-        # Update the Popup menu position
-        self.popup_menu.x = 25
+        # Update the Popup menu and Build menu position
         self.popup_menu.resize(w, h)
-
-        self.building_menu.resize(w, h) 
-        self.building_menu.x = w - self.building_menu.width - 25
+        self.building_menu.resize(w, h)
 
 # === GAME LOOP ===
 
