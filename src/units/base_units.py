@@ -74,7 +74,12 @@ class BaseUnits:
     def draw(self, screen, camera_x, camera_y, unit_sprites):
         # Sprites
         # Determine the correct key based on selection and direction
-        state = "selected" if self.selected else "normal"
+        if self.selected:
+            state = "selected"
+        elif self.unit_tired():
+            state = "rested"
+        else:
+            state = "normal"
         sprite_key = f"{state}_{self.direction}"
 
         # Access the pre-loaded surface

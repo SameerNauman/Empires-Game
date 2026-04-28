@@ -23,6 +23,7 @@ class BaseBuildings:
         sprite_set = building_sprites[self.type]
         self.sprite_normal = sprite_set["normal"]
         self.sprite_selected = sprite_set["selected"]
+        self.sprite_rested = sprite_set["rested"]
         
         draw_x = self.x + OFFSET_X
         draw_y = self.y + OFFSET_Y
@@ -36,12 +37,13 @@ class BaseBuildings:
             selected_rect = self.sprite_selected.get_rect()
             selected_rect.midbottom = (screen_x, screen_y)
             screen.blit(self.sprite_selected, selected_rect)
+        elif self.building_tired():
+            rested_rect = self.sprite_rested.get_rect()
+            rested_rect.midbottom = (screen_x, screen_y)
+            screen.blit(self.sprite_rested, rested_rect)
         else:
             sprite_rect = self.sprite_normal.get_rect()
-            
-            # Anchor bottom-center of sprite to the tile center
             sprite_rect.midbottom = (screen_x, screen_y)
-
             screen.blit(self.sprite_normal, sprite_rect)
 
         # Draw health bar

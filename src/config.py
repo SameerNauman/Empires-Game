@@ -93,7 +93,11 @@ UNIT_SPRITES_CONFIG = {
             "selected_N": "selected_N.png",
             "selected_S": "selected_S.png",
             "selected_E": "selected_E.png",
-            "selected_W": "selected_W.png"
+            "selected_W": "selected_W.png",
+            "rested_N": "rested_N.png",
+            "rested_S": "rested_S.png",
+            "rested_E": "rested_E.png",
+            "rested_W": "rested_W.png"
         }
     },
     "Villager": {
@@ -106,7 +110,11 @@ UNIT_SPRITES_CONFIG = {
             "selected_N": "selected_N.png",
             "selected_S": "selected_S.png",
             "selected_E": "selected_E.png",
-            "selected_W": "selected_W.png"
+            "selected_W": "selected_W.png",
+            "rested_N": "rested_N.png",
+            "rested_S": "rested_S.png",
+            "rested_E": "rested_E.png",
+            "rested_W": "rested_W.png"
         }
     },
     "Archers": {
@@ -124,20 +132,23 @@ UNIT_SPRITES_CONFIG = {
     }
 }
 
-BUILDING_PATH = os.path.join("..", "assets", "buildings3")
+BUILDING_PATH = os.path.join("..", "assets", "buildings4")
 
 BUILDING_SPRITES = {
     "town_centre": {
-        "normal": "towncentre.png",
-        "selected": "tc_selected.png"
+        "normal": "town_centre.png",
+        "selected": "tc_selected.png",
+        "rested": "tc_rested.png"
     },
     "market": {
         "normal": "market.png",
-        "selected": "market_selected.png"
+        "selected": "market_selected.png",
+        "rested": "market_rested.png"
     },
     "mill": {
         "normal": "mill.png",
-        "selected": "mill_selected.png"
+        "selected": "mill_selected.png",
+        "rested": "mill_rested.png"
     },
     "farm": {
         "normal": "farm.png",
