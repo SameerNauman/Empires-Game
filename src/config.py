@@ -211,8 +211,8 @@ UI_ELEMENTS = {
         "selected": "selected_popup3.png"
     },
     "building_menu": {
-        "normal": "b_menu3.png",
-        "selected": "b_menu_selected2.png"
+        "normal": "b_menu4.png",
+        "selected": "b_menu_selected3.png"
     }
 }
 

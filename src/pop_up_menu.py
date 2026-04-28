@@ -26,16 +26,13 @@ class PopupMenu:
         
         # Iterates through the options of the menus and positions the sprites.
         for i, option in enumerate(self.options):
-            # Get Position
-            if self.sprite_key == "building_menu":
-                item_x, item_y = self._get_build_menu_pos(i)
-            else:
-                item_x, item_y = self._get_standard_pos(i)
-
-            # Render Item
-            if self.sprite_key == "building_menu":
+            if "building_menu" in self.sprite_key:
+                # Use the new Grid system for building icons
+                item_x, item_y = self._get_grid_pos(i)
                 self._draw_build_menu_item(screen, i, option, item_x, item_y)
             else:
+                # Use the Standard Vertical system for general popups
+                item_x, item_y = self._get_standard_pos(i)
                 self._draw_standard_item(screen, i, option, item_x, item_y)
 
     # === POSITIONING METHODS ===
@@ -59,6 +56,24 @@ class PopupMenu:
         current_x_offset = h_step if index % 2 != 0 else 0
         item_x = self.x + current_x_offset
         item_y = self.y + (index * v_step)
+
+        return item_x, item_y
+
+    def _get_grid_pos(self, index):
+        columns = 5
+        x_spacing = 20
+        y_spacing = 20
+        
+        # 64x64 squares mean the 'step' is the size + margin
+        h_step = 64 + x_spacing
+        v_step = 64 + y_spacing
+        
+        row = index // columns
+        col = index % columns
+        
+        # Calculate final screen position
+        item_x = self.x + (col * h_step)
+        item_y = self.y + (row * v_step)
 
         return item_x, item_y
 
@@ -89,8 +104,8 @@ class PopupMenu:
         screen.blit(text_surf, (x + 10, y + 15))
 
     # Displays the build menu with hexagonal background and icons.
-    def _draw_build_menu_item(self, screen, index, option, x, y):
-        slot_center = (x + self.width // 2, y + self.item_height // 2)
+    def _draw_build_menu_item(self, screen, index, option, x, y, sprite_lookup="building_menu"):
+        slot_center = (x + 32, y + 32)
 
         if index == self.selected_index:
             state = "selected"
@@ -98,8 +113,9 @@ class PopupMenu:
             state = "normal"
         
         # Layer 1: The Hexagon Slot
-        build_sprites = self.sprites.get("building_menu", {})
+        build_sprites = self.sprites.get(sprite_lookup, {})
         base_sprite = build_sprites.get(state)
+
         if base_sprite:
             rect = base_sprite.get_rect(center=slot_center)
             screen.blit(base_sprite, rect)
@@ -132,29 +148,38 @@ class PopupMenu:
         self._update_description()
 
     def resize(self, new_width, new_height):
-        y_margin = 0
-        spacing = 20
-        v_step = self.item_height + y_margin
-        
-        standard_h = (len(self.options) * self.item_height) + (max(0, len(self.options)-1) * spacing)
-        zigzag_h = (len(self.options) * v_step) - y_margin
+        # Handle the Grid Menu (Building Menu)
+        if "building_menu" in self.sprite_key:
+            columns = 5
+            x_spacing = 10
+            y_spacing = 10
+            
+            # Anchor to the left with your 50px margin
+            self.x = 40 
 
-        if self.sprite_key == "building_menu":
-            if new_width <= 1280:
-                base_y_offset = 200
-            else:
-                base_y_offset = 50
-            self.y = (new_height - base_y_offset) - zigzag_h
+            # Calculate how many rows based on the options
+            num_rows = ((len(self.options) - 1) // columns) + 1
+            
+            # Total height of the grid (64px per item + spacing)
+            grid_height = num_rows * (64 + y_spacing)
+
+            # Position Y relative to the top of the message box
+            mb_top = new_height - self.message_box.box_height
+            self.y = mb_top - grid_height - 20 # 20px padding above the box
+
+        # Handle the Standard Menu (Vertical List)
         else:
+            spacing = 20
+            standard_h = (len(self.options) * self.item_height) + (max(0, len(self.options)-1) * spacing)
+            
             mb_top = new_height - self.message_box.box_height
             self.y = mb_top - standard_h - 10
-
-        if new_width <= 1280 or self.side == "left":
-            self.x = 25
-        else:
-            right_margin = 50
             
-            self.x = self.message_box.box_width - self.width + 200
+            # Keep standard popup menu logic
+            if new_width <= 1280 or self.side == "left":
+                self.x = 25
+            else:
+                self.x = self.message_box.box_width - self.width + 200
 
     def close(self):
         self.is_open = False
