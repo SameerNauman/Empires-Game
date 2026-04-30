@@ -51,6 +51,18 @@ class GameplayState:
         self.mini_map_center_x = w - self.radius - 20
         self.mini_map_center_y = h - self.radius - 20
 
+        # Research
+        self.researched_techs = set()
+        self.tech_multipliers = {
+            "unit_vision": 0,
+            "unit_movement": 0,
+            "building_vision": 0,
+            "gather_rate_food": 1.0,
+            "gather_rate_wood": 1.0,
+            "gather_rate_gold": 1.0
+        }
+        self.pending_techs = []
+
         # Terrain sprites
         self.terrain_sprites = {}
         self.terrain_path = TERRAIN_PATH
@@ -112,6 +124,9 @@ class GameplayState:
         self.enemy_turn_delay = 0      # delay timer for animation
 
         self.game_over = False
+        
+        # Updates the unit visibility
+        self.update_VISIBILITY_MAP()
 
         self.message_box = MessageBox(
             self.screen, 
@@ -136,32 +151,35 @@ class GameplayState:
 # === WORLD DISPLAYING ===
 
     # Removes fog of war around player units and buildings according to their vision range
-    def update_VISIBILITY_MAP(self, vision_range):
+    def update_VISIBILITY_MAP(self):
+        # Reset current visibility
         for x in range(len(VISIBILITY_MAP)):
             for y in range(len(VISIBILITY_MAP[0])):
                 if VISIBILITY_MAP[x][y] == 2:
                     VISIBILITY_MAP[x][y] = 1
-        # Iterates over player units and updates unit vision
+
+        # Update from Units
         for unit in self.units:
             ux, uy = unit.vision_x, unit.vision_y
-            for dx in range(-vision_range, vision_range + 1):
-                for dy in range(-vision_range, vision_range + 1):
-                    if dx * dx + dy * dy <= vision_range * vision_range:
-                        tx = ux + dx
-                        ty = uy + dy
-                        if 0 <= tx < len(VISIBILITY_MAP) and 0 <= ty < len(VISIBILITY_MAP[0]):
-                            VISIBILITY_MAP[tx][ty] = 2
-        # Iterates over player buildings and updates unit vision
+            v_range = unit.get_vision_range(self.tech_multipliers)
+            self.apply_vision_circle(ux, uy, v_range)
+
+        # Update from Buildings
+        building_bonus = self.tech_multipliers.get("building_vision", 0)
+        base_building_vision = 3
+        
         for building in self.buildings:
             if building.is_constructed:
                 bx, by = int(building.x), int(building.y)
-                for dx in range(-vision_range, vision_range + 1):
-                    for dy in range(-vision_range, vision_range + 1):
-                        if dx * dx + dy * dy <= vision_range * vision_range:
-                            tx = bx + dx
-                            ty = by + dy
-                            if 0 <= tx < len(VISIBILITY_MAP) and 0 <= ty < len(VISIBILITY_MAP[0]):
-                                VISIBILITY_MAP[tx][ty] = 2
+                self.apply_vision_circle(bx, by, base_building_vision + building_bonus)
+
+    def apply_vision_circle(self, cx, cy, radius):
+        for dx in range(-radius, radius + 1):
+            for dy in range(-radius, radius + 1):
+                if dx * dx + dy * dy <= radius * radius:
+                    tx, ty = cx + dx, cy + dy
+                    if 0 <= tx < len(VISIBILITY_MAP) and 0 <= ty < len(VISIBILITY_MAP[0]):
+                        VISIBILITY_MAP[tx][ty] = 2
 
     # Displays the sprites for the terrain, and magenta for missing sprites
     def draw_map_with_fog(self, map_data, VISIBILITY_MAP):
@@ -724,9 +742,9 @@ class GameplayState:
         if selected_unit:
             selected_unit.rest()
             selected_unit.selected = False
-        # Updates vision position
-        selected_unit.vision_x = int(selected_unit.x)
-        selected_unit.vision_y = int(selected_unit.y)
+        if not selected_unit.path: 
+            selected_unit.update_vision_coords() # Sync coordinates
+            self.update_VISIBILITY_MAP() # Refresh the Fog of War
 
         self.selected_unit_id = None
         self.popup_menu.close()
@@ -809,9 +827,9 @@ class GameplayState:
                 selected_unit.rest()
                 self.construction[selected_unit] = new_building
                 selected_unit.selected = False
-            # Updates vision position
-            selected_unit.vision_x = int(selected_unit.x)
-            selected_unit.vision_y = int(selected_unit.y)
+            if not selected_unit.path: 
+                selected_unit.update_vision_coords() # Sync coordinates
+                self.update_VISIBILITY_MAP() # Refresh the Fog of War
             # Subtracts resource cost
             self.food_amount -= b_attr[1]
             self.wood_amount -= b_attr[2]
@@ -903,9 +921,9 @@ class GameplayState:
         selected_unit.rest()
         self.reachable_tiles = set()
 
-        # Updates vision position
-        self.selected_unit.vision_x = int(self.selected_unit.x)
-        self.selected_unit.vision_y = int(self.selected_unit.y)
+        if not selected_unit.path: 
+            selected_unit.update_vision_coords() # Sync coordinates
+            self.update_VISIBILITY_MAP() # Refresh the Fog of War
 
         if selected_unit:
             selected_unit.selected = False
@@ -959,8 +977,6 @@ class GameplayState:
         # Finds the building's attribute list consisting of type, cost, and trainable units
         if building_name in BUILDINGS:
             b_attr = BUILDINGS[building_name]
-        else:
-            b_attr = RESOURCE_BUILDINGS[building_name]
         trainable_units = b_attr[6]
 
         # Collect all affordable units
@@ -1009,13 +1025,72 @@ class GameplayState:
 
     # Research in buildings. Needs fixing
     def research_action(self):
-        self.message_box.open("Researching upgrades", True)
         selected_building = next((b for b in self.buildings if b.id == self.selected_building_id), None)
-        if selected_building:
-            selected_building.selected = False
-        self.selected_building_id = None
-        self.popup_menu.close()
+        building_name = selected_building.type
+        
+        if building_name in BUILDINGS:
+            tech_list = BUILDINGS[building_name][8]
+        else:
+            tech_list = RESOURCE_BUILDINGS[building_name][9]
+        
+        affordable_tech_keys = []
+        options = []
+        
+        for r_key in tech_list:
+            r_attr = RESEARCH[r_key]
+            if (self.food_amount >= r_attr[1] and 
+                self.wood_amount >= r_attr[2] and 
+                self.gold_amount >= r_attr[3]):
+                
+                if r_key not in self.researched_techs and r_key not in self.pending_techs:
+                    friendly_name = r_attr[0]
+                    affordable_tech_keys.append(r_key)
+                    options.append(friendly_name)
+
+        actions = {}
+        for i in range(len(affordable_tech_keys)):
+            r_key = affordable_tech_keys[i]
+            display_name = options[i]
+            actions[display_name] = (lambda r=r_key: self.queue_research(r, selected_building))
+            
+        options.append("Cancel")
+        actions["Cancel"] = lambda: self.building_actions(selected_building)
+
+        self.popup_menu.open(options, actions)
     
+    # Adds purchased research techs to a queue
+    def queue_research(self, tech_key, building):
+        r_attr = RESEARCH[tech_key]
+        self.food_amount -= r_attr[1]
+        self.wood_amount -= r_attr[2]
+        self.gold_amount -= r_attr[3]
+
+        self.pending_techs.append(tech_key)
+        
+        # Mark building as used so they can't research twice in one turn
+        building.rest()
+        building.selected = False
+        building.selected_building_id = None
+        self.popup_menu.close()
+        self.message_box.close()
+
+    # Activates tech researched from buildings.
+    def complete_research(self, tech_key): 
+        if tech_key not in self.researched_techs:
+            self.researched_techs.add(tech_key)
+            
+            # Apply the effect immediately
+            effect_key = RESEARCH[tech_key][5]
+            effect_val = RESEARCH[tech_key][6]
+            
+            if "rate" in effect_key:
+                self.tech_multipliers[effect_key] *= effect_val
+            else:
+                self.tech_multipliers[effect_key] += effect_val
+
+            if "vision" in effect_key:
+                self.update_VISIBILITY_MAP()
+
 # === RESOURCE GATHERING ===
 
     # Processes player's resource gathering at the end of enemy turn
@@ -1024,20 +1099,28 @@ class GameplayState:
         for unit in self.units:
             if unit.is_gathering:
                 res_id = unit.gather_resource_id
-                # Iterates over resources and checks if their ID matches the one the unit is gathering
-                # from. If the unit is gathering from a resource tile its on, it processes the gathering,
-                # and if the resource has been depleted, it is deleted.
                 res = next((r for r in self.resources if r.id == res_id), None)
                 unit_tile = (int(unit.x), int(unit.y))
+                
                 if res and (res.x, res.y) == unit_tile:
-                    amount_gathered = min(100, res.amount)
-                    res.amount -= amount_gathered
+                    # Determine base amount to take from the resource tile
+                    raw_amount = min(100, res.amount)
+                    res.amount -= raw_amount
+                    
+                    # Apply the specific multiplier based on resource type
                     if res.resource_type == "food":
-                        self.food_amount += amount_gathered
+                        multiplier = self.tech_multipliers.get("gather_rate_food", 1.0)
+                        self.food_amount += int(raw_amount * multiplier)
+                        
                     elif res.resource_type == "wood":
-                        self.wood_amount += amount_gathered
+                        multiplier = self.tech_multipliers.get("gather_rate_wood", 1.0)
+                        self.wood_amount += int(raw_amount * multiplier)
+                        
                     elif res.resource_type == "gold":
-                        self.gold_amount += amount_gathered
+                        multiplier = self.tech_multipliers.get("gather_rate_gold", 1.0)
+                        self.gold_amount += int(raw_amount * multiplier)
+
+                    # Handle depletion
                     if res.amount <= 0:
                         self.resources.remove(res)
                         self.message_box.open(f"{res.resource_type} has been depleted.", self.error_message)
@@ -1094,6 +1177,12 @@ class GameplayState:
         # Starts the player turn. Processes unit and enemy resource gathering for the turn. Enemy Trains
         # their units
         self.player_turn = True
+
+        if self.pending_techs:
+            for tech in self.pending_techs:
+                self.complete_research(tech)
+            self.pending_techs.clear() # Clear queue after applying
+
         self.enemy_paths_planned = False
         self.process_automatic_gathering()
         self.process_enemy_gathering()
@@ -1695,9 +1784,6 @@ class GameplayState:
             if not self.selected_unit.path:
                 self.is_moving = False
                 self.display_unit_actions()
-
-        # Updates the unit visibility
-        self.update_VISIBILITY_MAP(vision_range=3)
 
         # Displays the screen
         self.screen.fill((32, 32, 32))

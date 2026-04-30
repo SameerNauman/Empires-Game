@@ -6,8 +6,7 @@ class BaseUnits:
     def __init__(self, x, y, movement, attack, defense, attack_range=1, speed=0.1, health=100, type="Unknown"):
         self.x = x
         self.y = y
-        self.vision_x = int(self.x)
-        self.vision_y = int(self.y)
+        self.base_vision = 3
         self.health = health
         self.max_health = health
         self.movement_range = movement
@@ -28,6 +27,16 @@ class BaseUnits:
         self.queued = False
         self.direction = "S"
 
+        self.update_vision_coords()
+    
+    def update_vision_coords(self):
+            self.vision_x = int(self.x)
+            self.vision_y = int(self.y)
+
+    def get_vision_range(self, game_multipliers):
+        bonus = game_multipliers.get("unit_vision", 0)
+        return self.base_vision + bonus
+            
     def rest(self):
         self.action_count += 1
 
@@ -59,6 +68,8 @@ class BaseUnits:
             else:
                 self.x += self.speed * (dx / dist)
                 self.y += self.speed * (dy / dist)
+        
+        self.update_vision_coords()
 
     def update_direction(self, old_x, old_y, new_x, new_y):
         if new_x > old_x:
