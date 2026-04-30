@@ -95,7 +95,7 @@ class GameplayState:
 
         # Player units initialization
         # basil = BaseUnits(3, 3, 10, 300, 300, 1, type="Basil")
-        villager = BaseUnits(3, 3, 10, 300, 300, 1, type="villager")
+        villager = BaseUnits(3, 3, 10, 100, 100, 1, type="villager")
         # Player buildings initialization
         town_centre = BaseBuildings(3, 3, 500, 10, type="town_centre")
         town_centre.is_constructed = True

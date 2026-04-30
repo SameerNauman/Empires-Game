@@ -10,59 +10,52 @@ class EnemyAi():
         # Remove the static path_finding instance; will construct per enemy on-demand.
         self.path_enemies = path_enemies
 
-    def plan_enemy_paths(
-        self, 
-        enemy_units, 
-        player_units, 
-        player_buildings, 
-        resource_list, 
-        enemy_buildings=None
-    ):
-        """
-        For each enemy, plan their path to the nearest player unit or building (do not move yet).
-        Uses updated PathFinding logic: 
-        - Enemy units cannot move onto or stop on tiles occupied by any unit (enemy or player).
-        - Enemy units cannot walk through player buildings.
-        - Player units cannot walk through enemy buildings. (handled in player code)
-        """
+    # Plans paths to player units, but doesnt move yet. 
+    def plan_enemy_paths(self, enemy_units, player_units, player_buildings, resource_list, enemy_buildings=None):
         if enemy_buildings is None:
             enemy_buildings = []
+        
+        # Track which resources are already being targeted this turn
+        claimed_resource_ids = []
+
+        # First, add resources where villagers are already standing and gathering
+        for e in enemy_units:
+            if getattr(e, "is_gathering", False) and e.health > 0:
+                claimed_resource_ids.append(getattr(e, "gather_resource_id", -1))
 
         for enemy in enemy_units:
             if enemy.health <= 0:
                 continue
     
-            # --- RESOURCE GATHERING for ENEMY VILLAGERS ---
+            # Resource gathering
             if getattr(enemy, "type", None) == "villager":
-                # Already gathering and on resource? Skip movement
+                # If already gathering, stay put
                 if getattr(enemy, "is_gathering", False):
                     found_res = next((r for r in resource_list if r.id == getattr(enemy, "gather_resource_id", -1)), None)
                     if found_res and (enemy.x, enemy.y) == (found_res.x, found_res.y) and not found_res.is_depleted():
                         continue
 
-                # Find nearest non-depleted resource
+                # Find nearest non-depleted AND non-claimed resource
                 nearest_resource = None
                 min_dist = float('inf')
                 for res in resource_list:
-                    if not res.is_depleted():
+                    # CHECK: Not depleted AND not already claimed by another enemy villager
+                    if not res.is_depleted() and res.id not in claimed_resource_ids:
                         dist = abs(enemy.x - res.x) + abs(enemy.y - res.y)
                         if dist < min_dist:
                             min_dist = dist
                             nearest_resource = res
 
-                # If on resource, start gathering
-                if nearest_resource and (enemy.x, enemy.y) == (nearest_resource.x, nearest_resource.y):
-                    enemy.is_gathering = True
-                    enemy.gather_resource_id = nearest_resource.id
-                    continue
-
-                # Otherwise, path directly to the resource tile (not adjacent!)
+                # If we found a free resource, claim it and path to it
                 if nearest_resource:
-                    path_finding = PathFinding(
-                        [], enemy_units, 
-                        player_buildings, enemy_buildings, 
-                        moving_side='enemy'
-                    )
+                    claimed_resource_ids.append(nearest_resource.id) # Mark as claimed
+                    
+                    if (enemy.x, enemy.y) == (nearest_resource.x, nearest_resource.y):
+                        enemy.is_gathering = True
+                        enemy.gather_resource_id = nearest_resource.id
+                        continue
+
+                    path_finding = PathFinding(player_units, enemy_units, player_buildings, enemy_buildings, moving_side='enemy')
                     path = path_finding.a_star(
                         start=(int(enemy.x), int(enemy.y)),
                         goal=(int(nearest_resource.x), int(nearest_resource.y)),
@@ -70,12 +63,10 @@ class EnemyAi():
                     )
                     if path:
                         steps = min(enemy.movement_range, len(path))
-                        path = path[:steps]
-                        enemy.path = [(float(x), float(y)) for x, y in path]
-                    else:
-                        enemy.path = []
-                continue  # Skip rest of logic for villagers
-
+                        enemy.path = [(float(x), float(y)) for x, y in path[:steps]]
+                else:
+                    enemy.path = [] # No available resources left
+                continue
             # Find nearest living player unit or constructed building
             nearest_target = None
             min_dist = float('inf')

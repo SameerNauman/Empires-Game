@@ -26,17 +26,27 @@ class PathFinding:
         # Only return neighbors that are inside the map and passable
         for dx, dy in [(0, 1), (1, 0), (-1, 0), (0, -1)]:
             nx, ny = x + dx, y + dy
-            # Defensive bounds check
             if 0 <= nx < len(PLAYABLE_MAP) and 0 <= ny < len(PLAYABLE_MAP[nx]):
                 tile = PLAYABLE_MAP[nx][ny]
                 if tile not in TILE_TYPES or TILE_TYPES[tile] is None:
                     continue
-                # Player units cannot step on enemy buildings
-                if self.moving_side == 'player' and self.is_enemy_building(nx, ny):
-                    continue
-                # Enemy units cannot step on player buildings
-                if self.moving_side == 'enemy' and self.is_player_building(nx, ny):
-                    continue
+
+                if self.moving_side == 'player':
+                    # Player units CANNOT pass through enemy buildings
+                    if self.is_enemy_building(nx, ny):
+                        continue
+                    # Player units CANNOT pass through enemy units
+                    if self.is_enemy(nx, ny):
+                        continue
+                        
+                elif self.moving_side == 'enemy':
+                    # Enemy units CANNOT pass through player buildings
+                    if self.is_player_building(nx, ny):
+                        continue
+                    # Enemy units CANNOT pass through player units
+                    if self.is_friendly(nx, ny):
+                        continue
+
                 yield nx, ny
 
     def heuristic(self, a, b):
@@ -46,30 +56,35 @@ class PathFinding:
         heap = [(0, start)]
         came_from = {}
         cost_so_far = {start: 0}
+
         while heap:
             _, current = heapq.heappop(heap)
             if current == goal:
                 break
+
             for neighbor in self.neighbors(*current):
                 x, y = neighbor
-                # ENEMY-occupied tiles cannot be entered (unless it's the goal)
-                if self.is_enemy(x, y) and neighbor != goal:
-                    continue
-                # FRIENDLY-occupied tiles cannot be entered (unless it's the goal)
-                if self.is_friendly(x, y) and neighbor != goal:
-                    continue
+                
+                # A unit can PASS an ally, but cannot STOP on an ally's tile.
+                # We only block the neighbor if it is occupied AND is not our final goal.
+                if self.moving_side == 'player':
+                    if self.is_friendly(x, y) and neighbor != goal:
+                        continue
+                else: # moving_side == 'enemy'
+                    if self.is_enemy(x, y) and neighbor != goal:
+                        continue
+
                 tile = PLAYABLE_MAP[x][y]
                 tile_cost = TILE_TYPES.get(tile)
-                if tile_cost is None:
-                    continue
                 new_cost = cost_so_far[current] + tile_cost
-                if new_cost > max_cost:
-                    continue
-                if neighbor not in cost_so_far or new_cost < cost_so_far[neighbor]:
-                    cost_so_far[neighbor] = new_cost
-                    priority = new_cost + self.heuristic(goal, neighbor)
-                    heapq.heappush(heap, (priority, neighbor))
-                    came_from[neighbor] = current
+                
+                if new_cost <= max_cost:
+                    if neighbor not in cost_so_far or new_cost < cost_so_far[neighbor]:
+                        cost_so_far[neighbor] = new_cost
+                        priority = new_cost + self.heuristic(goal, neighbor)
+                        heapq.heappush(heap, (priority, neighbor))
+                        came_from[neighbor] = current
+
         # Path reconstruction
         path = []
         current = goal
