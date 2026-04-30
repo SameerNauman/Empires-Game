@@ -95,12 +95,12 @@ class GameplayState:
 
         # Player units initialization
         # basil = BaseUnits(3, 3, 10, 300, 300, 1, type="Basil")
-        villager = BaseUnits(3, 3, 10, 300, 300, 1, type="Villager")
+        villager = BaseUnits(3, 3, 10, 300, 300, 1, type="villager")
         # Player buildings initialization
         town_centre = BaseBuildings(3, 3, 500, 10, type="town_centre")
         town_centre.is_constructed = True
         # Enemy units initialization
-        enemy_villager = BaseUnits(6, 10, 5, 50, 25, 1, type="Villager")
+        enemy_villager = BaseUnits(6, 10, 5, 50, 25, 1, type="villager")
         # Enemy buildings initialization
         e_town_centre = BaseBuildings(6, 10, 500, 10, type="town_centre")
         e_town_centre.is_constructed = True
@@ -678,7 +678,7 @@ class GameplayState:
         landed_tile = (int(self.selected_unit.x), int(self.selected_unit.y))
 
         # If the unit is a villager, allow building if tile is empty
-        if self.selected_unit.type == "Villager":
+        if self.selected_unit.type == "villager":
             if not self.is_tile_occupied(*self.hovered_tile):
                 options.insert(1, "Build")
                 actions["Build"] = self.build_action
@@ -790,10 +790,8 @@ class GameplayState:
             "Cancel": None
         }
 
-        # Store icons in a dedicated 'building_icons' key
         self.building_menu.sprites["building_icons"] = icon_mapping
         
-        # Keep this as 'building_menu' so it still finds your hexagons!
         self.building_menu.sprite_key = "building_menu" 
 
         self.popup_menu.close()
@@ -974,28 +972,45 @@ class GameplayState:
         selected_building = next((b for b in self.buildings if b.id == self.selected_building_id), None)
         spawn_x, spawn_y = selected_building.x, selected_building.y
         building_name = selected_building.type
+        
         # Finds the building's attribute list consisting of type, cost, and trainable units
         if building_name in BUILDINGS:
             b_attr = BUILDINGS[building_name]
-        trainable_units = b_attr[6]
+            trainable_units = b_attr[6]
+        else:
+            # Handle resource buildings if they have units, or default to empty list
+            b_attr = RESOURCE_BUILDINGS.get(building_name, [None]*10)
+            trainable_units = b_attr[6] if b_attr[6] is not None else []
 
-        # Collect all affordable units
-        affordable_units = []
+        affordable_unit_keys = []
+        options = []
+        
         for unit_name in trainable_units:
-            # Aquires unit attribute list
-            u_attr = UNITS[unit_name]
-            food, wood, gold = u_attr[1], u_attr[2], u_attr[3]
-            if (self.food_amount >= food and
-                self.wood_amount >= wood and
-                self.gold_amount >= gold):
-                affordable_units.append(unit_name)
+            # Normalize to lowercase for dictionary lookup
+            u_key = unit_name.lower()
+            if u_key in UNITS:
+                u_attr = UNITS[u_key]
+                food, wood, gold = u_attr[1], u_attr[2], u_attr[3]
+                
+                # Check affordability
+                if (self.food_amount >= food and
+                    self.wood_amount >= wood and
+                    self.gold_amount >= gold):
+                    
+                    # Store technical key and display name
+                    affordable_unit_keys.append(u_key)
+                    options.append(u_attr[0]) # The friendly name (e.g., "Villager")
 
-        # Displaying the affordable units in a popup menu
-        options = affordable_units + ["Cancel"]
-        actions = {
-            unit: (lambda u=unit: self.train_action(u, spawn_x, spawn_y))
-            for unit in trainable_units
-        }
+        # Map display names to actions
+        actions = {}
+        for i in range(len(affordable_unit_keys)):
+            u_key = affordable_unit_keys[i]
+            display_name = options[i]
+            # When clicked, trigger train_action with the correct technical key
+            actions[display_name] = (lambda k=u_key: self.train_action(k, spawn_x, spawn_y))
+
+        # Add Cancel option
+        options.append("Cancel")
         actions["Cancel"] = lambda: self.building_actions(selected_building)
 
         self.popup_menu.open(options, actions)

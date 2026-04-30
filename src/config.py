@@ -99,7 +99,7 @@ TILE_TYPES = {
 UNIT_ASSETS_BASE = os.path.join("..", "assets", "units")
 
 UNIT_SPRITES_CONFIG = {
-    "Basil": {
+    "basil": {
         "folder": "basil",
         "files": {
             "normal_N": "basil_N.png",
@@ -116,7 +116,7 @@ UNIT_SPRITES_CONFIG = {
             "rested_W": "rested_W.png"
         }
     },
-    "Villager": {
+    "villager": {
         "folder": "villager",
         "files": {
             "normal_N": "villager_N.png",
@@ -133,7 +133,7 @@ UNIT_SPRITES_CONFIG = {
             "rested_W": "rested_W.png"
         }
     },
-    "Archers": {
+    "archers": {
         "folder": "archer2",
         "files": {
             "normal_N": "archer_N.png",
@@ -285,7 +285,7 @@ FARM_DESC = ("The Farm is a resource building, which can only be built on tiles 
 
 # Buildings = [name, food cost, wood cost, gold cost, hitpoints, pop capacity, trainable units, building description, researchable technologies]
 BUILDINGS = {
-    "town_centre": ["town_centre", 0, 400, 400, 500, 10, ["Villager"], TOWN_CENTRE_DESC, ["town_watch", "scout_training", "marched_pace"]],
+    "town_centre": ["town_centre", 0, 400, 400, 500, 10, ["villager"], TOWN_CENTRE_DESC, ["town_watch", "scout_training", "marched_pace"]],
     "house": ["house", 0, 100, 0, 100, 10, [], HOUSE_DESC],
     "market": ["market", 0, 100, 100, 200, 0, [], MARKET_DESC, ["basket_weaving", "double-blade_axe", "smelting"]]
 }
@@ -305,10 +305,10 @@ SPEARMEN_DESC = ("Spearmen are melee units that excel at defending against caval
 
 # [name, food cost, wood cost, gold cost, pop cost, movement, attack, defense, attack_range=1, description=""]
 UNITS = {
-    "Basil": ["Basil", 300, 0, 300, 1, 10, 300, 300, 1, BASIL_DESC],
-    "Villager": ["Villager", 50, 0, 0, 1, 5, 50, 25, 1, VILLAGER_DESC],
-    "Archers": ["Archers", 60, 60, 0, 1, 7, 150, 100, 3, ARCHER_DESC],
-    "Spearmen": ["Spearmen", 50, 50, 0, 1, 7, 100, 100, 1, SPEARMEN_DESC]
+    "basil": ["Basil", 300, 0, 300, 1, 10, 300, 300, 1, BASIL_DESC],
+    "villager": ["Villager", 50, 0, 0, 1, 5, 50, 25, 1, VILLAGER_DESC],
+    "archers": ["Archers", 60, 60, 0, 1, 7, 150, 100, 3, ARCHER_DESC],
+    "spearmen": ["Spearmen", 50, 50, 0, 1, 7, 100, 100, 1, SPEARMEN_DESC]
 }
 
 UNIT_COLORS = {

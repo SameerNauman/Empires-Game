@@ -198,7 +198,27 @@ class PopupMenu:
 
     def _update_description(self):
         if not self.options: return
-        key = self.options[self.selected_index].lower().replace(" ", "_")
-        desc = BUILDINGS.get(key, [None]*8)[7] or RESOURCE_BUILDINGS.get(key, [None]*9)[8]
-        if desc: self.message_box.open(desc, False)
-        else: self.message_box.close()
+        
+        original_name = self.options[self.selected_index]
+        key = original_name.lower().replace(" ", "_")
+        
+        desc = None
+
+        # Check Buildings (Index 7)
+        if key in BUILDINGS:
+            desc = BUILDINGS[key][7]
+        # Check Resource Buildings (Index 8)
+        elif key in RESOURCE_BUILDINGS:
+            desc = RESOURCE_BUILDINGS[key][8]
+        # Check Units (Index 9)
+        elif key in UNITS:
+            desc = UNITS[key][9]
+        # Check Research (Index 4)
+        elif key in RESEARCH:
+            desc = RESEARCH[key][4]
+        
+        # Display or Close
+        if desc: 
+            self.message_box.open(desc, False)
+        else: 
+            self.message_box.close()
