@@ -17,6 +17,9 @@ class ResourceSource:
 
     # Resource drawing
     def draw(self, screen, OFFSET_X, OFFSET_Y, camera_x, camera_y, BASE_TILE_WIDTH, BASE_TILE_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT, resource_sprites, VISIBILITY_MAP=None):
+        if self.is_depleted():
+            return
+        
         if self.building == False:
             visible = True
             if VISIBILITY_MAP is not None:

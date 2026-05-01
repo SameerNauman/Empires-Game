@@ -286,7 +286,7 @@ FARM_DESC = ("The Farm is a resource building, which can only be built on tiles 
 # Buildings = [name, food cost, wood cost, gold cost, hitpoints, pop capacity, trainable units, building description, researchable technologies]
 BUILDINGS = {
     "town_centre": ["town_centre", 0, 400, 400, 500, 10, ["villager"], TOWN_CENTRE_DESC, ["town_watch", "scout_training", "marched_pace"]],
-    "house": ["house", 0, 100, 0, 100, 10, [], HOUSE_DESC],
+    "house": ["house", 0, 100, 0, 100, 5, [], HOUSE_DESC],
     "market": ["market", 0, 100, 100, 200, 0, [], MARKET_DESC, ["basket_weaving", "double-blade_axe", "smelting"]]
 }
 

@@ -62,6 +62,8 @@ class GameplayState:
             "gather_rate_gold": 1.0
         }
         self.pending_techs = []
+        self.enemy_researched_techs = set()
+        self.enemy_pending_techs =[]
 
         # Terrain sprites
         self.terrain_sprites = {}
@@ -114,6 +116,11 @@ class GameplayState:
         self.enemy_units = [enemy_villager]
         self.e_buildings = [e_town_centre]
         self.population = len(self.units)
+        self.e_population = len(self.enemy_units)
+        self.enemy_max_population = 0
+        for building in self.buildings:
+            self.enemy_max_population += building.population_limit
+        self.allow_villager_training = True
 
         # Turn control
         self.player_turn = True
@@ -1090,20 +1097,26 @@ class GameplayState:
         self.message_box.close()
 
     # Activates tech researched from buildings.
-    def complete_research(self, tech_key): 
-        if tech_key not in self.researched_techs:
-            self.researched_techs.add(tech_key)
+    def complete_research(self, tech_key, side='player'): 
+        # Determine which state to modify
+        target_researched = self.researched_techs if side == 'player' else self.enemy_researched_techs
+        
+        if tech_key not in target_researched:
+            target_researched.add(tech_key)
             
-            # Apply the effect immediately
             effect_key = RESEARCH[tech_key][5]
             effect_val = RESEARCH[tech_key][6]
             
-            if "rate" in effect_key:
-                self.tech_multipliers[effect_key] *= effect_val
-            else:
-                self.tech_multipliers[effect_key] += effect_val
+            # IMPORTANT: You need an enemy_tech_multipliers dict in your state
+            multipliers = self.tech_multipliers
 
-            if "vision" in effect_key:
+            if "rate" in effect_key:
+                multipliers[effect_key] *= effect_val
+            else:
+                multipliers[effect_key] += effect_val
+
+            # If applying to player, update vision
+            if side == 'player' and "vision" in effect_key:
                 self.update_VISIBILITY_MAP()
 
 # === RESOURCE GATHERING ===
@@ -1164,11 +1177,29 @@ class GameplayState:
                         self.enemy_gold += amount_gathered
                     if res.amount <= 0:
                         self.resources.remove(res)
-                        self.message_box.open(f"{res.resource_type} has been depleted.")
+                        self.message_box.open(f"{res.resource_type} has been depleted.", True)
                         unit.is_gathering = False
                         unit.gather_resource_id = None
                 
                 print("food:", self.enemy_food, "wood:", self.enemy_wood, "gold:", self.enemy_gold)
+
+    def process_enemy_construction(self):
+        completed_villagers = []
+
+        for villager, building in self.enemy_construction_tasks.items():
+            # Check if the villager is still alive and at the correct location
+            if villager.health > 0 and int(villager.x) == int(building.x) and int(villager.y) == int(building.y):
+                building.is_constructed = True
+                building.rested() # Reset action counts for the new building
+                completed_villagers.append(villager)
+                print(f"AI finished building: {building.type}")
+            else:
+                # If the villager walked away or died, stop the task
+                completed_villagers.append(villager)
+
+        # Clean up the dictionary so villagers can take new jobs
+        for v in completed_villagers:
+            del self.enemy_construction_tasks[v]
 
 # === TURN HANDLING === 
 
@@ -1193,27 +1224,39 @@ class GameplayState:
         # their units
         self.player_turn = True
 
+        if self.enemy_pending_techs:
+            for tech in self.enemy_pending_techs:
+                self.complete_research(tech, side='enemy') # Use the side flag
+            self.enemy_pending_techs.clear()
+
+        # Process Research
         if self.pending_techs:
             for tech in self.pending_techs:
-                self.complete_research(tech)
-            self.pending_techs.clear() # Clear queue after applying
+                self.complete_research(tech, side='player')
+            self.pending_techs.clear() 
 
+        # Reset AI pathfinding flag for next turn
         self.enemy_paths_planned = False
+
+        # Resource Income Phase
         self.process_automatic_gathering()
         self.process_enemy_gathering()
+
+        # Production Phase (Enemy builds units at their buildings)
+        # Ensure self.e_buildings matches the variable name used in GameplayState
         self.enemy_ai.train_enemy_units(self.e_buildings, self.enemy_units, self)
-        # Iterates through all player buildings and checks which ones are under construction. Completes
-        # the buildings that are under construction and resets their action count.
+
+        # Building Construction Phase
         for building in self.buildings:
-            if building.queued == True:
+            if getattr(building, 'queued', False):
+                building.is_constructed = True
+                building.queued = False 
+                building.rested()
+
+                # Clean up the construction dictionary
                 for key, value in list(self.construction.items()):
-                    print(self.construction)
-                    building.is_constructed = True
-                    building.queued == False
-                    building.rested()
                     if value == building:
                         self.construction.pop(key)
-                    print(self.construction)
 
     # Checks if conditions to end the game are True
     def check_game_over(self):
@@ -1716,7 +1759,14 @@ class GameplayState:
             # Enemy turn
             else: 
                 if not self.enemy_paths_planned:
-                    self.enemy_ai.plan_enemy_paths(self.enemy_units, self.units, self.buildings, self.resources)
+                    self.enemy_ai.execute_turn(
+                        self.enemy_units, 
+                        self.units, 
+                        self.buildings, 
+                        self.resources, 
+                        self.e_buildings, 
+                        self
+                    )
                     self.enemy_paths_planned = True
                     self.enemy_turn_index = 0
                     self.enemy_turn_phase = 'move'
@@ -1748,29 +1798,37 @@ class GameplayState:
                 elif self.enemy_turn_phase == 'attack':
                     # Try to attack player unit/building
                     did_attack = False
-                    # Player units take damage from enemy attacks
-                    for player in self.units:
-                        dist = abs(enemy.x - player.x) + abs(enemy.y - player.y)
-                        if player.health > 0 and dist == 1:
-                            damage = ((enemy.attack * (1 + BONUS_MULTIPLYER))/player.defense) * 25 + FLAT_BONUS
-                            player.health -= damage
-                            self.retaliate_attack(enemy, player, dist)
-                            print("enemy:", enemy.health)
-                            print("player:", player.health)
+                    attack_range = getattr(enemy, "attack_range", 1)
+
+                    # Identify potential targets
+                    targets = [(u, 'unit') for u in self.units if u.health > 0] + \
+                            [(b, 'building') for b in self.buildings if getattr(b, 'hitpoints', 0) > 0]
+
+                    for target, target_type in targets:
+                        dist = abs(enemy.x - target.x) + abs(enemy.y - target.y)
+                        
+                        # Melee must be dist == 1, Ranged must be 1 < dist <= range
+                        is_in_range = (attack_range == 1 and dist == 1) or (attack_range > 1 and 1 < dist <= attack_range)
+
+                        if is_in_range:
+                            # If target is a building, check if a player unit is standing on it (protection)
+                            if target_type == 'building':
+                                if any(int(u.x) == int(target.x) and int(u.y) == int(target.y) for u in self.units):
+                                    continue # Unit protects the building
+
+                            # Calculate and apply damage
+                            defense = target.defense if target_type == 'unit' else getattr(target, 'defense', 1)
+                            damage = ((enemy.attack * (1 + BONUS_MULTIPLYER)) / defense) * 25 + FLAT_BONUS
+                            
+                            if target_type == 'unit':
+                                target.health -= damage
+                                self.retaliate_attack(enemy, target, dist) # Only units retaliate
+                            else:
+                                target.hitpoints -= enemy.attack # Buildings usually take raw attack or scaled damage
+
                             did_attack = True
-                            break
-                    # Player buildings take damage from enemy attacks
-                    if not did_attack:
-                        for building in self.buildings:
-                            if getattr(building, 'is_constructed', True) and getattr(building, 'hitpoints', 1) > 0:
-                                if abs(enemy.x - building.x) + abs(enemy.y - building.y) == 1:
-                                    damage = ((enemy.attack * (1 + BONUS_MULTIPLYER))/building.defense) * 25 + FLAT_BONUS
-                                    building.hitpoints -= enemy.attack
-                                    print("enemy:", enemy.health)
-                                    print("player:", building.hitpoints)
-                                    did_attack = True
-                                    break
-                    self.enemy_turn_delay = 0  # Pause after attack for clarity/animation
+                            break # One attack per turn
+                    self.enemy_turn_delay = 10  # Pause after attack for clarity/animation
                     self.enemy_turn_index += 1
                     self.enemy_turn_phase = 'move'
 
