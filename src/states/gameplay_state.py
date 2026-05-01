@@ -61,6 +61,14 @@ class GameplayState:
             "gather_rate_wood": 1.0,
             "gather_rate_gold": 1.0
         }
+        self.enemy_tech_multipliers = {
+            "unit_vision": 0,
+            "unit_movement": 0,
+            "building_vision": 0,
+            "gather_rate_food": 1.0,
+            "gather_rate_wood": 1.0,
+            "gather_rate_gold": 1.0
+        }
         self.pending_techs = []
         self.enemy_researched_techs = set()
         self.enemy_pending_techs =[]
@@ -129,6 +137,9 @@ class GameplayState:
         self.enemy_turn_index = 0      # index of the current enemy being processed
         self.enemy_turn_phase = 'move' # 'move', 'attack', or 'done'
         self.enemy_turn_delay = 0      # delay timer for animation
+
+        self.player_age = "Dark Age"
+        self.enemy_age = "Dark Age"
 
         self.game_over = False
         
@@ -956,23 +967,28 @@ class GameplayState:
 
     # Displays a popup menu of the selected building's actions such as training or researching.
     def building_actions(self, building):
-        if not building.building_tired():
-            building.selected = True
-            building_name = building.type
-            if building_name in BUILDINGS:
-                building_actions = ["Train", "Research", "Cancel"]
-                building_callbacks = {
-                    "Train": self.unit_selection,
-                    "Research": self.research_action,
-                    "Cancel": self.deselect
-                }
-            else:
-                building_actions = ["Research", "Cancel"]
-                building_callbacks = {
-                    "Research": self.research_action,
-                    "Cancel": self.deselect
-                }
-            self.popup_menu.open(building_actions, building_callbacks)
+        if building.building_tired():
+            return
+
+        building.selected = True
+        
+        options = ["Research", "Cancel"]
+        actions = {
+            "Research": self.research_action,
+            "Cancel": self.deselect
+        }
+
+        # Add Train if it's a production building
+        if building.type in BUILDINGS:
+            options.insert(0, "Train")
+            actions["Train"] = self.unit_selection
+
+        # Specific Town Centre Logic
+        if building.type == "town_centre":
+            options.insert(2, "Age Up")
+            actions["Age Up"] = lambda: self.attempt_age_up('player')
+
+        self.popup_menu.open(options, actions)
 
     # Displays a popup menu of the trainable units at the selected building, and spawns the unit
     def unit_selection(self):
@@ -1098,8 +1114,13 @@ class GameplayState:
 
     # Activates tech researched from buildings.
     def complete_research(self, tech_key, side='player'): 
-        # Determine which state to modify
-        target_researched = self.researched_techs if side == 'player' else self.enemy_researched_techs
+        if side == 'player':
+            target_researched = self.researched_techs
+            multipliers = self.tech_multipliers # Player stats
+        else:
+            target_researched = self.enemy_researched_techs
+            # Ensure you have initialized self.enemy_tech_multipliers in __init__
+            multipliers = self.enemy_tech_multipliers 
         
         if tech_key not in target_researched:
             target_researched.add(tech_key)
@@ -1107,15 +1128,11 @@ class GameplayState:
             effect_key = RESEARCH[tech_key][5]
             effect_val = RESEARCH[tech_key][6]
             
-            # IMPORTANT: You need an enemy_tech_multipliers dict in your state
-            multipliers = self.tech_multipliers
-
             if "rate" in effect_key:
                 multipliers[effect_key] *= effect_val
             else:
                 multipliers[effect_key] += effect_val
 
-            # If applying to player, update vision
             if side == 'player' and "vision" in effect_key:
                 self.update_VISIBILITY_MAP()
 
@@ -1201,6 +1218,74 @@ class GameplayState:
         for v in completed_villagers:
             del self.enemy_construction_tasks[v]
 
+    # Handles the transition to the next age for both the player or enemy
+    def attempt_age_up(self, side):
+        
+        # Determine current state based on side
+        if side == 'player':
+            self.popup_menu.close()
+            current_age = self.player_age
+            food = self.food_amount
+            wood = self.wood_amount
+            gold = self.gold_amount
+            tech_count = len(self.researched_techs)
+        else:
+            current_age = self.enemy_age
+            food = self.enemy_food
+            wood = self.enemy_wood
+            gold = self.enemy_gold
+            tech_count = len(self.enemy_researched_techs)
+
+        # Get requirements for the CURRENT age to move to the NEXT
+        age_data = AGES.get(current_age)
+        if not age_data or "next_age" not in age_data:
+            return "Max Age Reached"
+
+
+        req_food = age_data["food"]
+        req_wood = age_data["wood"]
+        req_gold = age_data["gold"]
+        req_techs = age_data["req_techs"]
+
+        # Check Requirements
+        if tech_count < req_techs:
+            if side == 'player':
+                self.message_box.open(f"Requires {req_techs} technologies to be researched!", True)
+                if self.selected_building:
+                    self.selected_building.selected = False
+            return False
+
+        if food >= req_food and wood >= req_wood and gold >= req_gold:
+            # Success: Deduct Resources
+            if side == 'player':
+                self.food_amount -= req_food
+                self.wood_amount -= req_wood
+                self.gold_amount -= req_gold
+                self.player_age = age_data["next_age"]
+            else:
+                self.enemy_food -= req_food
+                self.enemy_wood -= req_wood
+                self.enemy_gold -= req_gold
+                self.enemy_age = age_data["next_age"]
+
+            # Handle Town Centre "Tiring" (Marking all TCs as acted)
+            relevant_buildings = self.buildings if side == 'player' else self.e_buildings
+            for b in relevant_buildings:
+                if "town" in b.type.lower():
+                    b.rest() # Assuming rest() sets action_count to 0
+            
+            print(f"{side.capitalize()} advanced to {age_data['next_age']}!")
+            if self.selected_building:
+                self.selected_building.selected = False
+            return True
+        else:
+            # Failure: Resource Message
+            if side == 'player':
+                self.message_box.open("Insufficient funds to Age Up!", True)
+                if self.selected_building:
+                    self.selected_building.selected = False
+            return False
+
 # === TURN HANDLING === 
 
     # At the end of player's turn, resets unit and building action count
@@ -1257,6 +1342,12 @@ class GameplayState:
                 for key, value in list(self.construction.items()):
                     if value == building:
                         self.construction.pop(key)
+        
+        # Enemy Building construction
+        for building in self.e_buildings:
+            if getattr(building, 'queued', False):
+                building.is_constructed = True
+                building.queued = False 
 
     # Checks if conditions to end the game are True
     def check_game_over(self):
@@ -1268,6 +1359,12 @@ class GameplayState:
         elif len(self.enemy_units) == 0 and len(self.e_buildings) == 0:
             self.game_state_manager.set_state("game over")
             return True
+        elif self.player_age == "Fuedal Age":
+            self.game_state_manager.set_state("game over")
+            return
+        elif self.enemy_age == "Fuedal Age":
+            self.game_state_manager.set_state("game over")
+            return
         # Game continues running
         else:
             return False

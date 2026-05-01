@@ -9,14 +9,20 @@ class EnemyAi():
     def __init__(self, path_enemies):
         self.target_aquisition = TargetAquisition()
         self.path_enemies = path_enemies
-        self.enemy_construction_tasks = {}
 
     def execute_turn(self, enemy_units, player_units, player_buildings, resource_list, enemy_buildings, gameplay_state):
+        for b in enemy_buildings:
+            if b.is_constructed:
+                b.rested()
+
         # Handle Villagers and get targets for military
         contested_tiles = self.manage_villagers(enemy_units, player_units, resource_list, enemy_buildings, player_buildings, gameplay_state)
         
         # Handle Economy/Construction
         self.manage_economy(enemy_units, enemy_buildings, resource_list, gameplay_state)
+
+        # Handle Research
+        self.manage_research(enemy_buildings, gameplay_state)
         
         # Handle Military
         self.manage_military(enemy_units, player_units, player_buildings, enemy_buildings, contested_tiles)
@@ -127,7 +133,7 @@ class EnemyAi():
             if current_counts.get(b_type, 0) < goal:
                 if self.can_afford_building(b_type, gameplay_state):
                     
-                    potential_builders = [v for v in villagers if not v.is_gathering and v not in self.enemy_construction_tasks]
+                    potential_builders = [v for v in villagers if not v.is_gathering and v not in gameplay_state.construction]
                     
                     for builder in potential_builders:
                         tx, ty = int(builder.x), int(builder.y)
@@ -141,9 +147,18 @@ class EnemyAi():
 
                         if not is_blocked:
                             self.request_construction(b_type, builder, gameplay_state)
-                            return 
+                            break 
                         else:
                             self.move_to_clear_ground(builder, gameplay_state)
+                            break
+
+        current_age_data = AGES.get(gameplay_state.enemy_age)
+        if current_age_data and "next_age" in current_age_data:
+            # AI checks if it meets the tech requirement and has surplus resources
+            if len(gameplay_state.enemy_researched_techs) >= current_age_data["req_techs"]:
+                # AI will attempt to age up if it has 20% more than the required cost (buffer)
+                if gameplay_state.enemy_food >= current_age_data["food"] * 1.2:
+                    gameplay_state.attempt_age_up('enemy')
 
     def manage_military(self, enemy_units, player_units, player_buildings, enemy_buildings, contested_tiles):
         """Logic for military movement and attacking contested resource tiles."""
@@ -173,41 +188,35 @@ class EnemyAi():
                     m.path = [(float(x), float(y)) for x, y in path[:steps]]
     
     def manage_research(self, enemy_buildings, gameplay_state):
-        """Automated research logic for the Enemy AI."""
-        for building in enemy_buildings:
-            if not building.is_constructed or building.action_count <= 0:
+        # Shuffle to give the Market a fair chance at resources
+        shuffled_buildings = list(enemy_buildings)
+        random.shuffle(shuffled_buildings)
+        
+        for building in shuffled_buildings:
+            # Debug: Is the AI even looking at the market?
+            if not building.is_constructed or building.action_count == 2:
                 continue
             
+            # Safely get tech list
             if building.type in BUILDINGS:
                 tech_list = BUILDINGS[building.type][8]
             elif building.type in RESOURCE_BUILDINGS:
                 tech_list = RESOURCE_BUILDINGS[building.type][9]
-            else:
-                continue
 
-            affordable_techs = []
-            for r_key in tech_list:
-                r_attr = RESEARCH[r_key]
+            # Check affordability
+            for tech_key in tech_list:
+                if tech_key in gameplay_state.enemy_researched_techs or tech_key in gameplay_state.enemy_pending_techs:
+                    continue
                 
-                # Check resources
-                can_afford = (
-                    gameplay_state.enemy_food >= r_attr[1] and 
-                    gameplay_state.enemy_wood >= r_attr[2] and 
-                    gameplay_state.enemy_gold >= r_attr[3]
-                )
-
-                if can_afford:
-                    # Ensure they haven't already researched it or have it in queue
-                    if r_key not in gameplay_state.enemy_researched_techs and \
-                    r_key not in gameplay_state.enemy_pending_techs:
-                        affordable_techs.append(r_key)
-
-            if affordable_techs:
-                chosen_tech = random.choice(affordable_techs)
+                t_attr = RESEARCH.get(tech_key)
+                if not t_attr: continue
                 
-                self.execute_enemy_research(chosen_tech, building, gameplay_state)
-                
-                # One research project per building per turn
+                if (gameplay_state.enemy_food >= t_attr[1] and 
+                    gameplay_state.enemy_wood >= t_attr[2] and 
+                    gameplay_state.enemy_gold >= t_attr[3]):
+                    
+                    self.execute_enemy_research(tech_key, building, gameplay_state)
+                    break # Building used its action, move to next building
 
     # --- Helper Methods ---
 
@@ -231,17 +240,16 @@ class EnemyAi():
         """Deducts costs and adds to the enemy's pending queue."""
         r_attr = RESEARCH[tech_key]
         
-        # Deduct Enemy Resources
         gameplay_state.enemy_food -= r_attr[1]
         gameplay_state.enemy_wood -= r_attr[2]
         gameplay_state.enemy_gold -= r_attr[3]
 
-        # Add to the enemy-specific pending list
+        # Ensure your GameplayState logic handles 'enemy_pending_techs' 
+        # separately from 'player_pending_techs'!
         gameplay_state.enemy_pending_techs.append(tech_key)
         
-        # Mark building as used
         building.rest()
-        print(f"Enemy AI started researching: {r_attr[0]}")
+        print(f"Enemy AI started researching: {r_attr[0]} at {building.type}")
     
     def get_unit_at(self, x, y, unit_list):
         return next((u for u in unit_list if int(u.x) == int(x) and int(u.y) == int(y) and u.health > 0), None)
@@ -292,6 +300,7 @@ class EnemyAi():
         new_building = BaseBuildings(tx, ty, b_attr[4], b_attr[5])
         new_building.id = new_building_id
         new_building.type = building_type
+        new_building.building_queued()
         new_building.is_constructed = False
 
         gameplay_state.e_buildings.append(new_building)
@@ -300,7 +309,7 @@ class EnemyAi():
         villager.rest()
         # Ensure they stop moving and stay on this tile to work
         villager.path = [] 
-        self.enemy_construction_tasks[villager] = new_building 
+        gameplay_state.construction[villager] = new_building 
 
         # Pay for the building
         gameplay_state.enemy_food -= b_attr[1]

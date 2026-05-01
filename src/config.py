@@ -286,14 +286,14 @@ FARM_DESC = ("The Farm is a resource building, which can only be built on tiles 
 # Buildings = [name, food cost, wood cost, gold cost, hitpoints, pop capacity, trainable units, building description, researchable technologies]
 BUILDINGS = {
     "town_centre": ["town_centre", 0, 400, 400, 500, 10, ["villager"], TOWN_CENTRE_DESC, ["town_watch", "scout_training", "marched_pace"]],
-    "house": ["house", 0, 100, 0, 100, 5, [], HOUSE_DESC],
+    "house": ["house", 0, 100, 0, 100, 5, [], HOUSE_DESC, []],
     "market": ["market", 0, 100, 100, 200, 0, [], MARKET_DESC, ["basket_weaving", "double-blade_axe", "smelting"]]
 }
 
 # [name, food cost, wood cost, gold cost, hitpoints, pop capacity, resource type, resource amount, description, researchable technologies]
 RESOURCE_BUILDINGS = {
     "mill": ["mill", 0, 50, 0, 200, 0, "food", 500000, MILL_DESC, ["irrigation"]],
-    "farm": ["farm", 0, 50, 0, 100, 0, "food", 500000, FARM_DESC]
+    "farm": ["farm", 0, 50, 0, 100, 0, "food", 500000, FARM_DESC, []]
 }
 
 BASIL_DESC = ("Basil II is the Emperor of the Byzantine Empire. He is a cavalry unit that can move long distances. \n\n" "300 / 300")
@@ -345,4 +345,23 @@ RESEARCH = {
     "double-blade_axe": ["Double-Blade Axe", 100, 0, 0, DOUBLE_BLADE_AXE_DESC, "gather_rate_wood", 1.10],
     "smelting": ["Smelting", 0, 100, 0, SMELTING_DESC, "gather_rate_gold", 1.10],
     "irrigation": ["Irrigation", 0, 100, 100, IRRIGATION_DESC, "gather_rate_food", 1.10]  
+}
+
+# === AGE UP ===
+
+AGES = {
+    "Dark Age": {
+        "next_age": "Fuedal Age",
+        "food": 600,
+        "wood": 600,
+        "gold": 600,
+        "req_techs": 4
+    },
+    "Fuedal Age": {
+        "next_age": "Castle Age",
+        "food": 1000,
+        "wood": 1000,
+        "gold": 1000,
+        "req_techs": 8
+    }
 }
