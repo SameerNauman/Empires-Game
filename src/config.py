@@ -231,7 +231,11 @@ UI_ELEMENTS = {
     "building_menu": {
         "normal": "b_menu4.png",
         "selected": "b_menu_selected3.png"
-    }
+    },
+    "awsd": "awsd2.png",
+    "arrows": "arrows2.png",
+    "shift": "shift2.png",
+    "tab": "tab2.png"
 }
 
 # LOAD TERRAIN MAP

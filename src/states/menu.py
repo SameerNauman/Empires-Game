@@ -1,30 +1,147 @@
 import pygame, sys
+from message_box import MessageBox
+from pop_up_menu import PopupMenu
+from config import *
 
 class Menu():
     def __init__(self, screen, game_state_manager):
         self.display = screen
+        w, h = screen.get_size()
         self.game_state_manager = game_state_manager
 
-        self.font = pygame.font.Font(None, 50)
-        self.base_color = "cornflowerblue"
-        self.hovering_color = "darkslateblue"
+        self.font = pygame.font.SysFont("Times New Roman", 40)
 
-        # --- Define button size and position ---
-        self.button_width = 200
-        self.button_height = 60
+        # Title
+        self.title_text = self.font.render("Faith & Fury", True, "#C0C0C0")
+        self.title = pygame.Rect(0, 0, 300, 100)
+        self.title.center = ((w // 2), (h // 8))
 
-        # Start button
-        self.start_b = pygame.Rect(0, 0, self.button_width, self.button_height)
-        self.start_b.center = (240, 60)
-        # Quit button
-        self.quit_b = pygame.Rect(0, 0, self.button_width, self.button_height)
-        self.quit_b.center = (240, 150)
+        self.open_controls_menu = False
 
-        # Button text
-        self.start = self.font.render("Start", True, "black")
-        self.quit = self.font.render("Quit", True, "black")
+        # UI elements
+        self.load_ui_elements()
 
-        self.selected_button = self.start_b
+        self.message_box = MessageBox(self.display, w, h, self.ui_elements["message_box"])
+        self.error_message = True
+
+        self.popup_menu = PopupMenu(
+            [], {}, 0, 0, self.ui_elements, self.message_box, 
+            sprite_key="popup_menu"
+        )
+
+    # Loads the sprites for the UI elements
+    def load_ui_elements(self):
+            self.ui_elements = {}
+            for element_name, data in UI_ELEMENTS.items():
+                # Check if it's a dictionary (like your popup_menu)
+                if isinstance(data, dict):
+                    self.ui_elements[element_name] = {}
+                    for state, filename in data.items():
+                        full_path = os.path.join(UI_ELEMENTS_PATH, filename)
+                        self.ui_elements[element_name][state] = pygame.image.load(full_path).convert_alpha()
+                else:
+                    # It's a regular string (like message_box)
+                    full_path = os.path.join(UI_ELEMENTS_PATH, data)
+                    self.ui_elements[element_name] = pygame.image.load(full_path).convert_alpha()
+
+    def main_options(self):
+        if self.popup_menu.is_open: # Prevent opening it 60 times a second
+            return
+
+        options = ["Start", "Controls", "Quit"]
+        actions = {
+            "Start": lambda: self.game_state_manager.set_state("gameplay state"),
+            "Controls": lambda: self.set_control_menu(active=True),
+            "Quit": lambda: self.quit_game()
+        }
+
+        self.popup_menu.open(options, actions)
+
+    def set_control_menu(self, active):
+        self.open_controls_menu = active
+
+        if active:
+            options = ["Main Menu", "Quit"]
+            actions = {
+                "Main Menu": lambda: self.set_control_menu(active=False),
+                "Quit": self.quit_game
+            }
+            self.popup_menu.is_open = False 
+            self.popup_menu.open(options, actions)
+        else:
+            self.popup_menu.is_open = False
+            self.main_options()
+    
+    def draw_controls_menu(self, width, height):
+
+        # Sprites
+        awsd_sprite = self.ui_elements.get("awsd")
+        awsd_rect = awsd_sprite.get_rect(center=((width // 8) * 7, (height // 16) * 3.5))
+        
+        arrows_sprite = self.ui_elements.get("arrows")
+        arrows_rect = arrows_sprite.get_rect(center=((width // 8) * 7, (height // 16) * 7.5))
+
+        shift_sprite = self.ui_elements.get("shift")
+        shift_rect = shift_sprite.get_rect(center=((width // 8) * 7, (height // 16) * 11))
+
+        tab_sprite = self.ui_elements.get("tab")
+        tab_rect = tab_sprite.get_rect(center=((width // 8) * 7, (height // 16) * 14))
+
+        # Text
+        controls_text = self.font.render("Controls", True, "#C0C0C0")
+        controls = pygame.Rect(0, 0, 300, 100)
+        controls.center = ((width // 8), (height // 16))
+        controls_rect = controls_text.get_rect(center=controls.center)
+
+        awsd_text = self.font.render("Movement", True, "#C0C0C0")
+        awsd_text_rect = ((width // 8) * 4.5, (height // 8) * 2.5)
+
+        shift_text = self.font.render("Selection", True, "#C0C0C0")
+        shift_text_rect = ((width // 8) * 4.5, (height // 16) * 10.5)
+
+        tab_text = self.font.render("Cycle", True, "#C0C0C0")
+        tab_text_rect = ((width // 8) * 4.5, (height // 16) * 13.5)
+
+        # Display Sprites
+        self.display.blit(awsd_sprite, awsd_rect)
+        self.display.blit(arrows_sprite, arrows_rect)
+        self.display.blit(shift_sprite, shift_rect)
+        self.display.blit(tab_sprite, tab_rect)
+        
+        # Display Text
+        self.display.blit(controls_text, controls_rect)
+        self.display.blit(awsd_text, awsd_text_rect)
+        self.display.blit(shift_text, shift_text_rect)
+        self.display.blit(tab_text, tab_text_rect)
+
+    def quit_game(self):
+        pygame.quit()
+        sys.exit()
+    
+    def resize(self, w, h):
+        self.screen = pygame.display.get_surface()
+
+        self.title.center = ((w // 2), (h // 8))
+
+        self.popup_menu.resize(w, h)
+
+    def draw(self):
+        w, h = self.display.get_size()
+
+        # Background
+        self.display.fill("#000035")
+        
+        # Selection
+        if not self.popup_menu.is_open and not self.open_controls_menu:
+            self.main_options()
+
+        # Controls menu
+        if self.open_controls_menu:
+            self.draw_controls_menu(w, h)
+        else:
+            # Title
+            title_rect = self.title_text.get_rect(center=self.title.center)
+            self.display.blit(self.title_text, title_rect)
 
     def run(self, events):
         for event in events:
@@ -32,32 +149,15 @@ class Menu():
                 pygame.quit()
                 sys.exit()
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP and self.selected_button == self.quit_b:
-                    self.selected_button = self.start_b
-                if event.key == pygame.K_DOWN and self.selected_button == self.start_b:
-                    self.selected_button = self.quit_b
-                if event.key == pygame.K_LSHIFT:
-                    if self.selected_button == self.start_b:
-                        self.game_state_manager.set_state("gameplay state")
-                    else:
-                        pygame.quit()
-                        sys.exit()
+                if self.popup_menu.is_open:
+                    if event.key in [pygame.K_w, pygame.K_UP]:
+                        self.popup_menu.move_selection(-1)
+                    elif event.key in [pygame.K_s, pygame.K_DOWN]:
+                        self.popup_menu.move_selection(1)
+                    elif event.key == pygame.K_LSHIFT:
+                        self.popup_menu.select()
+                    return # Block all other inputs
 
-        # Background
-        self.display.fill("cadetblue3")
-        # Button rectangles
-        pygame.draw.rect(self.display, self.base_color, self.start_b)
-        pygame.draw.rect(self.display, self.base_color, self.quit_b)
-
-        if self.selected_button == self.start_b:
-            pygame.draw.rect(self.display, self.hovering_color, self.start_b, 5, 5)
-        else:            
-            pygame.draw.rect(self.display, self.hovering_color, self.quit_b, 5, 5)
-
-        # Center the text on the button
-        start_rect = self.start.get_rect(center=self.start_b.center)
-        quit_rect = self.quit.get_rect(center=self.quit_b.center)
-
-        # Drawing text and buttons
-        self.display.blit(self.start, start_rect)
-        self.display.blit(self.quit, quit_rect)
+        self.draw()
+        
+        self.popup_menu.draw(self.display)

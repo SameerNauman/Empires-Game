@@ -150,7 +150,7 @@ class GameplayState:
             self.screen, 
             SCREEN_WIDTH, 
             SCREEN_HEIGHT, 
-            self.ui_elements["message_box"] # Pass the loaded sprite here
+            self.ui_elements["message_box"]
         )
         self.error_message = True
 

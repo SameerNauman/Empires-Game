@@ -12,7 +12,7 @@ class Main():
         # Initialize pygame
         pygame.init()
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
-        pygame.display.set_caption("Empires PSP")
+        pygame.display.set_caption("Faith & Fury")
         self.clock = pygame.time.Clock()
 
         self.game_state_manager = GameStateManager("menu")
