@@ -236,7 +236,7 @@ UI_ELEMENTS = {
     "arrows": "arrows2.png",
     "shift": "shift2.png",
     "tab": "tab2.png",
-    "title": "title.png"
+    "title": "title4.png"
 }
 
 # LOAD TERRAIN MAP
