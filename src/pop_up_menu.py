@@ -2,7 +2,7 @@ import pygame
 from config import *
 
 class PopupMenu:
-    def __init__(self, options, actions, x, y, sprites, message_box, width=150, item_height=50, sprite_key="popup_menu", side="left"):
+    def __init__(self, options, actions, x, y, sprites, message_box, width=150, item_height=50, sprite_key="popup_menu", side="left", state=None):
         self.options = options
         self.actions = actions
         self.x = x
@@ -13,6 +13,7 @@ class PopupMenu:
         self.item_height = item_height
         self.sprite_key = sprite_key
         self.side = side
+        self.state = state
         self.selected_index = 0
         self.is_open = False
         self.font = pygame.font.SysFont("Arial", 25)
@@ -173,7 +174,10 @@ class PopupMenu:
             standard_h = (len(self.options) * self.item_height) + (max(0, len(self.options)-1) * spacing)
             
             mb_top = new_height - self.message_box.box_height
-            self.y = mb_top - standard_h - 10
+            if self.state == "menu":
+                self.y = (new_height // 4) * 2.5
+            else:
+                self.y = mb_top - standard_h - 10
             
             # Keep standard popup menu logic
             if new_width <= 1280 or self.side == "left":

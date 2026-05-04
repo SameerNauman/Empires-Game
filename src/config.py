@@ -235,7 +235,8 @@ UI_ELEMENTS = {
     "awsd": "awsd2.png",
     "arrows": "arrows2.png",
     "shift": "shift2.png",
-    "tab": "tab2.png"
+    "tab": "tab2.png",
+    "title": "title.png"
 }
 
 # LOAD TERRAIN MAP

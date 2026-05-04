@@ -9,7 +9,7 @@ class Menu():
         w, h = screen.get_size()
         self.game_state_manager = game_state_manager
 
-        self.font = pygame.font.SysFont("Times New Roman", 40)
+        self.font = pygame.font.SysFont("Times New Roman", 60)
 
         # Title
         self.title_text = self.font.render("Faith & Fury", True, "#C0C0C0")
@@ -17,6 +17,15 @@ class Menu():
         self.title.center = ((w // 2), (h // 8))
 
         self.open_controls_menu = False
+
+        # Fade Screen
+        self.fade_alpha = 0
+        self.fade_speed = 8  # Speed of the fade
+        self.is_fading = False
+        self.fade_direction = 1 # 1 for fading to black, -1 for fading to transparent
+        self.next_menu_state = None 
+        self.fade_surface = pygame.Surface((w, h))
+        self.fade_surface.fill((0, 0, 0))
 
         # UI elements
         self.load_ui_elements()
@@ -26,8 +35,11 @@ class Menu():
 
         self.popup_menu = PopupMenu(
             [], {}, 0, 0, self.ui_elements, self.message_box, 
-            sprite_key="popup_menu"
+            sprite_key="popup_menu", state="menu"
         )
+
+        # Main Menu
+        self.main_options()
 
     # Loads the sprites for the UI elements
     def load_ui_elements(self):
@@ -44,6 +56,14 @@ class Menu():
                     full_path = os.path.join(UI_ELEMENTS_PATH, data)
                     self.ui_elements[element_name] = pygame.image.load(full_path).convert_alpha()
 
+    def draw_text_with_shadow(self, text, color, position, offset=(2, 2)):
+        shadow_surf = self.font.render(text, True, (20, 20, 20))
+        shadow_pos = (position[0] + offset[0], position[1] + offset[1])
+        self.display.blit(shadow_surf, shadow_pos)
+
+        main_surf = self.font.render(text, True, color)
+        self.display.blit(main_surf, position)
+        
     def main_options(self):
         if self.popup_menu.is_open: # Prevent opening it 60 times a second
             return
@@ -58,20 +78,10 @@ class Menu():
         self.popup_menu.open(options, actions)
 
     def set_control_menu(self, active):
-        self.open_controls_menu = active
+        self.is_fading = True
+        self.fade_direction = 1
+        self.next_menu_state = active
 
-        if active:
-            options = ["Main Menu", "Quit"]
-            actions = {
-                "Main Menu": lambda: self.set_control_menu(active=False),
-                "Quit": self.quit_game
-            }
-            self.popup_menu.is_open = False 
-            self.popup_menu.open(options, actions)
-        else:
-            self.popup_menu.is_open = False
-            self.main_options()
-    
     def draw_controls_menu(self, width, height):
 
         # Sprites
@@ -88,31 +98,16 @@ class Menu():
         tab_rect = tab_sprite.get_rect(center=((width // 8) * 7, (height // 16) * 14))
 
         # Text
-        controls_text = self.font.render("Controls", True, "#C0C0C0")
-        controls = pygame.Rect(0, 0, 300, 100)
-        controls.center = ((width // 8), (height // 16))
-        controls_rect = controls_text.get_rect(center=controls.center)
-
-        awsd_text = self.font.render("Movement", True, "#C0C0C0")
-        awsd_text_rect = ((width // 8) * 4.5, (height // 8) * 2.5)
-
-        shift_text = self.font.render("Selection", True, "#C0C0C0")
-        shift_text_rect = ((width // 8) * 4.5, (height // 16) * 10.5)
-
-        tab_text = self.font.render("Cycle", True, "#C0C0C0")
-        tab_text_rect = ((width // 8) * 4.5, (height // 16) * 13.5)
+        self.draw_text_with_shadow("Controls", "#C0C0C0", ((width // 8) - 100, (height // 16)))
+        self.draw_text_with_shadow("Movement", "#C0C0C0", ((width // 8) * 4.5, (height // 8) * 2.5))
+        self.draw_text_with_shadow("Selection", "#C0C0C0", ((width // 8) * 4.5, (height // 16) * 10.5))
+        self.draw_text_with_shadow("Cycle", "#C0C0C0", ((width // 8) * 4.5, (height // 16) * 13.5))
 
         # Display Sprites
         self.display.blit(awsd_sprite, awsd_rect)
         self.display.blit(arrows_sprite, arrows_rect)
         self.display.blit(shift_sprite, shift_rect)
         self.display.blit(tab_sprite, tab_rect)
-        
-        # Display Text
-        self.display.blit(controls_text, controls_rect)
-        self.display.blit(awsd_text, awsd_text_rect)
-        self.display.blit(shift_text, shift_text_rect)
-        self.display.blit(tab_text, tab_text_rect)
 
     def quit_game(self):
         pygame.quit()
@@ -129,11 +124,8 @@ class Menu():
         w, h = self.display.get_size()
 
         # Background
-        self.display.fill("#000035")
-        
-        # Selection
-        if not self.popup_menu.is_open and not self.open_controls_menu:
-            self.main_options()
+        title_sprite = self.ui_elements.get("title")
+        self.display.blit(title_sprite, (0, 0))
 
         # Controls menu
         if self.open_controls_menu:
@@ -141,7 +133,37 @@ class Menu():
         else:
             # Title
             title_rect = self.title_text.get_rect(center=self.title.center)
-            self.display.blit(self.title_text, title_rect)
+            self.draw_text_with_shadow("Faith & Fury", "#C0C0C0", title_rect)
+        
+        if self.popup_menu.is_open:
+            self.popup_menu.draw(self.display)
+
+        if self.is_fading:
+            self.fade_alpha += (self.fade_speed * self.fade_direction)
+            
+            # Logic when fully black
+            if self.fade_alpha >= 255:
+                self.fade_alpha = 255
+                self.fade_direction = -1 # Start fading back in
+                
+                # Switch the actual content here while screen is black
+                self.open_controls_menu = self.next_menu_state
+                self.popup_menu.is_open = False # Reset popup for fresh state
+                
+                if self.open_controls_menu:
+                    options = ["Main Menu", "Quit"]
+                    actions = {"Main Menu": lambda: self.set_control_menu(active=False), "Quit": self.quit_game}
+                    self.popup_menu.open(options, actions)
+                else:
+                    self.main_options()
+
+            # Logic when fade back in is finished
+            elif self.fade_alpha <= 0:
+                self.fade_alpha = 0
+                self.is_fading = False
+
+            self.fade_surface.set_alpha(self.fade_alpha)
+            self.display.blit(self.fade_surface, (0, 0))
 
     def run(self, events):
         for event in events:
@@ -160,4 +182,3 @@ class Menu():
 
         self.draw()
         
-        self.popup_menu.draw(self.display)
