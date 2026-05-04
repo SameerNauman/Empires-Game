@@ -2032,5 +2032,3 @@ class GameplayState:
         
         # Draw the mini map in the bottom right corner
         self.draw_tactical_map()
-        
-        pygame.display.flip()
