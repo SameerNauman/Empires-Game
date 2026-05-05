@@ -149,6 +149,9 @@ class PopupMenu:
         self._update_description()
 
     def resize(self, new_width, new_height):
+        VIRTUAL_W = SCREEN_WIDTH 
+        VIRTUAL_H = SCREEN_HEIGHT
+
         # Handle the Grid Menu (Building Menu)
         if "building_menu" in self.sprite_key:
             columns = 5
@@ -165,7 +168,7 @@ class PopupMenu:
             grid_height = num_rows * (64 + y_spacing)
 
             # Position Y relative to the top of the message box
-            mb_top = new_height - self.message_box.box_height
+            mb_top = VIRTUAL_H - self.message_box.box_height
             self.y = mb_top - grid_height - 20 # 20px padding above the box
 
         # Handle the Standard Menu (Vertical List)
@@ -173,17 +176,17 @@ class PopupMenu:
             spacing = 20
             standard_h = (len(self.options) * self.item_height) + (max(0, len(self.options)-1) * spacing)
             
-            mb_top = new_height - self.message_box.box_height
+            mb_top = VIRTUAL_H - self.message_box.box_height
             if self.state == "menu":
-                self.y = (new_height // 4) * 2.5
+                self.y = (VIRTUAL_H // 4) * 2.5
             else:
                 self.y = mb_top - standard_h - 10
             
             # Keep standard popup menu logic
-            if new_width <= 1280 or self.side == "left":
+            if VIRTUAL_W <= 1280 or self.side == "left":
                 self.x = 25
             else:
-                self.x = self.message_box.box_width - self.width + 200
+                self.x = VIRTUAL_W - self.width -25
 
     def close(self):
         self.is_open = False

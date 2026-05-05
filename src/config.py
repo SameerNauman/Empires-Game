@@ -236,7 +236,13 @@ UI_ELEMENTS = {
     "arrows": "arrows2.png",
     "shift": "shift2.png",
     "tab": "tab2.png",
-    "title": "title4.png"
+    "title": "title3.png"
+}
+
+SCREENS_PATH = os.path.join("..", "assets", "ui", "screens")
+
+ANIMATED_SCREENS = {
+    "title": ["title5.png", 0, 0, 1, 15]
 }
 
 # LOAD TERRAIN MAP

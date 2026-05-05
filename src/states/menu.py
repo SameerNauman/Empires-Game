@@ -1,12 +1,13 @@
 import pygame, sys
 from message_box import MessageBox
 from pop_up_menu import PopupMenu
+from animated_sprite import AnimatedSprite
 from config import *
 
 class Menu():
     def __init__(self, screen, game_state_manager):
         self.display = screen
-        w, h = screen.get_size()
+        w, h = w, h = SCREEN_WIDTH, SCREEN_HEIGHT
         self.game_state_manager = game_state_manager
 
         self.font = pygame.font.SysFont("Times New Roman", 60)
@@ -29,6 +30,9 @@ class Menu():
 
         # UI elements
         self.load_ui_elements()
+
+        # Screens
+        self.load_animated_screens()
 
         self.message_box = MessageBox(self.display, w, h, self.ui_elements["message_box"])
         self.error_message = True
@@ -55,6 +59,31 @@ class Menu():
                     # It's a regular string (like message_box)
                     full_path = os.path.join(UI_ELEMENTS_PATH, data)
                     self.ui_elements[element_name] = pygame.image.load(full_path).convert_alpha()
+    
+    def load_animated_screens(self):
+        self.animated_sprites = {}
+
+        for name, data in ANIMATED_SCREENS.items():
+            filename = data[0]
+            full_path = os.path.join(SCREENS_PATH, filename)
+
+            rows = data[3]
+            cols = data[4]
+            
+            self.animated_sprites[name] = AnimatedSprite(full_path, rows, cols)
+
+    def display_animated_screens(self, name):
+        anim = self.animated_sprites.get(name)
+        if not anim: return
+        
+        w, h = self.display.get_size()
+        sprite = anim.get_current_frame()
+
+        if sprite:
+            anim.update() 
+            
+            rect = sprite.get_rect(topleft=(0, 0))
+            self.display.blit(sprite, rect)
 
     def draw_text_with_shadow(self, text, color, position, offset=(2, 2)):
         shadow_surf = self.font.render(text, True, (20, 20, 20))
@@ -113,19 +142,23 @@ class Menu():
         pygame.quit()
         sys.exit()
     
-    def resize(self, w, h):
-        self.screen = pygame.display.get_surface()
+    # def resize(self, w, h):
+    #     self.screen = pygame.display.get_surface()
 
-        self.title.center = ((w // 2), (h // 8))
+    #     self.title.center = ((w // 2), (h // 8))
 
-        self.popup_menu.resize(w, h)
+    #     self.popup_menu.resize(w, h)
 
     def draw(self):
         w, h = self.display.get_size()
 
+        self.display.fill((0, 0, 0))
+
         # Background
-        title_sprite = self.ui_elements.get("title")
-        self.display.blit(title_sprite, (0, 0))
+        # title_sprite = self.ui_elements.get("title")
+        # self.display.blit(title_sprite, (0, 0))
+
+        self.display_animated_screens("title")
 
         # Controls menu
         if self.open_controls_menu:
@@ -148,7 +181,7 @@ class Menu():
                 
                 # Switch the actual content here while screen is black
                 self.open_controls_menu = self.next_menu_state
-                self.popup_menu.is_open = False # Reset popup for fresh state
+                # self.popup_menu.is_open = False # Reset popup for fresh state
                 
                 if self.open_controls_menu:
                     options = ["Main Menu", "Quit"]
