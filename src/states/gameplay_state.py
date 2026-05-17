@@ -43,6 +43,15 @@ class GameplayState:
         self.camera_target_y = 0
         self.tile_move_delay = 5
 
+        # Fade day
+        self.fade_alpha = 0
+        self.fade_speed = 8  # Adjust to change how long the screen stays black
+        self.is_fading = False
+        self.fade_direction = 1  # 1 for fading to black, -1 for fading to light
+        self.day_processed_mid_fade = False
+        self.fade_surface = pygame.Surface((w, h))
+        self.fade_surface.fill((0, 0, 0))
+
         self.minimap_size = int(h * 0.42)
         self.radius = self.minimap_size // 2
         self.smaller_radius = int(self.radius * 0.85)
@@ -1335,54 +1344,77 @@ class GameplayState:
         # Closes the popup menu
         self.popup_menu.close()
 
-    # At the end of enemy's turn, resets enemy unit and building action count. Processes player
-    # and enemy resource gathering, and trains enemy units.
     def end_enemy_day(self):
-        # Starts the player turn. Processes unit and enemy resource gathering for the turn. Enemy Trains
-        # their units
-        self.player_turn = True
-
+        self.player_turn = True 
+        
+        self.is_fading = True
+        self.fade_direction = 1
+        self.fade_alpha = 0
+        self.day_processed_mid_fade = False
+        
+    def process_day_transition(self):
         if self.enemy_pending_techs:
             for tech in self.enemy_pending_techs:
-                self.complete_research(tech, side='enemy') # Use the side flag
+                self.complete_research(tech, side='enemy')
             self.enemy_pending_techs.clear()
 
-        # Process Research
         if self.pending_techs:
             for tech in self.pending_techs:
                 self.complete_research(tech, side='player')
             self.pending_techs.clear() 
 
-        # Reset AI pathfinding flag for next turn
         self.enemy_paths_planned = False
 
-        # Resource Income Phase
+        # Income updates
         self.process_automatic_gathering()
         self.process_enemy_gathering()
 
-        # Production Phase (Enemy builds units at their buildings)
-        # Ensure self.e_buildings matches the variable name used in GameplayState
+        # Production phase
         self.enemy_ai.train_enemy_units(self.e_buildings, self.enemy_units, self)
 
-        # Building Construction Phase
+        # Build queues resolution
         for building in self.buildings:
             if getattr(building, 'queued', False):
                 building.is_constructed = True
                 building.queued = False 
                 building.rested()
 
-                # Clean up the construction dictionary
                 for key, value in list(self.construction.items()):
                     if value == building:
                         self.construction.pop(key)
         
-        # Enemy Building construction
         for building in self.e_buildings:
             if getattr(building, 'queued', False):
                 building.is_constructed = True
                 building.queued = False 
 
+        # Step time forward
         self.day += 1
+
+    def update_fade_screen(self):
+        if not self.is_fading:
+            return
+
+        # Increment alpha based on step directions
+        self.fade_alpha += (self.fade_speed * self.fade_direction)
+        
+        if self.fade_alpha >= 255:
+            self.fade_alpha = 255
+            self.fade_direction = -1  # Instantly reverse to transparency slide
+            
+            # Fire data alteration calculations exactly once on this frame match
+            if not self.day_processed_mid_fade:
+                self.process_day_transition()
+                self.day_processed_mid_fade = True
+
+        elif self.fade_alpha <= 0:
+            self.fade_alpha = 0
+            self.is_fading = False
+            self.day_processed_mid_fade = False  # Ready for the next day's swap
+
+        # Render step blit layer over current screen state
+        self.fade_surface.set_alpha(self.fade_alpha)
+        self.screen.blit(self.fade_surface, (0, 0))
 
     # Checks if conditions to end the game are True
     def check_game_over(self):
@@ -2044,11 +2076,9 @@ class GameplayState:
                     BASE_TILE_WIDTH, BASE_TILE_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT,
                     self.resource_sprites, VISIBILITY_MAP=VISIBILITY_MAP
                 )
-            
             # Units
             elif hasattr(obj, 'direction'):
                 obj.draw(self.screen, self.camera_x, self.camera_y, self.unit_sprites)
-            
             # Buildings
             elif hasattr(obj, 'hitpoints'):
                 obj.draw(self.screen, self.camera_x, self.camera_y, self.building_sprites)
@@ -2069,3 +2099,5 @@ class GameplayState:
         
         # Draw the mini map in the bottom right corner
         self.draw_tactical_map()
+
+        self.update_fade_screen()
