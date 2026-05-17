@@ -80,7 +80,7 @@ class PopupMenu:
 
     # === DISPLAYING METHODS ===
 
-    # Displays the standard menu with background and text.
+    # Displays the standard menu with background, text, and an adjacent banner icon.
     def _draw_standard_item(self, screen, index, option, x, y):
         if index == self.selected_index:
             state = "selected"
@@ -95,14 +95,31 @@ class PopupMenu:
         else:
             pygame.draw.rect(screen, (30, 30, 30), (x, y, self.width, self.item_height))
 
-        # Text rendering
+        # Text rendering configurations
         if index == self.selected_index:
             color = (0, 255, 255)
         else:
             color = (255, 255, 255)
 
+        # 1. Draw the Faction Name String
         text_surf = self.font.render(option, True, color)
-        screen.blit(text_surf, (x + 10, y + 15))
+        text_x = x + 15
+        text_y = y + 5 + (self.item_height - text_surf.get_height()) // 2  # Perfectly centered vertically
+        screen.blit(text_surf, (text_x, text_y))
+
+        # 2. Check if a banner asset exists for this option string
+        faction_key = option.lower().strip()
+        banner_map = self.sprites.get("small_banner", {})  # Pulled out of your UI_ELEMENTS config loader
+        banner_sprite = banner_map.get(faction_key)
+
+        if banner_sprite:
+            right_padding = -45
+
+            # Shift the image to the right of the rendered text string with a 15px padding gap
+            image_x = x + self.width - right_padding - banner_sprite.get_width()
+            image_y = y + 15 + (self.item_height - banner_sprite.get_height()) // 2 # Center vertically
+            
+            screen.blit(banner_sprite, (image_x, image_y))
 
     # Displays the build menu with hexagonal background and icons.
     def _draw_build_menu_item(self, screen, index, option, x, y, sprite_lookup="building_menu"):

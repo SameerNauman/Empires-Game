@@ -253,6 +253,10 @@ UI_ELEMENTS = {
         "seljuks": "seljuk.png",
         "byzantines": "byzantine.png"
     },
+    "small_banner": {
+        "seljuks": "seljuk_small2.png",
+        "byzantines": "byzantine_small2.png"
+    },
     "awsd": "awsd2.png",
     "arrows": "arrows2.png",
     "shift": "shift2.png",

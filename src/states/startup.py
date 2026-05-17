@@ -32,14 +32,17 @@ class StartUp():
     def load_ui_elements(self):
         self.ui_elements = {}
         for element_name, data in UI_ELEMENTS.items():
-            # Check if it's a dictionary (like your popup_menu)
             if isinstance(data, dict):
                 self.ui_elements[element_name] = {}
-                for state, filename in data.items():
-                    full_path = os.path.join(UI_ELEMENTS_PATH, filename)
-                    self.ui_elements[element_name][state] = pygame.image.load(full_path).convert_alpha()
+                for sub_key, filename in data.items():
+                    # This correctly maps self.ui_elements["banner"]["seljuks"] = image_surface
+                    if element_name == "banner":
+                        full_path = os.path.join(UI_ELEMENTS_PATH, filename)
+                    else:
+                        full_path = os.path.join(UI_ELEMENTS_PATH, filename)
+                        
+                    self.ui_elements[element_name][sub_key] = pygame.image.load(full_path).convert_alpha()
             else:
-                # It's a regular string (like message_box)
                 full_path = os.path.join(UI_ELEMENTS_PATH, data)
                 self.ui_elements[element_name] = pygame.image.load(full_path).convert_alpha()
 
