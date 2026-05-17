@@ -104,6 +104,7 @@ class GameplayState:
         # Resource sprites
         self.load_resource_sprites()
         
+        # Building icons
         self.load_building_icons()
 
         # Resource icons
@@ -189,17 +190,14 @@ class GameplayState:
         self.enemy_ai = EnemyAi(self.enemy_units)
 # === INITIALIZATION ===
 
-    # Inside GameplayState class
-
     def enter(self):
-        """Fires automatically via GameStateManager when this state becomes active."""
         chosen_faction = getattr(self, "player_faction", "seljuks")
         if not chosen_faction:
             chosen_faction = "seljuks"
 
         print(f"[LIFE-CYCLE] GameplayState entered with faction: {chosen_faction}")
 
-        # CRITICAL: Force close the shared menus so inputs unlock!
+        # Close menus
         self.popup_menu.close()
         self.popup_menu.is_open = False
         self.building_menu.close()
@@ -215,7 +213,7 @@ class GameplayState:
         self.player_setup(chosen_faction)
         self.enemy_setup(chosen_faction)
         
-        # Hydrate visibility maps
+        # Update visibility maps
         self.update_VISIBILITY_MAP()
         
     def player_setup(self, faction):
@@ -223,16 +221,13 @@ class GameplayState:
             print("[ERROR] No faction string provided to player_setup!")
             return
 
-        # 1. Force lowercase so "Seljuks", "seljuks", and "SELJUKS" all work perfectly
         faction_key = faction.lower().strip()
         faction_data = FACTIONS.get(faction_key)
 
-        # 2. Safety check: What if the faction configuration doesn't exist?
         if faction_data is None:
             print(f"[ERROR] Faction '{faction_key}' not found in FACTIONS config database! Available keys: {list(FACTIONS.keys())}")
             return
 
-        # 3. Match your config key naming (Double-check if your config uses "hero" or "hero_key")
         hero_key = faction_data.get("hero_key") or faction_data.get("hero")
         hero_stats = UNITS.get(hero_key)
 
