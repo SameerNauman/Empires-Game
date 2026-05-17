@@ -99,7 +99,7 @@ class Menu():
 
         options = ["New Game", "Controls", "Quit"]
         actions = {
-            "New Game": lambda: self.game_state_manager.set_state("gameplay state"),
+            "New Game": lambda: self.game_state_manager.set_state("start up"),
             "Controls": lambda: self.set_control_menu(active=True),
             "Quit": lambda: self.quit_game()
         }

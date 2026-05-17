@@ -11,7 +11,7 @@ from animated_sprite import AnimatedSprite
 from config import *
 
 class GameplayState:
-    def __init__(self, screen, game_state_manager):
+    def __init__(self, screen, game_state_manager, player_faction=None):
         self.game_state_manager = game_state_manager
         self.screen = screen
         w, h = screen.get_size()
@@ -43,7 +43,7 @@ class GameplayState:
         self.camera_target_y = 0
         self.tile_move_delay = 5
 
-        self.player_faction = "seljuk"
+        self.player_faction = player_faction
 
         # Fade day
         self.fade_alpha = 0

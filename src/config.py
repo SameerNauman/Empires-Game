@@ -250,8 +250,8 @@ UI_ELEMENTS = {
         "selected": "b_menu_selected3.png"
     },
     "banner": {
-        "seljuk": "seljuk.png",
-        "byzantine": "byzantine.png"
+        "seljuks": "seljuk.png",
+        "byzantines": "byzantine.png"
     },
     "awsd": "awsd2.png",
     "arrows": "arrows2.png",

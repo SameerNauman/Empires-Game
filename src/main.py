@@ -2,6 +2,7 @@ import pygame
 import sys
 from states.gameplay_state import GameplayState
 from states.menu import Menu
+from states.startup import StartUp
 from states.game_over import GameOver
 from config import *
 
@@ -23,12 +24,16 @@ class Main():
         self.menu = Menu(self.virtual_surface, self.game_state_manager)
         self.game_over = GameOver(self.virtual_surface, self.game_state_manager, None)
         self.gameplay_state = GameplayState(self.virtual_surface, self.game_state_manager)
+        self.startup = StartUp(self.virtual_surface, self.game_state_manager)
 
         self.states = {
             "gameplay state": self.gameplay_state,
             "menu": self.menu,
+            "start up": self.startup,
             "game over": self.game_over
         }
+
+        self.game_state_manager.states_ref = self.states
 
         self.target_rect = pygame.Rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT)
 
@@ -87,8 +92,9 @@ class Main():
 class GameStateManager():
     def __init__(self, current_state, virtual_surface):
         self.current_state = current_state
-
         self.screen = virtual_surface
+
+        self.states_ref = None
         
         # Transition Variables
         self.fade_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -98,17 +104,21 @@ class GameStateManager():
         self.fade_direction = 1  # 1 for out (to black), -1 for in (to transparent)
         self.is_transitioning = False
         self.pending_state = None
+        self.pending_kwargs = {}
     
     def get_state(self):
         return self.current_state
     
-    def set_state(self, state, use_fade=True):
+    def set_state(self, state, use_fade=True, **kwargs):
         if use_fade:
             self.is_transitioning = True
             self.fade_direction = 1
             self.pending_state = state
+            # Save any extra arguments (like player_faction) to apply mid-fade
+            self.pending_kwargs = kwargs 
         else:
             self.current_state = state
+            self.pending_kwargs = {}
 
     def update_transition(self):
         if not self.is_transitioning:
@@ -121,6 +131,16 @@ class GameStateManager():
             self.current_state = self.pending_state
             self.fade_direction = -1
             self.screen.fill((0, 0, 0)) 
+
+            if self.pending_kwargs and self.states_ref:
+                target_state_obj = self.states_ref.get(self.current_state)
+                
+                if target_state_obj and hasattr(target_state_obj, "player_faction"):
+                    faction = self.pending_kwargs.get("player_faction")
+                    target_state_obj.player_faction = faction
+                    print(f"[STATE DEBUG] Applied faction choice: {faction} to {self.current_state}")
+            
+            self.pending_kwargs = {}
         
         elif self.fade_alpha <= 0 and self.fade_direction == -1:
             self.fade_alpha = 0
