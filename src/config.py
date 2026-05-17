@@ -240,7 +240,7 @@ UI_ELEMENTS_PATH = os.path.join("..", "assets", "ui")
 
 UI_ELEMENTS = {
     "message_box": "message_box3.png",
-    "resource_bar": "resource_bar4.png",
+    "resource_bar": "resource_bar5.png",
     "popup_menu": {
         "normal": "popup2.png",
         "selected": "selected_popup3.png"
@@ -248,6 +248,10 @@ UI_ELEMENTS = {
     "building_menu": {
         "normal": "b_menu4.png",
         "selected": "b_menu_selected3.png"
+    },
+    "banner": {
+        "seljuk": "seljuk.png",
+        "byzantine": "byzantine.png"
     },
     "awsd": "awsd2.png",
     "arrows": "arrows2.png",

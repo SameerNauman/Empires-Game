@@ -97,9 +97,9 @@ class Menu():
         if self.popup_menu.is_open: # Prevent opening it 60 times a second
             return
 
-        options = ["Start", "Controls", "Quit"]
+        options = ["New Game", "Controls", "Quit"]
         actions = {
-            "Start": lambda: self.game_state_manager.set_state("gameplay state"),
+            "New Game": lambda: self.game_state_manager.set_state("gameplay state"),
             "Controls": lambda: self.set_control_menu(active=True),
             "Quit": lambda: self.quit_game()
         }

@@ -43,6 +43,8 @@ class GameplayState:
         self.camera_target_y = 0
         self.tile_move_delay = 5
 
+        self.player_faction = "seljuk"
+
         # Fade day
         self.fade_alpha = 0
         self.fade_speed = 8  # Adjust to change how long the screen stays black
@@ -452,6 +454,24 @@ class GameplayState:
         self.screen.blit(w_surface, (w_x, w_y))
         self.screen.blit(g_surface, (g_x, g_y))
         self.screen.blit(p_surface, (p_x, p_y))
+
+    def display_banner(self):
+        banner_dict = self.ui_elements.get("banner")
+        if not banner_dict:
+            return
+
+        faction_key = getattr(self, "player_faction", "seljuk").lower() 
+        banner_sprite = banner_dict.get(faction_key)
+        
+        if not banner_sprite:
+            return
+
+        w, h = self.screen.get_size()
+        
+        banner_x = (w // 2) - (banner_sprite.get_width() // 2)
+        banner_y = 0 
+
+        self.screen.blit(banner_sprite, (banner_x, banner_y))
 
     def display_day_counter(self):
 
@@ -2085,6 +2105,8 @@ class GameplayState:
 
         # Displays the resource and population bar 
         self.display_resource_bar()
+
+        self.display_banner()
 
         self.display_day_counter()
 
