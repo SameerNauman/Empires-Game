@@ -97,7 +97,7 @@ class StartUp():
         self.display.fill((0, 0, 0))
         self.display_animated_screens("title")
 
-        self.draw_text_with_shadow("New Game", "#C0C0C0", ((w // 8) - 100, (h // 16)))
+        self.draw_text_with_shadow("Select Player Faction", "#C0C0C0", ((w // 8) - 100, (h // 16)))
 
         if self.popup_menu.is_open:
             self.popup_menu.draw(self.display)

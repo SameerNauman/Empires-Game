@@ -188,6 +188,7 @@ class GameplayState:
         
         self.target_aquisition = TargetAquisition()
         self.enemy_ai = EnemyAi(self.enemy_units)
+        
 # === INITIALIZATION ===
 
     def enter(self):
@@ -1360,7 +1361,6 @@ class GameplayState:
         age_data = AGES.get(current_age)
         if not age_data or "next_age" not in age_data:
             return "Max Age Reached"
-
 
         req_food = age_data["food"]
         req_wood = age_data["wood"]
