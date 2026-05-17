@@ -12,6 +12,11 @@ class StartUp():
 
         self.font = pygame.font.SysFont("Times New Roman", 60)
 
+        self.pending_faction_choice = None
+        self.selection_phase = "player"
+        self.player_faction = None
+        self.enemy_faction = None
+
         # UI elements
         self.load_ui_elements()
 
@@ -85,19 +90,63 @@ class StartUp():
 
         options = ["Seljuks", "Byzantines", "Quit"]
         actions = {
-            "Seljuks": lambda: self.game_state_manager.set_state("gameplay state", player_faction="seljuks"),
-            "Byzantines": lambda: self.game_state_manager.set_state("gameplay state", player_faction="byzantines"),
+            "Seljuks": lambda: self.set_faction("seljuks"),
+            "Byzantines": lambda: self.set_faction("byzantines"),
             "Quit": lambda: self.quit_game()
         }
 
         self.popup_menu.open(options, actions)
+    
+    def enemy_faction_selection(self):
+        if self.popup_menu.is_open:
+            return
+
+        options = ["Seljuks", "Byzantines", "Back"]
+        actions = {
+            "Seljuks": lambda: self.set_faction("seljuks"),
+            "Byzantines": lambda: self.set_faction("byzantines"),
+            "Back": lambda: self.set_faction("back")  # Allows backing out to the player selection phase
+        }
+
+        self.popup_menu.open(options, actions)
+
+    def set_faction(self, faction):
+        # Cleanly shut down old menu properties to accept new items safely
+        self.popup_menu.close()
+        self.popup_menu.is_open = False
+
+        if self.selection_phase == "player":
+            self.player_faction = faction
+            self.selection_phase = "enemy"
+            self.enemy_faction_selection()
+
+        elif self.selection_phase == "enemy":
+            if faction == "back":
+                self.selection_phase = "player"
+                self.player_faction = None
+                self.faction_selection()
+            else:
+                self.enemy_faction = faction
+                self.game_state_manager.set_state(
+                    "gameplay state", 
+                    use_fade=True,
+                    player_faction=self.player_faction,
+                    enemy_faction=self.enemy_faction
+                )
+
+    def quit_game(self):
+        pygame.quit()
+        sys.exit()
 
     def draw(self):
         w, h = self.display.get_size()
         self.display.fill((0, 0, 0))
         self.display_animated_screens("title")
 
-        self.draw_text_with_shadow("Select Player Faction", "#C0C0C0", ((w // 8) - 100, (h // 16)))
+        if self.selection_phase == "player":
+            self.draw_text_with_shadow("Select Player Faction", "#C0C0C0", ((w // 8) - 100, (h // 16)))
+        elif self.selection_phase == "enemy":
+            self.draw_text_with_shadow("Select Enemy Faction", "#C0C0C0", ((w // 8) - 100, (h // 16)))
 
         if self.popup_menu.is_open:
             self.popup_menu.draw(self.display)

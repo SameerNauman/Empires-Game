@@ -11,7 +11,7 @@ from animated_sprite import AnimatedSprite
 from config import *
 
 class GameplayState:
-    def __init__(self, screen, game_state_manager, player_faction=None):
+    def __init__(self, screen, game_state_manager, player_faction=None, enemy_faction=None):
         self.game_state_manager = game_state_manager
         self.screen = screen
         w, h = screen.get_size()
@@ -43,15 +43,15 @@ class GameplayState:
         self.camera_target_y = 0
         self.tile_move_delay = 5
 
-        # Player setup
+        # Faction properties
         self.player_faction = player_faction
-        self.player_setup(self.player_faction)
+        self.enemy_faction = enemy_faction
 
         # Fade day
         self.fade_alpha = 0
-        self.fade_speed = 8  # Adjust to change how long the screen stays black
+        self.fade_speed = 8  
         self.is_fading = False
-        self.fade_direction = 1  # 1 for fading to black, -1 for fading to light
+        self.fade_direction = 1  
         self.day_processed_mid_fade = False
         self.fade_surface = pygame.Surface((w, h))
         self.fade_surface.fill((0, 0, 0))
@@ -118,7 +118,7 @@ class GameplayState:
             os.path.join(UI_ELEMENTS_PATH, "day_counter.png"), 
             rows=1, 
             cols=22, 
-            animation_speed=0.10 # Adjust as needed
+            animation_speed=0.10 
         )
 
         # Attack
@@ -126,25 +126,20 @@ class GameplayState:
         self.targetable_enemies = []
         self.selected_target_index = 0
 
-        # Player units initialization
-        # malik_shah = BaseUnits(3, 3, 10, 300, 300, 5, type="malik_shah")
-        # villager = BaseUnits(3, 3, 10, 100, 100, 1, type="villager")
-        # Player buildings initialization
+        # Structure Layout
         town_centre = BaseBuildings(3, 3, 500, 10, type="town_centre")
         town_centre.is_constructed = True
-        # Enemy units initialization
-        basil = BaseUnits(6, 10, 10, 300, 300, 1, type="basil")
-        # Enemy buildings initialization
+        
         e_town_centre = BaseBuildings(6, 10, 500, 10, type="town_centre")
         e_town_centre.is_constructed = True
 
-        # Player unit and building lists
+        # Base Collections
         self.units = []
         self.buildings = [town_centre]
         self.resources = resources
         self.construction = {}
-        # Enemy unit and building lists
-        self.enemy_units = [basil]
+        
+        self.enemy_units = []
         self.e_buildings = [e_town_centre]
         self.population = len(self.units)
         self.e_population = len(self.enemy_units)
@@ -157,16 +152,15 @@ class GameplayState:
         self.player_turn = True
         self.enemy_moving = False
         self.enemy_paths_planned = False
-        self.enemy_turn_index = 0      # index of the current enemy being processed
-        self.enemy_turn_phase = 'move' # 'move', 'attack', or 'done'
-        self.enemy_turn_delay = 0      # delay timer for animation
+        self.enemy_turn_index = 0      
+        self.enemy_turn_phase = 'move' 
+        self.enemy_turn_delay = 0      
 
         self.player_age = "Dark Age"
         self.enemy_age = "Dark Age"
 
         self.game_over = False
         
-        # Updates the unit visibility
         self.update_VISIBILITY_MAP()
 
         self.message_box = MessageBox(
@@ -191,30 +185,28 @@ class GameplayState:
         
 # === INITIALIZATION ===
 
-    def enter(self):
-        chosen_faction = getattr(self, "player_faction", "seljuks")
-        if not chosen_faction:
-            chosen_faction = "seljuks"
+    def enter(self, **kwargs):
+        p_faction = kwargs.get("player_faction") or getattr(self, "player_faction", "seljuks") or "seljuks"
+        e_faction = kwargs.get("enemy_faction") or getattr(self, "enemy_faction", "byzantines") or "byzantines"
 
-        print(f"[LIFE-CYCLE] GameplayState entered with faction: {chosen_faction}")
+        self.player_faction = p_faction
+        self.enemy_faction = e_faction
 
-        # Close menus
+        print(f"[LIFE-CYCLE] Gameplay State Active | Player: {self.player_faction} vs Enemy: {self.enemy_faction}")
+
         self.popup_menu.close()
         self.popup_menu.is_open = False
         self.building_menu.close()
         self.building_menu.is_open = False
 
-        # Reset state arrays
         self.units = []
         self.enemy_units = []
         self.path = []
         self.is_moving = False
 
-        # Run setups
-        self.player_setup(chosen_faction)
-        self.enemy_setup(chosen_faction)
+        self.player_setup(self.player_faction)
+        self.enemy_setup(self.enemy_faction)
         
-        # Update visibility maps
         self.update_VISIBILITY_MAP()
         
     def player_setup(self, faction):
@@ -243,7 +235,31 @@ class GameplayState:
         self.units.append(player_hero)
 
     def enemy_setup(self, faction):
-        pass
+        if not faction:
+            print("[ERROR] No faction string provided to enemy_setup!")
+            return
+
+        faction_key = faction.lower().strip()
+        faction_data = FACTIONS.get(faction_key)
+
+        if faction_data is None:
+            print(f"[ERROR] Faction '{faction_key}' not found in FACTIONS database!")
+            return
+
+        hero_key = faction_data.get("hero_key") or faction_data.get("hero")
+        hero_stats = UNITS.get(hero_key)
+
+        if not hero_stats:
+            print(f"[ERROR] Hero stats key '{hero_key}' not found in UNITS database!")
+            return
+
+        # Position opponent hero at distinct starting tile coordinates
+        start_x, start_y = 6, 10
+        print(f"[INIT] Spawning Enemy Hero: {hero_stats[0]} at ({start_x}, {start_y})")
+
+        enemy_hero = BaseUnits(start_x, start_y, hero_stats[5], hero_stats[6], hero_stats[7], hero_stats[8], type=hero_key)
+        
+        self.enemy_units.append(enemy_hero)  # Append to enemy collection instead of self.units
 
 # === WORLD DISPLAYING ===
 

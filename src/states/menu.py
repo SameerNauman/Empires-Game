@@ -112,7 +112,6 @@ class Menu():
         self.next_menu_state = active
 
     def draw_controls_menu(self, width, height):
-
         # Sprites
         awsd_sprite = self.ui_elements.get("awsd")
         awsd_rect = awsd_sprite.get_rect(center=((width // 8) * 7, (height // 16) * 3.5))
@@ -141,13 +140,6 @@ class Menu():
     def quit_game(self):
         pygame.quit()
         sys.exit()
-    
-    # def resize(self, w, h):
-    #     self.screen = pygame.display.get_surface()
-
-    #     self.title.center = ((w // 2), (h // 8))
-
-    #     self.popup_menu.resize(w, h)
 
     def draw(self):
         w, h = self.display.get_size()

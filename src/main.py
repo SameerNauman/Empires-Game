@@ -135,12 +135,13 @@ class GameStateManager():
             target_state_obj = self.states_ref.get(self.current_state) if self.states_ref else None
             if target_state_obj:
                 if self.pending_kwargs:
-                    faction = self.pending_kwargs.get("player_faction")
                     if hasattr(target_state_obj, "player_faction"):
-                        target_state_obj.player_faction = faction
+                        target_state_obj.player_faction = self.pending_kwargs.get("player_faction")
+                    if hasattr(target_state_obj, "enemy_faction"):
+                        target_state_obj.enemy_faction = self.pending_kwargs.get("enemy_faction")
 
                 if hasattr(target_state_obj, "enter"):
-                    target_state_obj.enter()
+                    target_state_obj.enter(**self.pending_kwargs)
             
             self.pending_kwargs = {}
         
