@@ -161,31 +161,87 @@ class EnemyAi():
                     gameplay_state.attempt_age_up('enemy')
 
     def manage_military(self, enemy_units, player_units, player_buildings, enemy_buildings, contested_tiles):
-        """Logic for military movement and attacking contested resource tiles."""
+        """Logic for military movement and attacking based on valid adjacent tiles."""
         military = [u for u in enemy_units if getattr(u, "type", "") != "villager" and u.health > 0]
+        if not military:
+            return
+
         pf = PathFinding(player_units, enemy_units, player_buildings, enemy_buildings, moving_side='enemy')
 
         for m in military:
+            # Skip if the unit is already on its way somewhere
+            if getattr(m, "path", []):
+                continue
+
+            target_obj = None
             target_pos = None
             
             # Priority 1: Clear contested resource tiles
             if contested_tiles:
-                # Find closest contested tile to this specific unit
-                contested_tiles.sort(key=lambda pos: abs(m.x - pos[0]) + abs(m.y - pos[1]))
-                target_pos = contested_tiles.pop(0) 
+                closest_tile = min(contested_tiles, key=lambda pos: abs(m.x - pos[0]) + abs(m.y - pos[1]))
+                target_pos = closest_tile
 
             # Priority 2: Standard attack (Player units/buildings)
             if not target_pos:
-                nearest_target = self.find_nearest_target(m, player_units, player_buildings)
-                if nearest_target:
-                    target_pos = (int(nearest_target.x), int(nearest_target.y))
+                target_obj = self.find_nearest_target(m, player_units, player_buildings)
+                if target_obj:
+                    target_pos = (int(target_obj.x), int(target_obj.y))
 
+            # Execute Turn-Based Pathfinding & Combat Positioning
             if target_pos:
-                path = pf.a_star((int(m.x), int(m.y)), target_pos, 100)
-                if path:
-                    if path[-1] == target_pos: path.pop() # Stop adjacent to attack
-                    steps = min(m.movement_range, len(path))
-                    m.path = [(float(x), float(y)) for x, y in path[:steps]]
+                start_pos = (int(m.x), int(m.y))
+                
+                # --- CASE 1: ATTACKING AN OCCUPIED PLAYER TILE/STRUCTURE ---
+                # If we are pursuing an active player element, we must path to an ADJACENT tile
+                if target_obj:
+                    attack_range = getattr(m, "attack_range", 1)
+                    if getattr(target_obj, "type", "") == "building":
+                        attack_range = 1  # Force structural attacks to be melee adjacent
+
+                    # Is the target already sitting comfortably within our range?
+                    current_dist = abs(start_pos[0] - target_pos[0]) + abs(start_pos[1] - target_pos[1])
+                    if current_dist <= attack_range:
+                        # Target is in range, clear path to remain stationary and strike
+                        m.path = []
+                        continue
+
+                    # Generate valid fallback tiles surrounding the target based on attack range
+                    valid_combat_tiles = []
+                    
+                    # Look at offsets around the target tile matching our combat range capabilities
+                    for dx in range(-attack_range, attack_range + 1):
+                        for dy in range(-attack_range, attack_range + 1):
+                            if abs(dx) + abs(dy) == attack_range: # Check exact range distance
+                                tx, ty = target_pos[0] + dx, target_pos[1] + dy
+                                
+                                # Make sure the standpoint tile is within the map bounds
+                                if 0 <= tx < len(PLAYABLE_MAP) and 0 <= ty < len(PLAYABLE_MAP[tx]):
+                                    # Ensure the fallback tile isn't blocked by other player elements
+                                    if not pf.is_friendly(tx, ty) and not pf.is_player_building(tx, ty):
+                                        valid_combat_tiles.append((tx, ty))
+
+                    # Find the closest legal tile to our military unit to target
+                    if valid_combat_tiles:
+                        best_standpoint = min(valid_combat_tiles, key=lambda pos: abs(start_pos[0] - pos[0]) + abs(start_pos[1] - pos[1]))
+                        
+                        # Calculate path to the standpoint tile (which is empty and legal for A*)
+                        path = pf.a_star(start_pos, best_standpoint, 100)
+                        
+                        if path:
+                            if path[0] == start_pos:
+                                path.pop(0)
+                            steps = min(m.movement_range, len(path))
+                            m.path = [(float(x), float(y)) for x, y in path[:steps]]
+                            
+                # --- CASE 2: MOVING TO AN UNBROKEN CONTESTED GROUND TILE ---
+                else:
+                    # Contested resource tiles are empty, meaning A* can target them directly
+                    path = pf.a_star(start_pos, target_pos, 100)
+                    if path:
+                        if path[0] == start_pos:
+                            path.pop(0)
+                        steps = min(m.movement_range, len(path))
+                        m.path = [(float(x), float(y)) for x, y in path[:steps]]
     
     def manage_research(self, enemy_buildings, gameplay_state):
         # Shuffle to give the Market a fair chance at resources

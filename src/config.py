@@ -99,6 +99,23 @@ TILE_TYPES = {
 UNIT_ASSETS_BASE = os.path.join("..", "assets", "units")
 
 UNIT_SPRITES_CONFIG = {
+    "malik_shah": {
+        "folder": "malik_shah",
+        "files": {
+            "normal_N": "malik_shah_N.png",
+            "normal_S": "malik_shah_S.png",
+            "normal_E": "malik_shah_E.png",
+            "normal_W": "malik_shah_W.png",
+            "selected_N": "selected_N.png",
+            "selected_S": "selected_S.png",
+            "selected_E": "selected_E.png",
+            "selected_W": "selected_W.png",
+            "rested_N": "rested_N.png",
+            "rested_S": "rested_S.png",
+            "rested_E": "rested_E.png",
+            "rested_W": "rested_W.png"
+        }
+    },
     "basil": {
         "folder": "basil",
         "files": {
@@ -307,6 +324,8 @@ RESOURCE_BUILDINGS = {
     "farm": ["farm", 0, 50, 0, 100, 0, "food", 500000, FARM_DESC, []]
 }
 
+MALIK_SHAH_DESC = ("Malik Shah I is the Sultan of the Seljuk Empire. He is a ranged cavalry unit that can move long distances, and strike enemies from afar. \n\n"
+                   "300 / 300")
 BASIL_DESC = ("Basil II is the Emperor of the Byzantine Empire. He is a cavalry unit that can move long distances. \n\n" "300 / 300")
 VILLAGER_DESC = ("Villagers gather resources and construct buildings. They are weak in combat but essential for your economy. \n\n" "50 / 25")
 ARCHER_DESC = ("Archers are ranged units that can attack from a distance. \n" 
@@ -316,6 +335,7 @@ SPEARMEN_DESC = ("Spearmen are melee units that excel at defending against caval
 
 # [name, food cost, wood cost, gold cost, pop cost, movement, attack, defense, attack_range=1, description=""]
 UNITS = {
+    "malik_shah": ["Malik Shah", 300, 0, 300, 1, 10, 300, 300, 5, MALIK_SHAH_DESC],
     "basil": ["Basil", 300, 0, 300, 1, 10, 300, 300, 1, BASIL_DESC],
     "villager": ["Villager", 50, 0, 0, 1, 5, 50, 25, 1, VILLAGER_DESC],
     "archers": ["Archers", 60, 60, 0, 1, 7, 150, 100, 3, ARCHER_DESC],

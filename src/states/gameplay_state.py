@@ -104,24 +104,24 @@ class GameplayState:
         self.selected_target_index = 0
 
         # Player units initialization
-        # basil = BaseUnits(3, 3, 10, 300, 300, 1, type="Basil")
-        villager = BaseUnits(3, 3, 10, 100, 100, 1, type="villager")
+        malik_shah = BaseUnits(3, 3, 10, 300, 300, 5, type="malik_shah")
+        # villager = BaseUnits(3, 3, 10, 100, 100, 1, type="villager")
         # Player buildings initialization
         town_centre = BaseBuildings(3, 3, 500, 10, type="town_centre")
         town_centre.is_constructed = True
         # Enemy units initialization
-        enemy_villager = BaseUnits(6, 10, 5, 50, 25, 1, type="villager")
+        basil = BaseUnits(6, 10, 10, 300, 300, 1, type="basil")
         # Enemy buildings initialization
         e_town_centre = BaseBuildings(6, 10, 500, 10, type="town_centre")
         e_town_centre.is_constructed = True
 
         # Player unit and building lists
-        self.units = [villager]
+        self.units = [malik_shah]
         self.buildings = [town_centre]
         self.resources = resources
         self.construction = {}
         # Enemy unit and building lists
-        self.enemy_units = [enemy_villager]
+        self.enemy_units = [basil]
         self.e_buildings = [e_town_centre]
         self.population = len(self.units)
         self.e_population = len(self.enemy_units)
