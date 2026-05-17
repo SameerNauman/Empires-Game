@@ -29,6 +29,7 @@ class GameplayState:
         self.enemy_food = 500
         self.enemy_wood = 500
         self.enemy_gold = 500
+        self.day = 0
         self.selected_unit = None
         self.selected_building = None
         self.selected_unit_id = None
@@ -97,6 +98,14 @@ class GameplayState:
 
         # UI elements
         self.load_ui_elements()
+
+        # Day counter sprite
+        self.day_counter_anim = AnimatedSprite(
+            os.path.join(UI_ELEMENTS_PATH, "day_counter.png"), 
+            rows=1, 
+            cols=22, 
+            animation_speed=0.10 # Adjust as needed
+        )
 
         # Attack
         self.target_select_mode = False
@@ -366,18 +375,18 @@ class GameplayState:
 
     # Loads the sprites for the UI elements
     def load_ui_elements(self):
-            self.ui_elements = {}
-            for element_name, data in UI_ELEMENTS.items():
-                # Check if it's a dictionary (like your popup_menu)
-                if isinstance(data, dict):
-                    self.ui_elements[element_name] = {}
-                    for state, filename in data.items():
-                        full_path = os.path.join(UI_ELEMENTS_PATH, filename)
-                        self.ui_elements[element_name][state] = pygame.image.load(full_path).convert_alpha()
-                else:
-                    # It's a regular string (like message_box)
-                    full_path = os.path.join(UI_ELEMENTS_PATH, data)
-                    self.ui_elements[element_name] = pygame.image.load(full_path).convert_alpha()
+        self.ui_elements = {}
+        for element_name, data in UI_ELEMENTS.items():
+            # Check if it's a dictionary (like your popup_menu)
+            if isinstance(data, dict):
+                self.ui_elements[element_name] = {}
+                for state, filename in data.items():
+                    full_path = os.path.join(UI_ELEMENTS_PATH, filename)
+                    self.ui_elements[element_name][state] = pygame.image.load(full_path).convert_alpha()
+            else:
+                # It's a regular string (like message_box)
+                full_path = os.path.join(UI_ELEMENTS_PATH, data)
+                self.ui_elements[element_name] = pygame.image.load(full_path).convert_alpha()
 
     # Displays the resource bar at the top of the screen
     def display_resource_bar(self):
@@ -434,6 +443,30 @@ class GameplayState:
         self.screen.blit(w_surface, (w_x, w_y))
         self.screen.blit(g_surface, (g_x, g_y))
         self.screen.blit(p_surface, (p_x, p_y))
+
+    def display_day_counter(self):
+
+        self.day_counter_anim.update()
+        
+        sprite = self.day_counter_anim.get_current_frame()
+        if not sprite: 
+            return
+
+        text_color = (255, 255, 255)
+        font = pygame.font.SysFont(None, 60)
+        day_text = f"Day {self.day}"
+        surface = font.render(day_text, True, text_color)
+
+        sprite_x = 5
+        sprite_y = 65
+
+        padding = 10
+        text_x = sprite_x + sprite.get_width() + padding
+        
+        text_y = sprite_y + (sprite.get_height() // 2) - (surface.get_height() // 2)
+
+        self.screen.blit(sprite, (sprite_x, sprite_y))
+        self.screen.blit(surface, (text_x, text_y))
 
     # 'Cinematic' effect of following enemy units during enemy turn.
     def follow_enemy_camera(self, enemy):
@@ -1349,6 +1382,8 @@ class GameplayState:
                 building.is_constructed = True
                 building.queued = False 
 
+        self.day += 1
+
     # Checks if conditions to end the game are True
     def check_game_over(self):
         # If there are no player units or buildings end the game
@@ -2020,6 +2055,8 @@ class GameplayState:
 
         # Displays the resource and population bar 
         self.display_resource_bar()
+
+        self.display_day_counter()
 
         for res_type in RESOURCE_ICONS.keys():
             self.display_resource_icons(res_type)

@@ -253,7 +253,8 @@ UI_ELEMENTS = {
     "arrows": "arrows2.png",
     "shift": "shift2.png",
     "tab": "tab2.png",
-    "title": "title3.png"
+    "title": "title3.png",
+    "day_counter": "day_counter.png"
 }
 
 SCREENS_PATH = os.path.join("..", "assets", "ui", "screens")
