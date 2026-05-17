@@ -7,7 +7,7 @@ from config import *
 class Menu():
     def __init__(self, screen, game_state_manager):
         self.display = screen
-        w, h = w, h = SCREEN_WIDTH, SCREEN_HEIGHT
+        w, h = SCREEN_WIDTH, SCREEN_HEIGHT
         self.game_state_manager = game_state_manager
 
         self.font = pygame.font.SysFont("Times New Roman", 60)
@@ -93,8 +93,8 @@ class Menu():
         main_surf = self.font.render(text, True, color)
         self.display.blit(main_surf, position)
         
-    def main_options(self):
-        if self.popup_menu.is_open: # Prevent opening it 60 times a second
+    def main_options(self, force=False):
+        if self.popup_menu.is_open and not force: 
             return
 
         options = ["New Game", "Controls", "Quit"]
@@ -178,6 +178,8 @@ class Menu():
             if self.fade_alpha >= 255:
                 self.fade_alpha = 255
                 self.fade_direction = -1 # Start fading back in
+
+                self.popup_menu.is_open = False
                 
                 # Switch the actual content here while screen is black
                 self.open_controls_menu = self.next_menu_state
@@ -188,7 +190,7 @@ class Menu():
                     actions = {"Main Menu": lambda: self.set_control_menu(active=False), "Quit": self.quit_game}
                     self.popup_menu.open(options, actions)
                 else:
-                    self.main_options()
+                    self.main_options(force=True)
 
             # Logic when fade back in is finished
             elif self.fade_alpha <= 0:
