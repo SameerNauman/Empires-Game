@@ -310,6 +310,8 @@ for x in range(len(resource_data)):
             # It will now sit "on top" of whatever is in PLAYABLE_MAP[x][y]
             resources.append(ResourceSource(x, y, r_type, r_amt, False))
 
+# === BUILDINGS ===
+
 TOWN_CENTRE_DESC = ("The Town Centre can train Villagers. It is the beginning of your civilization.")
 HOUSE_DESC = ("The House increases the maximum population.")
 MARKET_DESC = ("The Market is a building where you can exchange resources.")
@@ -329,6 +331,8 @@ RESOURCE_BUILDINGS = {
     "farm": ["farm", 0, 50, 0, 100, 0, "food", 500000, FARM_DESC, []]
 }
 
+# === UNITS ===
+
 MALIK_SHAH_DESC = ("Malik Shah I is the Sultan of the Seljuk Empire. He is a ranged cavalry unit that can move long distances, and strike enemies from afar. \n\n"
                    "300 / 300")
 BASIL_DESC = ("Basil II is the Emperor of the Byzantine Empire. He is a cavalry unit that can move long distances. \n\n" "300 / 300")
@@ -347,29 +351,25 @@ UNITS = {
     "spearmen": ["Spearmen", 50, 50, 0, 1, 7, 100, 100, 1, SPEARMEN_DESC]
 }
 
-UNIT_COLORS = {
-    "Villager": (255, 255, 255),
-    "Archers": (255, 0, 0),
-    "Spearmen": (0, 0, 255)
+HEROES = {
+    "malik_shah": ["Malik Shah", 300, 0, 300, 1, 10, 300, 300, 5, MALIK_SHAH_DESC],
+    "basil": ["Basil", 300, 0, 300, 1, 10, 300, 300, 1, BASIL_DESC],
 }
 
 # === RESEARCH ===
 
 # Town Centre
-
 TOWN_WATCH_DESC = "Increases Vision of all Buildings by 1 tiles."
 SCOUT_TRAINING_DESC = "Increases Vision of all Units by 2 tiles."
 MARCHED_PACE_DESC = "Increases Movement of all Units by 3 tiles."
 
 
 # Market
-
 BASKET_WEAVING_DESC = "Increases Food gather rate from Berries by 10%."
 DOUBLE_BLADE_AXE_DESC = "Increases Wood gather rate 10%."
 SMELTING_DESC = "Increases Gold gather rate from mines 10%."
 
 # Mill
-
 IRRIGATION_DESC = "Increases Food gather rate from Farms 10%."
 
 # [name, food_cost, wood_cost, gold_cost, description, effect_key, effect_value]
@@ -399,5 +399,22 @@ AGES = {
         "wood": 1000,
         "gold": 1000,
         "req_techs": 8
+    }
+}
+
+# === FACTIONS ===
+
+FACTIONS = {
+    "seljuks": {
+        "name": "Seljuks",
+        "hero": "malik_shah",
+        "unique_units": [],
+        "unique_buildings": []
+    },
+    "byzantines": {
+        "name": "Byzantines",
+        "hero": "basil",
+        "unique_units": [],
+        "unique_buildings": []
     }
 }

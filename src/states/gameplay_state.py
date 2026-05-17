@@ -43,7 +43,9 @@ class GameplayState:
         self.camera_target_y = 0
         self.tile_move_delay = 5
 
+        # Player setup
         self.player_faction = player_faction
+        self.player_setup(self.player_faction)
 
         # Fade day
         self.fade_alpha = 0
@@ -124,7 +126,7 @@ class GameplayState:
         self.selected_target_index = 0
 
         # Player units initialization
-        malik_shah = BaseUnits(3, 3, 10, 300, 300, 5, type="malik_shah")
+        # malik_shah = BaseUnits(3, 3, 10, 300, 300, 5, type="malik_shah")
         # villager = BaseUnits(3, 3, 10, 100, 100, 1, type="villager")
         # Player buildings initialization
         town_centre = BaseBuildings(3, 3, 500, 10, type="town_centre")
@@ -136,7 +138,7 @@ class GameplayState:
         e_town_centre.is_constructed = True
 
         # Player unit and building lists
-        self.units = [malik_shah]
+        self.units = []
         self.buildings = [town_centre]
         self.resources = resources
         self.construction = {}
@@ -185,6 +187,67 @@ class GameplayState:
         
         self.target_aquisition = TargetAquisition()
         self.enemy_ai = EnemyAi(self.enemy_units)
+# === INITIALIZATION ===
+
+    # Inside GameplayState class
+
+    def enter(self):
+        """Fires automatically via GameStateManager when this state becomes active."""
+        chosen_faction = getattr(self, "player_faction", "seljuks")
+        if not chosen_faction:
+            chosen_faction = "seljuks"
+
+        print(f"[LIFE-CYCLE] GameplayState entered with faction: {chosen_faction}")
+
+        # CRITICAL: Force close the shared menus so inputs unlock!
+        self.popup_menu.close()
+        self.popup_menu.is_open = False
+        self.building_menu.close()
+        self.building_menu.is_open = False
+
+        # Reset state arrays
+        self.units = []
+        self.enemy_units = []
+        self.path = []
+        self.is_moving = False
+
+        # Run setups
+        self.player_setup(chosen_faction)
+        self.enemy_setup(chosen_faction)
+        
+        # Hydrate visibility maps
+        self.update_VISIBILITY_MAP()
+        
+    def player_setup(self, faction):
+        if not faction:
+            print("[ERROR] No faction string provided to player_setup!")
+            return
+
+        # 1. Force lowercase so "Seljuks", "seljuks", and "SELJUKS" all work perfectly
+        faction_key = faction.lower().strip()
+        faction_data = FACTIONS.get(faction_key)
+
+        # 2. Safety check: What if the faction configuration doesn't exist?
+        if faction_data is None:
+            print(f"[ERROR] Faction '{faction_key}' not found in FACTIONS config database! Available keys: {list(FACTIONS.keys())}")
+            return
+
+        # 3. Match your config key naming (Double-check if your config uses "hero" or "hero_key")
+        hero_key = faction_data.get("hero_key") or faction_data.get("hero")
+        hero_stats = UNITS.get(hero_key)
+
+        if not hero_stats:
+            print(f"[ERROR] Hero stats key '{hero_key}' not found in UNITS database!")
+            return
+
+        start_x, start_y = 3, 3
+        print(f"[INIT] Spawning Player Hero: {hero_stats[0]} at ({start_x}, {start_y})")
+
+        player_hero = BaseUnits(start_x, start_y, hero_stats[5], hero_stats[6], hero_stats[7], hero_stats[8], type=hero_key)
+        self.units.append(player_hero)
+
+    def enemy_setup(self, faction):
+        pass
 
 # === WORLD DISPLAYING ===
 

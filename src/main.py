@@ -95,6 +95,8 @@ class GameStateManager():
         self.screen = virtual_surface
 
         self.states_ref = None
+
+        self.player_faction = None
         
         # Transition Variables
         self.fade_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -114,7 +116,6 @@ class GameStateManager():
             self.is_transitioning = True
             self.fade_direction = 1
             self.pending_state = state
-            # Save any extra arguments (like player_faction) to apply mid-fade
             self.pending_kwargs = kwargs 
         else:
             self.current_state = state
@@ -130,15 +131,16 @@ class GameStateManager():
             self.fade_alpha = 255
             self.current_state = self.pending_state
             self.fade_direction = -1
-            self.screen.fill((0, 0, 0)) 
-
-            if self.pending_kwargs and self.states_ref:
-                target_state_obj = self.states_ref.get(self.current_state)
-                
-                if target_state_obj and hasattr(target_state_obj, "player_faction"):
+            
+            target_state_obj = self.states_ref.get(self.current_state) if self.states_ref else None
+            if target_state_obj:
+                if self.pending_kwargs:
                     faction = self.pending_kwargs.get("player_faction")
-                    target_state_obj.player_faction = faction
-                    print(f"[STATE DEBUG] Applied faction choice: {faction} to {self.current_state}")
+                    if hasattr(target_state_obj, "player_faction"):
+                        target_state_obj.player_faction = faction
+
+                if hasattr(target_state_obj, "enter"):
+                    target_state_obj.enter()
             
             self.pending_kwargs = {}
         
