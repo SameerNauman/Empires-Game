@@ -222,6 +222,15 @@ BUILDING_ICONS = {
 
 }
 
+COLOR_ICONS_PATH = os.path.join("..", "assets", "colors")
+
+COLOR_ICONS = {
+    "blue": "blue.png",
+    "red": "red.png",
+    "green": "green.png",
+    "yellow": "yellow.png"
+}
+
 RESOURCE_ICONS_PATH = os.path.join("..", "assets", "ui", "resource_icons")
 
 # filename, x, y, rows, cols
@@ -420,5 +429,61 @@ FACTIONS = {
         "hero": "basil",
         "unique_units": [],
         "unique_buildings": []
+    }
+}
+
+# === ADDITIONS ===
+# Nested team color mapping engine configuration database
+UNIT_COLOR_SPRITES = {
+    "blue": {
+        "malik_shah": "malik_shah_blue.png",
+        "basil": "basil_blue.png",
+        "villager": "villager_blue.png",
+        "archers": "archer_blue.png"
+    },
+    "red": {
+        "malik_shah": "malik_shah_red.png",
+        "basil": "basil_red.png",
+        "villager": "villager_red.png",
+        "archers": "archer_red.png"
+    },
+    "green": {
+        "malik_shah": "malik_shah_green.png",
+        "basil": "basil_green.png",
+        "villager": "villager_green.png",
+        "archers": "archer_green.png"
+    },
+    "yellow": {
+        "malik_shah": "malik_shah_yellow.png",
+        "basil": "basil_yellow.png",
+        "villager": "villager_yellow.png",
+        "archers": "archer_yellow.png"
+    }
+}
+
+BUILDING_COLOR_SPRITES = {
+    "blue": {
+        "town_centre": "town_centre_blue.png",
+        "house": "house_blue.png",
+        "market": "market_blue.png",
+        "mill": "mill_blue.png"
+    },
+    "red": {
+        "town_centre": "town_centre_red.png",
+        "house": "house_red.png",
+        "market": "market_red.png",
+        "mill": "mill_red.png"
+    },
+    "green": {
+        "town_centre": "town_centre_green.png",
+        "house": "house_green.png",
+        "market": "market_green.png",
+        "mill": "mill_green.png"
+    },
+    "yellow": {
+        "town_centre": "town_centre_yellow.png",
+        "house": "house_yellow.png",
+        "market": "market_yellow.png",
+        "mill": "mill_yellow.png"
     }
 }

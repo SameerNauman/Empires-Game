@@ -11,7 +11,7 @@ from animated_sprite import AnimatedSprite
 from config import *
 
 class GameplayState:
-    def __init__(self, screen, game_state_manager, player_faction=None, enemy_faction=None):
+    def __init__(self, screen, game_state_manager, player_faction=None, enemy_faction=None, player_color=None, enemy_color=None):
         self.game_state_manager = game_state_manager
         self.screen = screen
         w, h = screen.get_size()
@@ -188,11 +188,18 @@ class GameplayState:
     def enter(self, **kwargs):
         p_faction = kwargs.get("player_faction") or getattr(self, "player_faction", "seljuks") or "seljuks"
         e_faction = kwargs.get("enemy_faction") or getattr(self, "enemy_faction", "byzantines") or "byzantines"
+        
+        # === ADDITIONS ===
+        p_color = kwargs.get("player_color") or getattr(self, "player_color", "blue") or "blue"
+        e_color = kwargs.get("enemy_color") or getattr(self, "enemy_color", "red") or "red"
 
         self.player_faction = p_faction
         self.enemy_faction = e_faction
+        self.player_color = p_color
+        self.enemy_color = e_color
 
-        print(f"[LIFE-CYCLE] Gameplay State Active | Player: {self.player_faction} vs Enemy: {self.enemy_faction}")
+        print(f"[LIFE-CYCLE] Gameplay State Active | Player: {self.player_faction} ({self.player_color}) vs Enemy: {self.enemy_faction} ({self.enemy_color})")
+        # =================
 
         self.popup_menu.close()
         self.popup_menu.is_open = False
