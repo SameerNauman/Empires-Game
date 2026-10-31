@@ -96,16 +96,16 @@ TILE_TYPES = {
 }
 
 # The base path for all unit assets
-UNIT_ASSETS_BASE = os.path.join("..", "assets", "units")
+UNIT_ASSETS_BASE = os.path.join("..", "assets", "units", "base")
 
 UNIT_SPRITES_CONFIG = {
     "malik_shah": {
         "folder": "malik_shah",
         "files": {
-            "normal_N": "malik_shah_N.png",
-            "normal_S": "malik_shah_S.png",
-            "normal_E": "malik_shah_E.png",
-            "normal_W": "malik_shah_W.png",
+            "normal_N": "normal_N.png",
+            "normal_S": "normal_S.png",
+            "normal_E": "normal_E.png",
+            "normal_W": "normal_W.png",
             "selected_N": "selected_N.png",
             "selected_S": "selected_S.png",
             "selected_E": "selected_E.png",
