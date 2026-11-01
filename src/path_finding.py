@@ -10,18 +10,23 @@ class PathFinding:
         self.enemy_buildings = enemy_buildings if enemy_buildings is not None else []
         self.moving_side = moving_side  # 'player' or 'enemy'
 
+    # Check if a tile is occupied by a building or unit
     def is_player_building(self, x, y):
         return any(int(b.x) == x and int(b.y) == y and getattr(b, 'is_constructed', True) and getattr(b, 'hitpoints', 1) > 0 for b in self.player_buildings)
 
+    # Check if a tile is occupied by an enemy building or unit
     def is_enemy_building(self, x, y):
         return any(int(b.x) == x and int(b.y) == y and getattr(b, 'is_constructed', True) and getattr(b, 'hitpoints', 1) > 0 for b in self.enemy_buildings)
 
+    # Check if a tile is occupied by an enemy unit
     def is_enemy(self, x, y):
         return any(int(enemy.x) == x and int(enemy.y) == y for enemy in self.enemy_units)
 
+    # Check if a tile is occupied by a friendly unit
     def is_friendly(self, x, y):
         return any(int(unit.x) == x and int(unit.y) == y for unit in self.player_units)
 
+    # Get neighbors of a tile, considering passability and unit/building occupation
     def neighbors(self, x, y):
         # Only return neighbors that are inside the map and passable
         for dx, dy in [(0, 1), (1, 0), (-1, 0), (0, -1)]:
@@ -49,9 +54,11 @@ class PathFinding:
 
                 yield nx, ny
 
+    # Heuristic function for A* (Manhattan distance)
     def heuristic(self, a, b):
         return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
+    # A* pathfinding algorithm
     def a_star(self, start, goal, max_cost):
         heap = [(0, start)]
         came_from = {}
