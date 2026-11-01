@@ -1,5 +1,6 @@
 import pygame
 import sys
+from asset_manager import AssetManager
 from states.gameplay_state import GameplayState
 from states.menu import Menu
 from states.startup import StartUp
@@ -20,6 +21,9 @@ class Main():
         self.clock = pygame.time.Clock()
         self.fullscreen = False
 
+        # Initialize the asset manager to load all game assets (sprites, icons, etc.)
+        self.assets = AssetManager()
+
         # initialize game state manager and states. Game state manager handles transitions between states and keeps track of the 
         # current state. Menu state is the initial state, so it is passed to the game state manager as the current state.
         self.game_state_manager = GameStateManager("menu", self.virtual_surface)
@@ -29,10 +33,10 @@ class Main():
         # and rendering. Game over state is shown when the player loses, it shows the score and allows the player to restart or go
         # back to the menu. Start up state is shown when the game is first launched, it shows a splash screen and then transitions 
         # to the menu state.
-        self.menu = Menu(self.virtual_surface, self.game_state_manager)
-        self.game_over = GameOver(self.virtual_surface, self.game_state_manager, None)
-        self.gameplay_state = GameplayState(self.virtual_surface, self.game_state_manager)
-        self.startup = StartUp(self.virtual_surface, self.game_state_manager)
+        self.menu = Menu(self.virtual_surface, self.game_state_manager, self.assets)
+        self.game_over = GameOver(self.virtual_surface, self.game_state_manager, self.assets)
+        self.gameplay_state = GameplayState(self.virtual_surface, self.game_state_manager, self.assets)
+        self.startup = StartUp(self.virtual_surface, self.game_state_manager, self.assets)
 
         # Define a dictionary to hold the states and their corresponding objects. This allows for easy access to the states by name.
         self.states = {

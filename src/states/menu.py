@@ -5,11 +5,12 @@ from animated_sprite import AnimatedSprite
 from config import *
 
 class Menu():
-    def __init__(self, screen, game_state_manager):
+    def __init__(self, screen, game_state_manager, asset_manager):
         # Initialize the Menu class with the display surface and game state manager
         self.display = screen
         w, h = SCREEN_WIDTH, SCREEN_HEIGHT
         self.game_state_manager = game_state_manager
+        self.assets = asset_manager
 
         self.font = pygame.font.SysFont("Times New Roman", 60)
 

@@ -1,16 +1,16 @@
 import pygame, sys
 
 class GameOver():
-    def __init__(self, screen, game_state_manager, victor):
+    def __init__(self, screen, game_state_manager, asset_manager):
         self.display = screen
         self.game_state_manager = game_state_manager
-        self.victor = victor
+        self.assets = asset_manager
 
         self.font = pygame.font.Font(None, 50)
         self.base_color = "cornflowerblue"
         self.hovering_color = "darkslateblue"
 
-        # --- Define button size and position ---
+        # Button dimensions
         self.button_width = 200
         self.button_height = 60
 

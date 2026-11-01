@@ -11,9 +11,12 @@ from animated_sprite import AnimatedSprite
 from config import *
 
 class GameplayState:
-    def __init__(self, screen, game_state_manager, player_faction=None, enemy_faction=None, player_color=None, enemy_color=None):
-        # Store references to the game state manager and the screen for rendering
+    def __init__(self, screen, game_state_manager, asset_manager, player_faction=None, enemy_faction=None, player_color=None, enemy_color=None):
+        # Store the game state manager for transitioning between different game states (e.g., menu, gameplay, game over)
         self.game_state_manager = game_state_manager
+        # Store the asset manager for loading and accessing game assets like sprites and icons
+        self.assets = asset_manager
+
         self.screen = screen
         w, h = screen.get_size()
         # Initialize the clock for controlling the frame rate
@@ -95,32 +98,6 @@ class GameplayState:
         self.pending_techs = []
         self.enemy_researched_techs = set()
         self.enemy_pending_techs =[]
-        # Terrain sprites
-        self.terrain_sprites = {}
-        self.terrain_path = TERRAIN_PATH
-        self.load_terrain_sprites()
-        # Unit sprites
-        self.unit_sprites = {}
-        self.unit_sprites = self.load_unit_sprites()
-        # Building sprites
-        self.building_sprites = {}
-        self.building_path = BUILDING_PATH
-        self.load_building_sprites()
-        # Resource sprites
-        self.load_resource_sprites()
-        # Building icons
-        self.load_building_icons()
-        # Resource icons
-        self.load_resource_icons()
-        # UI elements
-        self.load_ui_elements()
-        # Day counter sprite
-        self.day_counter_anim = AnimatedSprite(
-            os.path.join(UI_ELEMENTS_PATH, "day_counter.png"), 
-            rows=1, 
-            cols=22, 
-            animation_speed=0.10 
-        )
         # Target selection mode for combat or abilities, entered when True
         self.target_select_mode = False
         self.targetable_enemies = []
@@ -163,15 +140,15 @@ class GameplayState:
             self.screen, 
             SCREEN_WIDTH, 
             SCREEN_HEIGHT, 
-            self.ui_elements["message_box"]
+            self.assets.ui_elements["message_box"]
         )
         self.error_message = True
         self.popup_menu = PopupMenu(
-            [], {}, 0, 0, self.ui_elements, self.message_box, 
+            [], {}, 0, 0, self.assets.ui_elements, self.message_box, 
             sprite_key="popup_menu", side="left"
         )
         self.building_menu = PopupMenu(
-            [], {}, 0, 0, self.ui_elements, self.message_box, 
+            [], {}, 0, 0, self.assets.ui_elements, self.message_box, 
             sprite_key="building_menu", side="right"
         )
         # Initialize pathfinding and target acquisition systems for unit movement and combat
@@ -332,7 +309,7 @@ class GameplayState:
                 tile = map_data[tx][ty]
 
                 # Sprite aquisition
-                sprite = self.terrain_sprites.get(tile)
+                sprite = self.assets.terrain_sprites.get(tile)
 
                 if sprite:
                     # Darken if explored but not currently visible
@@ -361,29 +338,6 @@ class GameplayState:
                         ],
                     )
 
-    # Loads the sprites for the world tiles
-    def load_terrain_sprites(self):
-        for tile_code, filename in TERRAIN_SPRITES.items():
-            path = os.path.join(self.terrain_path, filename)
-            self.terrain_sprites[tile_code] = pygame.image.load(path).convert_alpha()
-    
-    # loads the sprites for the units
-    def load_unit_sprites(self):
-        loaded_sprites = {}
-    
-        for unit_name, config in UNIT_SPRITES_CONFIG.items():
-            unit_folder = config["folder"]
-            loaded_sprites[unit_name] = {}
-            
-            for key, filename in config["files"].items():
-                # Combine: ../assets/units/ + folder_name + filename
-                full_path = os.path.join(UNIT_ASSETS_BASE, unit_folder, filename)
-                
-                # Load the surface (assuming Pygame)
-                loaded_sprites[unit_name][key] = pygame.image.load(full_path).convert_alpha()
-                
-        return loaded_sprites
-
     # Draws player and enemy units
     def display_units(self):
         # Create a combined list of all units that should be drawn
@@ -410,60 +364,12 @@ class GameplayState:
                 self.screen, 
                 self.camera_x, 
                 self.camera_y, 
-                self.unit_sprites
+                self.assets.unit_sprites
             )
-
-    # Loads the sprites for the buildings
-    def load_building_sprites(self):
-        for building_type, sprite_info in BUILDING_SPRITES.items():
-
-            # If this building has multiple sprite states (normal, selected, etc.)
-            if isinstance(sprite_info, dict):
-                self.building_sprites[building_type] = {
-                    key: pygame.image.load(os.path.join(self.building_path, filename)).convert_alpha()
-                    for key, filename in sprite_info.items()
-                }
-
-            # Backwards compatibility: single-sprite buildings
-            else:
-                path = os.path.join(self.building_path, sprite_info)
-                self.building_sprites[building_type] = pygame.image.load(path).convert_alpha()
-
-    def load_building_icons(self):
-        self.building_icons = {}
-        for building_name, filename in BUILDING_ICONS.items():
-            # Build the full path
-            full_path = os.path.join(BUILDING_ICONS_PATH, filename)
-            try:
-                # Load and convert for better performance
-                sprite = pygame.image.load(full_path).convert_alpha()
-                self.building_icons[building_name] = sprite
-            except pygame.error as e:
-                print(f"Unable to load icon {filename} from {BUILDING_ICONS_PATH}: {e}")
-                
-    # Loads the sprites for the resources
-    def load_resource_sprites(self):
-        self.resource_sprites = {}
-        for res_type, filename in RESOURCE_SPRITES.items():
-            full_path = os.path.join(RESOURCES_PATH, filename)
-            self.resource_sprites[res_type] = pygame.image.load(full_path).convert_alpha()
-
-    # loads the sprites for ui resource icons
-    def load_resource_icons(self):
-        self.resource_animations = {}
-
-        for res_type, data in RESOURCE_ICONS.items():
-            filename = data[0]
-            full_path = os.path.join(RESOURCE_ICONS_PATH, filename)
-
-            rows = data[3]
-            cols = data[4]
-            
-            self.resource_animations[res_type] = AnimatedSprite(full_path, rows, cols)
 
     # Displays the resource icons in the top right corner of the screen, with animation.
     def display_resource_icons(self, res_type):
-        anim = self.resource_animations.get(res_type)
+        anim = self.assets.resource_animations.get(res_type)
         if not anim: return
         
         w, h = self.screen.get_size()
@@ -482,24 +388,9 @@ class GameplayState:
         rect = sprite.get_rect(topright=(res_x, res_y))
         self.screen.blit(sprite, rect)
 
-    # Loads the sprites for the UI elements
-    def load_ui_elements(self):
-        self.ui_elements = {}
-        for element_name, data in UI_ELEMENTS.items():
-            # Check if it's a dictionary (like your popup_menu)
-            if isinstance(data, dict):
-                self.ui_elements[element_name] = {}
-                for state, filename in data.items():
-                    full_path = os.path.join(UI_ELEMENTS_PATH, filename)
-                    self.ui_elements[element_name][state] = pygame.image.load(full_path).convert_alpha()
-            else:
-                # It's a regular string (like message_box)
-                full_path = os.path.join(UI_ELEMENTS_PATH, data)
-                self.ui_elements[element_name] = pygame.image.load(full_path).convert_alpha()
-
     # Displays the resource bar at the top of the screen
     def display_resource_bar(self):
-        bar_sprite = self.ui_elements.get("resource_bar")
+        bar_sprite = self.assets.ui_elements.get("resource_bar")
         w, h = self.screen.get_size() # Get live width
 
         if bar_sprite:
@@ -554,7 +445,7 @@ class GameplayState:
         self.screen.blit(p_surface, (p_x, p_y))
 
     def display_banner(self):
-        banner_dict = self.ui_elements.get("banner")
+        banner_dict = self.assets.ui_elements.get("banner")
         if not banner_dict:
             return
 
@@ -573,9 +464,9 @@ class GameplayState:
 
     def display_day_counter(self):
 
-        self.day_counter_anim.update()
+        self.assets.day_counter_anim.update()
         
-        sprite = self.day_counter_anim.get_current_frame()
+        sprite = self.assets.day_counter_anim.get_current_frame()
         if not sprite: 
             return
 
@@ -2190,14 +2081,14 @@ class GameplayState:
                 obj.draw(
                     self.screen, OFFSET_X, OFFSET_Y, self.camera_x, self.camera_y,
                     BASE_TILE_WIDTH, BASE_TILE_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT,
-                    self.resource_sprites, VISIBILITY_MAP=VISIBILITY_MAP
+                    self.assets.resource_sprites, VISIBILITY_MAP=VISIBILITY_MAP
                 )
             # Units
             elif hasattr(obj, 'direction'):
-                obj.draw(self.screen, self.camera_x, self.camera_y, self.unit_sprites)
+                obj.draw(self.screen, self.camera_x, self.camera_y, self.assets.unit_sprites)
             # Buildings
             elif hasattr(obj, 'hitpoints'):
-                obj.draw(self.screen, self.camera_x, self.camera_y, self.building_sprites)
+                obj.draw(self.screen, self.camera_x, self.camera_y, self.assets.building_sprites)
 
         # Displays the resource and population bar 
         self.display_resource_bar()
@@ -2208,7 +2099,7 @@ class GameplayState:
 
         for res_type in RESOURCE_ICONS.keys():
             self.display_resource_icons(res_type)
-        for anim in self.resource_animations.values():
+        for anim in self.assets.resource_animations.values():
             anim.update()
 
         self.message_box.draw()
