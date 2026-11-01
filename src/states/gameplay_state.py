@@ -12,41 +12,52 @@ from config import *
 
 class GameplayState:
     def __init__(self, screen, game_state_manager, player_faction=None, enemy_faction=None, player_color=None, enemy_color=None):
+        # Store references to the game state manager and the screen for rendering
         self.game_state_manager = game_state_manager
         self.screen = screen
         w, h = screen.get_size()
+        # Initialize the clock for controlling the frame rate
         self.clock = pygame.time.Clock()
+        # Initial position of the selected tile
         self.selected_tile = (4, 4)
         self.hovered_tile = self.selected_tile
         self.path = []
+        # is_moving indicates whether a unit is currently moving along a path
         self.is_moving = False
-        self.tactical_map_mode = False
+        # last_key_pressed is used to track the last key pressed for input handling
         self.last_key_pressed = None
+        # reachable_tiles is a set of tiles that the selected unit can move to
         self.reachable_tiles = set()
+        # Player and enemy resources
         self.food_amount = 500
         self.wood_amount = 500
         self.gold_amount = 500
         self.enemy_food = 500
         self.enemy_wood = 500
         self.enemy_gold = 500
+        # Day counter
         self.day = 0
+        # Selected entities and their IDs for tracking which unit or building is currently selected
         self.selected_unit = None
         self.selected_building = None
         self.selected_unit_id = None
         self.selected_building_id = None
+        # running indicates whether the game loop is active
         self.running = True
+        # camera_x and camera_y are used to control the camera's position in the game world
         self.camera_x = 0
         self.camera_y = 0
+        # Free camera mode allows the player to move the camera independently of the selected tile
         self.free_cam_active = False
         self.camera_return = False
+        # camera_target_x and camera_target_y are used for smooth camera transitions
         self.camera_target_x = 0
         self.camera_target_y = 0
+        # tile_move_delay is used to control the delay between tile movements for smoother animations
         self.tile_move_delay = 5
-
-        # Faction properties
+        # Player and enemy factions
         self.player_faction = player_faction
         self.enemy_faction = enemy_faction
-
         # Fade day
         self.fade_alpha = 0
         self.fade_speed = 8  
@@ -55,17 +66,14 @@ class GameplayState:
         self.day_processed_mid_fade = False
         self.fade_surface = pygame.Surface((w, h))
         self.fade_surface.fill((0, 0, 0))
-
+        # Minimap dimensions and positioning
         self.minimap_size = int(h * 0.42)
         self.radius = self.minimap_size // 2
         self.smaller_radius = int(self.radius * 0.85)
-        
-        # Scale and positioning
         self.mini_map_scale = int(self.radius // (PLAYABLE_WIDTH // 2 + 1) * 0.40)
         self.mini_map_center_x = w - self.radius - 20
         self.mini_map_center_y = h - self.radius - 20
-
-        # Research
+        # Researched techs and their multipliers for both player and enemy
         self.researched_techs = set()
         self.tech_multipliers = {
             "unit_vision": 0,
@@ -83,36 +91,29 @@ class GameplayState:
             "gather_rate_wood": 1.0,
             "gather_rate_gold": 1.0
         }
+        # Techs that are currently being researched by the player and enemy
         self.pending_techs = []
         self.enemy_researched_techs = set()
         self.enemy_pending_techs =[]
-
         # Terrain sprites
         self.terrain_sprites = {}
         self.terrain_path = TERRAIN_PATH
         self.load_terrain_sprites()
-
         # Unit sprites
         self.unit_sprites = {}
         self.unit_sprites = self.load_unit_sprites()
-
         # Building sprites
         self.building_sprites = {}
         self.building_path = BUILDING_PATH
         self.load_building_sprites()
-
         # Resource sprites
         self.load_resource_sprites()
-        
         # Building icons
         self.load_building_icons()
-
         # Resource icons
         self.load_resource_icons()
-
         # UI elements
         self.load_ui_elements()
-
         # Day counter sprite
         self.day_counter_anim = AnimatedSprite(
             os.path.join(UI_ELEMENTS_PATH, "day_counter.png"), 
@@ -120,34 +121,29 @@ class GameplayState:
             cols=22, 
             animation_speed=0.10 
         )
-
-        # Attack
+        # Target selection mode for combat or abilities, entered when True
         self.target_select_mode = False
         self.targetable_enemies = []
         self.selected_target_index = 0
-
-        # Structure Layout
+        # Player and enemy town centers, initialized with their positions, health, and population limits
         town_centre = BaseBuildings(3, 3, 500, 10, type="town_centre")
         town_centre.is_constructed = True
-        
         e_town_centre = BaseBuildings(6, 10, 500, 10, type="town_centre")
         e_town_centre.is_constructed = True
-
-        # Base Collections
+        # Initialize player and enemy units, buildings, resources, and construction queues
         self.units = []
         self.buildings = [town_centre]
         self.resources = resources
         self.construction = {}
-        
         self.enemy_units = []
         self.e_buildings = [e_town_centre]
+        # Population tracking for both player and enemy, as well as the maximum population allowed by buildings
         self.population = len(self.units)
         self.e_population = len(self.enemy_units)
         self.enemy_max_population = 0
         for building in self.buildings:
             self.enemy_max_population += building.population_limit
         self.allow_villager_training = True
-
         # Turn control
         self.player_turn = True
         self.enemy_moving = False
@@ -155,14 +151,14 @@ class GameplayState:
         self.enemy_turn_index = 0      
         self.enemy_turn_phase = 'move' 
         self.enemy_turn_delay = 0      
-
+        # Player and enemy ages, initialized to "Dark Age"
         self.player_age = "Dark Age"
         self.enemy_age = "Dark Age"
-
+        # Game over flag to indicate if the game has ended when True
         self.game_over = False
-        
+        # Update the visibility map based on the initial positions of units and buildings (Fog of War)
         self.update_VISIBILITY_MAP()
-
+        # Initialize the message box and popup menus for in-game notifications and interactions
         self.message_box = MessageBox(
             self.screen, 
             SCREEN_WIDTH, 
@@ -170,7 +166,6 @@ class GameplayState:
             self.ui_elements["message_box"]
         )
         self.error_message = True
-
         self.popup_menu = PopupMenu(
             [], {}, 0, 0, self.ui_elements, self.message_box, 
             sprite_key="popup_menu", side="left"
@@ -179,17 +174,22 @@ class GameplayState:
             [], {}, 0, 0, self.ui_elements, self.message_box, 
             sprite_key="building_menu", side="right"
         )
-        
+        # Initialize pathfinding and target acquisition systems for unit movement and combat
         self.target_aquisition = TargetAquisition()
         self.enemy_ai = EnemyAi(self.enemy_units)
         
 # === INITIALIZATION ===
 
+    # This method is called when entering the gameplay state. It initializes the player and enemy factions, colors, and sets up
+    # the game environment.
     def enter(self, **kwargs):
+        # Determine the player and enemy factions based on the provided keyword arguments or default values. If no faction is 
+        # specified, it defaults to "seljuks" for the player and "byzantines" for the enemy.
         p_faction = kwargs.get("player_faction") or getattr(self, "player_faction", "seljuks") or "seljuks"
         e_faction = kwargs.get("enemy_faction") or getattr(self, "enemy_faction", "byzantines") or "byzantines"
         
-        # === ADDITIONS ===
+        # Determine the player and enemy colors based on the provided keyword arguments or default values. If no color is specified,
+        # it defaults to "blue" for the player and "red" for the enemy.
         p_color = kwargs.get("player_color") or getattr(self, "player_color", "blue") or "blue"
         e_color = kwargs.get("enemy_color") or getattr(self, "enemy_color", "red") or "red"
 
@@ -199,8 +199,9 @@ class GameplayState:
         self.enemy_color = e_color
 
         print(f"[LIFE-CYCLE] Gameplay State Active | Player: {self.player_faction} ({self.player_color}) vs Enemy: {self.enemy_faction} ({self.enemy_color})")
-        # =================
 
+        # Reset game state variables to their initial values when entering the gameplay state. This includes closing any open menus,
+        # clearing unit and enemy lists, and resetting movement and pathfinding states.
         self.popup_menu.close()
         self.popup_menu.is_open = False
         self.building_menu.close()
@@ -211,16 +212,24 @@ class GameplayState:
         self.path = []
         self.is_moving = False
 
+        # Set up the player and enemy factions by calling their respective setup methods. These methods initialize the starting 
+        # units and buildings
         self.player_setup(self.player_faction)
         self.enemy_setup(self.enemy_faction)
-        
+
+        # Update the visibility map to reflect the initial positions of units and buildings, ensuring that the fog of war is 
+        # correctly applied
         self.update_VISIBILITY_MAP()
-        
+
+    # Sets up the player's starting hero unit based on the selected faction. It retrieves the hero's stats from the UNITS database    
     def player_setup(self, faction):
+        # Safety. Could remove in the future.
         if not faction:
             print("[ERROR] No faction string provided to player_setup!")
             return
 
+        # Retrieve the faction data from the FACTIONS database using the provided faction string. If the faction is not found, an error
+        # message is printed, and the method returns early.
         faction_key = faction.lower().strip()
         faction_data = FACTIONS.get(faction_key)
 
@@ -228,6 +237,8 @@ class GameplayState:
             print(f"[ERROR] Faction '{faction_key}' not found in FACTIONS config database! Available keys: {list(FACTIONS.keys())}")
             return
 
+        # Retrieve the hero's key from the faction data, which is used to look up the hero's stats in the UNITS database. 
+        # If the hero's stats are not found, an error message is printed, and the method returns early.
         hero_key = faction_data.get("hero_key") or faction_data.get("hero")
         hero_stats = UNITS.get(hero_key)
 
@@ -238,9 +249,12 @@ class GameplayState:
         start_x, start_y = 3, 3
         print(f"[INIT] Spawning Player Hero: {hero_stats[0]} at ({start_x}, {start_y})")
 
+        # Create the player's hero unit using the retrieved stats and starting position. The hero is added to the player's units list.
         player_hero = BaseUnits(start_x, start_y, hero_stats[5], hero_stats[6], hero_stats[7], hero_stats[8], type=hero_key)
         self.units.append(player_hero)
 
+    # Sets up the enemy's starting hero unit based on the selected faction. It retrieves the hero's stats from the UNITS database
+    # and positions the enemy hero at a distinct starting tile. The enemy hero is added to the enemy_units list.
     def enemy_setup(self, faction):
         if not faction:
             print("[ERROR] No faction string provided to enemy_setup!")
@@ -293,6 +307,8 @@ class GameplayState:
                 bx, by = int(building.x), int(building.y)
                 self.apply_vision_circle(bx, by, base_building_vision + building_bonus)
 
+    # Applies a circular vision effect on the VISIBILITY_MAP centered at (cx, cy) with the specified radius. 
+    # Tiles within the circle are marked as visible (2).
     def apply_vision_circle(self, cx, cy, radius):
         for dx in range(-radius, radius + 1):
             for dy in range(-radius, radius + 1):
@@ -1741,7 +1757,6 @@ class GameplayState:
                 self.e_buildings,                 # enemy_buildings
                 moving_side='player'
             )
-            self.tactical_map_mode = False
             if self.selected_tile in self.reachable_tiles:
                 self.selected_unit.previous_position = (self.selected_unit.x, self.selected_unit.y)
                 start_pos = (int(self.selected_unit.x), int(self.selected_unit.y))
