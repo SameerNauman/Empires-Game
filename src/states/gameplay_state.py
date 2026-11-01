@@ -929,6 +929,144 @@ class GameplayState:
         
 # === EVENT HANDLING ===
 
+    # Handles all input from keys.
+    def handle_input(self, events):
+        for event in events:
+            if event.type == pygame.QUIT:
+                self.running = False
+                return
+
+            if event.type == pygame.KEYDOWN:
+                # Building menu
+                if self.building_menu.is_open:
+                    if event.key in [pygame.K_w, pygame.K_UP]:
+                        self.building_menu.move_selection(-1)
+                    elif event.key in [pygame.K_s, pygame.K_DOWN]:
+                        self.building_menu.move_selection(1)
+                    elif event.key == pygame.K_LSHIFT:
+                        self.building_menu.select()
+                    continue
+
+                # Popup menu
+                if self.popup_menu.is_open:
+                    if event.key in [pygame.K_w, pygame.K_UP]:
+                        self.popup_menu.move_selection(-1)
+                    elif event.key in [pygame.K_s, pygame.K_DOWN]:
+                        self.popup_menu.move_selection(1)
+                    elif event.key == pygame.K_LSHIFT:
+                        self.popup_menu.select()
+                    return # Block all other inputs
+
+                # Target selection
+                if self.target_select_mode:
+                    if event.key == pygame.K_TAB and self.targetable_enemies:
+                        self.cycle_target()
+                    elif event.key == pygame.K_LSHIFT:
+                        self.open_attack_confirm_menu()
+                    elif event.key == pygame.K_ESCAPE:
+                        self.target_select_mode = False
+                        self.popup_menu.is_open = True
+                    return
+                
+                # Deselect units or buildings
+                if event.key == pygame.K_ESCAPE:
+                    self.deselect()
+                    self.message_box.close()
+
+                # Cycles through available units
+                elif event.key == pygame.K_TAB:
+                    self.cycle_player_units()
+
+                # Selection/Deselection and movement with shift key
+                elif event.key == pygame.K_LSHIFT:
+                    # CASE 1: A unit is already selected and we are clicking an empty/different tile to move
+                    if self.selected_unit_id is not None:
+                        # Check if the hovered tile is within reachable range
+                        if self.hovered_tile in self.reachable_tiles:
+                            self.selected_tile = self.hovered_tile # Set destination
+                            self.mobile_unit()
+                            # Return/Continue so we don't immediately re-select the unit we just moved
+                        else:
+                            # If we clicked outside movement range, treat it as a deselection/re-selection attempt
+                            unit_found = self.select_player_unit()
+                            if not unit_found:
+                                building_found = self.select_player_building()
+                                if not building_found:
+                                    self.select_empty_tile()
+                                    self.message_box.close()
+
+                    # CASE 2: No unit is currently selected
+                    else:
+                        unit_found = self.select_player_unit()
+                        if not unit_found:
+                            building_found = self.select_player_building()
+                            if not building_found:
+                                self.select_empty_tile()
+                        pass
+
+        # Get the state of all keys (runs every frame for continuous movement)
+        keys = pygame.key.get_pressed()
+
+        # Only allow camera movement and tile movement if no popup menu is open
+        if not self.popup_menu.is_open and not self.building_menu.is_open:
+
+            # Camera control
+            if keys[pygame.K_c]:
+                self.free_cam_active = True
+                self.camera_return = False
+
+                # Move camera directly instead of the tile
+                if keys[pygame.K_w] or keys[pygame.K_UP]:
+                    self.camera_y += SCROLL_SPEED
+                elif keys[pygame.K_s] or keys[pygame.K_DOWN]:
+                    self.camera_y -= SCROLL_SPEED
+                elif keys[pygame.K_a] or keys[pygame.K_LEFT]:
+                    self.camera_x += SCROLL_SPEED
+                elif keys[pygame.K_d] or keys[pygame.K_RIGHT]:
+                    self.camera_x -= SCROLL_SPEED
+            else:
+                # If we just let go of C, snap back
+                if self.free_cam_active:
+                    self.camera_return = True
+                    self.free_cam_active = False
+
+                # SMOOTH RETURN LOGIC
+                if self.camera_return:
+                    self.camera_lerp()
+
+                # Decrement movement delay
+                if self.tile_move_delay > 0:
+                    self.tile_move_delay -= 1
+
+                # Movement with WASD or arrow keys.
+                # Check each key (this will run every frame the key is held)
+                # Only move if delay counter is 0, and only allow ONE direction per cycle
+                if self.tile_move_delay == 0:
+                    if keys[pygame.K_w] and self.selected_tile[1] > 0:
+                        self.selected_tile = (self.selected_tile[0], self.selected_tile[1] - 1)
+                        self.tile_move_delay = 10  # Adjust this value to control speed (higher = slower)
+                    elif keys[pygame.K_s] and self.selected_tile[1] < PLAYABLE_HEIGHT - 1:
+                        self.selected_tile = (self.selected_tile[0], self.selected_tile[1] + 1)
+                        self.tile_move_delay = 10
+                    elif keys[pygame.K_a] and self.selected_tile[0] > 0:
+                        self.selected_tile = (self.selected_tile[0] - 1, self.selected_tile[1])
+                        self.tile_move_delay = 10
+                    elif keys[pygame.K_d] and self.selected_tile[0] < PLAYABLE_WIDTH - 1:
+                        self.selected_tile = (self.selected_tile[0] + 1, self.selected_tile[1])
+                        self.tile_move_delay = 10
+                    elif keys[pygame.K_UP] and self.selected_tile[1] > 0:
+                        self.selected_tile = (self.selected_tile[0], self.selected_tile[1] - 1)
+                        self.tile_move_delay = 10  # Adjust this value to control speed (higher = slower)
+                    elif keys[pygame.K_DOWN] and self.selected_tile[1] < PLAYABLE_HEIGHT - 1:
+                        self.selected_tile = (self.selected_tile[0], self.selected_tile[1] + 1)
+                        self.tile_move_delay = 10
+                    elif keys[pygame.K_LEFT] and self.selected_tile[0] > 0:
+                        self.selected_tile = (self.selected_tile[0] - 1, self.selected_tile[1])
+                        self.tile_move_delay = 10
+                    elif keys[pygame.K_RIGHT] and self.selected_tile[0] < PLAYABLE_WIDTH - 1:
+                        self.selected_tile = (self.selected_tile[0] + 1, self.selected_tile[1])
+                        self.tile_move_delay = 10
+    
     # Target selection
     def cycle_target(self):
         self.selected_target_index = (self.selected_target_index + 1) % len(self.targetable_enemies)
@@ -1224,142 +1362,7 @@ class GameplayState:
         if not self.game_over:
             # Events during the player's turn
             if self.player_turn:
-                for event in events:
-                    if event.type == pygame.QUIT:
-                        self.running = False
-                        return
-
-                    if event.type == pygame.KEYDOWN:
-                        # Building menu
-                        if self.building_menu.is_open:
-                            if event.key in [pygame.K_w, pygame.K_UP]:
-                                self.building_menu.move_selection(-1)
-                            elif event.key in [pygame.K_s, pygame.K_DOWN]:
-                                self.building_menu.move_selection(1)
-                            elif event.key == pygame.K_LSHIFT:
-                                self.building_menu.select()
-                            continue
-
-                        # Popup menu
-                        if self.popup_menu.is_open:
-                            if event.key in [pygame.K_w, pygame.K_UP]:
-                                self.popup_menu.move_selection(-1)
-                            elif event.key in [pygame.K_s, pygame.K_DOWN]:
-                                self.popup_menu.move_selection(1)
-                            elif event.key == pygame.K_LSHIFT:
-                                self.popup_menu.select()
-                            return # Block all other inputs
-
-                        # Target selection
-                        if self.target_select_mode:
-                            if event.key == pygame.K_TAB and self.targetable_enemies:
-                                self.cycle_target()
-                            elif event.key == pygame.K_LSHIFT:
-                                self.open_attack_confirm_menu()
-                            elif event.key == pygame.K_ESCAPE:
-                                self.target_select_mode = False
-                                self.popup_menu.is_open = True
-                            return
-                        
-                        # Deselect units or buildings
-                        if event.key == pygame.K_ESCAPE:
-                            self.deselect()
-                            self.message_box.close()
-
-                        # Cycles through available units
-                        elif event.key == pygame.K_TAB:
-                            self.cycle_player_units()
-
-                        # Selection/Deselection and movement with shift key
-                        elif event.key == pygame.K_LSHIFT:
-                            # CASE 1: A unit is already selected and we are clicking an empty/different tile to move
-                            if self.selected_unit_id is not None:
-                                # Check if the hovered tile is within reachable range
-                                if self.hovered_tile in self.reachable_tiles:
-                                    self.selected_tile = self.hovered_tile # Set destination
-                                    self.mobile_unit()
-                                    # Return/Continue so we don't immediately re-select the unit we just moved
-                                else:
-                                    # If we clicked outside movement range, treat it as a deselection/re-selection attempt
-                                    unit_found = self.select_player_unit()
-                                    if not unit_found:
-                                        building_found = self.select_player_building()
-                                        if not building_found:
-                                            self.select_empty_tile()
-                                            self.message_box.close()
-
-                            # CASE 2: No unit is currently selected
-                            else:
-                                unit_found = self.select_player_unit()
-                                if not unit_found:
-                                    building_found = self.select_player_building()
-                                    if not building_found:
-                                        self.select_empty_tile()
-                                pass
-
-                # Get the state of all keys (runs every frame for continuous movement)
-                keys = pygame.key.get_pressed()
-
-                # Only allow camera movement and tile movement if no popup menu is open
-                if not self.popup_menu.is_open and not self.building_menu.is_open:
-
-                    # Camera control
-                    if keys[pygame.K_c]:
-                        self.free_cam_active = True
-                        self.camera_return = False
-
-                        # Move camera directly instead of the tile
-                        if keys[pygame.K_w] or keys[pygame.K_UP]:
-                            self.camera_y += SCROLL_SPEED
-                        elif keys[pygame.K_s] or keys[pygame.K_DOWN]:
-                            self.camera_y -= SCROLL_SPEED
-                        elif keys[pygame.K_a] or keys[pygame.K_LEFT]:
-                            self.camera_x += SCROLL_SPEED
-                        elif keys[pygame.K_d] or keys[pygame.K_RIGHT]:
-                            self.camera_x -= SCROLL_SPEED
-                    else:
-                        # If we just let go of C, snap back
-                        if self.free_cam_active:
-                            self.camera_return = True
-                            self.free_cam_active = False
-
-                        # SMOOTH RETURN LOGIC
-                        if self.camera_return:
-                            self.camera_lerp()
-
-                        # Decrement movement delay
-                        if self.tile_move_delay > 0:
-                            self.tile_move_delay -= 1
-
-                        # Movement with WASD or arrow keys.
-                        # Check each key (this will run every frame the key is held)
-                        # Only move if delay counter is 0, and only allow ONE direction per cycle
-                        if self.tile_move_delay == 0:
-                            if keys[pygame.K_w] and self.selected_tile[1] > 0:
-                                self.selected_tile = (self.selected_tile[0], self.selected_tile[1] - 1)
-                                self.tile_move_delay = 10  # Adjust this value to control speed (higher = slower)
-                            elif keys[pygame.K_s] and self.selected_tile[1] < PLAYABLE_HEIGHT - 1:
-                                self.selected_tile = (self.selected_tile[0], self.selected_tile[1] + 1)
-                                self.tile_move_delay = 10
-                            elif keys[pygame.K_a] and self.selected_tile[0] > 0:
-                                self.selected_tile = (self.selected_tile[0] - 1, self.selected_tile[1])
-                                self.tile_move_delay = 10
-                            elif keys[pygame.K_d] and self.selected_tile[0] < PLAYABLE_WIDTH - 1:
-                                self.selected_tile = (self.selected_tile[0] + 1, self.selected_tile[1])
-                                self.tile_move_delay = 10
-                            elif keys[pygame.K_UP] and self.selected_tile[1] > 0:
-                                self.selected_tile = (self.selected_tile[0], self.selected_tile[1] - 1)
-                                self.tile_move_delay = 10  # Adjust this value to control speed (higher = slower)
-                            elif keys[pygame.K_DOWN] and self.selected_tile[1] < PLAYABLE_HEIGHT - 1:
-                                self.selected_tile = (self.selected_tile[0], self.selected_tile[1] + 1)
-                                self.tile_move_delay = 10
-                            elif keys[pygame.K_LEFT] and self.selected_tile[0] > 0:
-                                self.selected_tile = (self.selected_tile[0] - 1, self.selected_tile[1])
-                                self.tile_move_delay = 10
-                            elif keys[pygame.K_RIGHT] and self.selected_tile[0] < PLAYABLE_WIDTH - 1:
-                                self.selected_tile = (self.selected_tile[0] + 1, self.selected_tile[1])
-                                self.tile_move_delay = 10
-
+                self.handle_input(events)
                 self.update_fade_screen()
             # Enemy turn
             else: 
