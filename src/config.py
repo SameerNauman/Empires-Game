@@ -2,6 +2,7 @@ import random
 import csv, os
 from resources.resource_source import ResourceSource
 
+# Screen dimensions
 SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
 
 # Map dimensions
@@ -27,12 +28,14 @@ MINI_MAP_MARGIN = 0
 CENTER_X = SCREEN_WIDTH - RADIUS - MINI_MAP_MARGIN
 CENTER_Y = SCREEN_HEIGHT - RADIUS - MINI_MAP_MARGIN
 
+# Popup and message box positions
 POPUP_X = 25
 MESSAGE_BOX_TOP = SCREEN_HEIGHT - 150
 
+# Boundary and playable maps
 BOUNDARY_MAP = [[0 for _ in range(BOUNDARY_WIDTH)] for _ in range(BOUNDARY_HEIGHT)]
 
-# Assuming these dimensions already exist
+# Fog of war and visibility maps
 FOG_MAP = [[False for _ in range(PLAYABLE_HEIGHT)] for _ in range(PLAYABLE_WIDTH)]
 VISIBILITY_MAP = [[0 for _ in range(PLAYABLE_HEIGHT)] for _ in range(PLAYABLE_WIDTH)]
 
@@ -77,6 +80,7 @@ TERRAIN_SPRITES = {
             "M2": "mountain2.png"            
         }
 
+# Only used for the mini map
 TILE_DRAW_COLORS = {
     "P": (34, 177, 76),      # Plains
     "S": (193, 255, 255),    # Mountains
@@ -91,13 +95,23 @@ TILE_DRAW_COLORS = {
 
 # Terrain movement cost
 TILE_TYPES = {
-    "P": 2, "F3": 4, "F4": 4, "H": 3, "R1": 1,  "R2": 1, "RC1": 1, "RC2": 1, "RC3": 1, "RC4": 1,
-    "FO": 2, "WO": 2, "GO": 2,  # Same cost as plains, or None if impassable
+    "P": 2, 
+    "F3": 4, 
+    "F4": 4, 
+    "H": 3, 
+    "R1": 1,  
+    "R2": 1, 
+    "RC1": 1, 
+    "RC2": 1, 
+    "RC3": 1, 
+    "RC4": 1,
+    "FO": 2, "WO": 2, "GO": 2,  # Resource tiles have the same cost as plains, or None if impassable
 }
 
 # The base path for all unit assets
 UNIT_ASSETS_BASE = os.path.join("..", "assets", "units", "base")
 
+# Base color sprites for units.
 UNIT_SPRITES_CONFIG = {
     "malik_shah": {
         "folder": "malik_shah",
@@ -167,6 +181,7 @@ UNIT_SPRITES_CONFIG = {
 
 BUILDING_PATH = os.path.join("..", "assets", "buildings4")
 
+# Base color sprites for buildings.
 BUILDING_SPRITES = {
     "town_centre": {
         "normal": "town_centre.png",
@@ -432,8 +447,7 @@ FACTIONS = {
     }
 }
 
-# === ADDITIONS ===
-# Nested team color mapping engine configuration database
+# Color Testing
 UNIT_COLOR_SPRITES = {
     "blue": {
         "malik_shah": "malik_shah_blue.png",
