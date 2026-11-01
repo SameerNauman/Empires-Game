@@ -2,6 +2,7 @@ import pygame
 from config import *
 
 class ResourceSource:
+    # Static variable to keep track of the next available ID for resource sources
     next_id = 1
     def __init__(self, x, y, resource_type, amount, building):
         self.x = x
