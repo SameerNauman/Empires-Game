@@ -1,4 +1,5 @@
 import pygame
+from renderer import Renderer
 from units.base_units import BaseUnits
 from buildings.base_buildings import BaseBuildings
 from resources.resource_source import ResourceSource
@@ -21,6 +22,8 @@ class GameplayState:
         w, h = screen.get_size()
         # Initialize the clock for controlling the frame rate
         self.clock = pygame.time.Clock()
+        # Initialize the renderer, which handles drawing the game world, units, buildings, and UI elements on the screen
+        self.renderer = Renderer(self.screen, self.assets)
         # Initial position of the selected tile
         self.selected_tile = (4, 4)
         self.hovered_tile = self.selected_tile
@@ -261,83 +264,6 @@ class GameplayState:
 
 # === WORLD DISPLAYING ===
 
-    # Draws the entire game world, including terrain, units, buildings, resources, and UI elements. It respects the fog of war and
-    # depth-sorts all entities for proper rendering order. The method also handles drawing the HUD, resource bar, banners, day counter,
-    # minimap, and any active fade effects.
-    def draw_game_world(self):
-        # Clear screen / Background
-        self.screen.fill((32, 32, 32))
-
-        # Draw terrain map first (respecting Fog of War: 0=hidden, 1=explored/darkened, 2=visible)
-        self.draw_map_with_fog(PLAYABLE_MAP, VISIBILITY_MAP)
-
-        # Draw tile highlights (reachable tiles & hovered tiles)
-        if self.selected_unit:
-            for tile in (self.reachable_tiles or []):
-                self.draw_tile_highlight(tile[0], tile[1], (0, 255, 255, 90))
-
-        if self.hovered_tile:
-            self.draw_tile_highlight_crimson(*self.hovered_tile)
-
-        # Build a single, unified render queue for all world objects 
-        # (Resources, Buildings, Units) so they depth-sort correctly together!
-        render_queue = []
-
-        # Add Resources
-        render_queue.extend(self.resources)
-
-        # Add Player Buildings & Units
-        render_queue.extend(self.buildings)
-        render_queue.extend(self.units)
-
-        # Add Enemy Buildings (ONLY if fully visible: VISIBILITY_MAP == 2)
-        for eb in self.e_buildings:
-            ex, ey = int(eb.x), int(eb.y)
-            if 0 <= ex < len(VISIBILITY_MAP) and 0 <= ey < len(VISIBILITY_MAP[0]):
-                if VISIBILITY_MAP[ex][ey] == 2:
-                    render_queue.append(eb)
-
-        # Add Enemy Units (ONLY if fully visible: VISIBILITY_MAP == 2)
-        for eu in self.enemy_units:
-            eux, euy = int(eu.x), int(eu.y)
-            if 0 <= eux < len(VISIBILITY_MAP) and 0 <= euy < len(VISIBILITY_MAP[0]):
-                if VISIBILITY_MAP[eux][euy] == 2:
-                    render_queue.append(eu)
-
-        # 5. Sort everything strictly by isometric depth (x + y)
-        render_queue.sort(key=lambda obj: (obj.x + obj.y))
-
-        # 6. Draw all world entities in a single pass
-        for obj in render_queue:
-            if isinstance(obj, ResourceSource):
-                obj.draw(
-                    self.screen, OFFSET_X, OFFSET_Y, self.camera_x, self.camera_y,
-                    BASE_TILE_WIDTH, BASE_TILE_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT,
-                    self.assets.resource_sprites, VISIBILITY_MAP=VISIBILITY_MAP
-                )
-            elif hasattr(obj, 'direction'):  # It's a unit
-                obj.draw(self.screen, self.camera_x, self.camera_y, self.assets.unit_sprites)
-            elif hasattr(obj, 'hitpoints'):  # It's a building
-                obj.draw(self.screen, self.camera_x, self.camera_y, self.assets.building_sprites)
-
-        # Draw HUD & UI on top of the world
-        self.display_resource_bar()
-        self.display_banner()
-        self.display_day_counter()
-
-        for res_type in RESOURCE_ICONS.keys():
-            self.display_resource_icons(res_type)
-        for anim in self.assets.resource_animations.values():
-            anim.update()
-
-        self.message_box.draw()
-        self.popup_menu.draw(self.screen)
-        self.building_menu.draw(self.screen)
-        
-        # Minimap & Screen Fades
-        self.draw_tactical_map()
-        self.update_fade_screen()
-
     # Removes fog of war around player units and buildings according to their vision range
     def update_VISIBILITY_MAP(self):
         # Reset current visibility
@@ -371,191 +297,14 @@ class GameplayState:
                     if 0 <= tx < len(VISIBILITY_MAP) and 0 <= ty < len(VISIBILITY_MAP[0]):
                         VISIBILITY_MAP[tx][ty] = 2
 
-    # Displays the sprites for the terrain, and magenta for missing sprites
-    def draw_map_with_fog(self, map_data, VISIBILITY_MAP):
-        for tx in range(len(map_data)):
-            for ty in range(len(map_data[tx])):
-
-                # Skip unseen tiles
-                if VISIBILITY_MAP[tx][ty] == 0:
-                    continue
-
-                draw_tx, draw_ty = self.draw_coords(tx, ty)
-                screen_x, screen_y = self.screen_coords(draw_tx, draw_ty)
-
-                tile = map_data[tx][ty]
-
-                # Sprite aquisition
-                sprite = self.assets.terrain_sprites.get(tile)
-
-                if sprite:
-                    # Darken if explored but not currently visible
-                    if VISIBILITY_MAP[tx][ty] == 1:
-                        sprite = sprite.copy()
-                        sprite.fill(
-                            (120, 120, 120, 255),
-                            special_flags=pygame.BLEND_RGBA_MULT
-                        )
-
-                    self.screen.blit(
-                        sprite,
-                        (screen_x - BASE_TILE_WIDTH // 2, screen_y)
-                    )
-
-                else:
-                    # If there isnt a sprite, draw a magenta tile
-                    pygame.draw.polygon(
-                        self.screen,
-                        (255, 0, 255),
-                        [
-                            (screen_x, screen_y),
-                            (screen_x + BASE_TILE_WIDTH // 2, screen_y + BASE_TILE_HEIGHT // 2),
-                            (screen_x, screen_y + BASE_TILE_HEIGHT),
-                            (screen_x - BASE_TILE_WIDTH // 2, screen_y + BASE_TILE_HEIGHT // 2),
-                        ],
-                    )
-
-    # Displays the resource icons in the top right corner of the screen, with animation.
-    def display_resource_icons(self, res_type):
-        anim = self.assets.resource_animations.get(res_type)
-        if not anim: return
-        
-        w, h = self.screen.get_size()
-        sprite = anim.get_current_frame()
-
-        icon_positions = {
-            "food": w * 0.11,
-            "wood": w * 0.34,
-            "gold": w * 0.64,
-            "population": w * 0.87
-        }
-
-        res_x = icon_positions.get(res_type, 0)
-        res_y = 2
-        
-        rect = sprite.get_rect(topright=(res_x, res_y))
-        self.screen.blit(sprite, rect)
-
-    # Displays the resource bar at the top of the screen
-    def display_resource_bar(self):
-        bar_sprite = self.assets.ui_elements.get("resource_bar")
-        w, h = self.screen.get_size() # Get live width
-
-        if bar_sprite:
-            # 3 slice
-            edge_width = 50 
-            
-            # Left Cap
-            self.screen.blit(bar_sprite, (0, 0), (0, 0, edge_width, bar_sprite.get_height()))
-            
-            # Middle (Stretched)
-            middle_section = bar_sprite.subsurface((edge_width, 0, bar_sprite.get_width() - (edge_width * 2), bar_sprite.get_height()))
-            stretched_middle = pygame.transform.scale(middle_section, (w - (edge_width * 2), bar_sprite.get_height()))
-            self.screen.blit(stretched_middle, (edge_width, 0))
-            
-            # Right Cap
-            self.screen.blit(bar_sprite, (w - edge_width, 0), (bar_sprite.get_width() - edge_width, 0, edge_width, bar_sprite.get_height()))
-
-        text_color = (255, 255, 255)
-        font = pygame.font.SysFont(None, 60)
-
-        # Population
-        self.population = len(self.units)
-        max_pop = 0
-        for building in self.buildings:
-            if building.is_constructed:
-                max_pop += building.population_limit
-
-        food_text = f" {self.food_amount}"
-        wood_text = f" {self.wood_amount}"
-        gold_text = f" {self.gold_amount}"
-        pop_text = f" {self.population} / {max_pop}"
-
-        f_surface = font.render(food_text, True, text_color)
-        w_surface = font.render(wood_text, True, text_color)
-        g_surface = font.render(gold_text, True, text_color)
-        p_surface = font.render(pop_text, True, text_color)
-
-        # dynamic text positions.
-        f_x = w * 0.12  # Food at ~12%
-        w_x = w * 0.35  # Wood at ~35%
-        g_x = w * 0.65  # Gold at ~65%
-        p_x = w * 0.88  # Pop at ~88%
-
-        f_y = (58 - f_surface.get_height())
-        w_y = (58 - w_surface.get_height())
-        g_y = (58 - g_surface.get_height())
-        p_y = (58 - p_surface.get_height())
-
-        self.screen.blit(f_surface, (f_x, f_y))
-        self.screen.blit(w_surface, (w_x, w_y))
-        self.screen.blit(g_surface, (g_x, g_y))
-        self.screen.blit(p_surface, (p_x, p_y))
-
-    def display_banner(self):
-        banner_dict = self.assets.ui_elements.get("banner")
-        if not banner_dict:
-            return
-
-        faction_key = getattr(self, "player_faction", "seljuk").lower() 
-        banner_sprite = banner_dict.get(faction_key)
-        
-        if not banner_sprite:
-            return
-
-        w, h = self.screen.get_size()
-        
-        banner_x = (w // 2) - (banner_sprite.get_width() // 2)
-        banner_y = 0 
-
-        self.screen.blit(banner_sprite, (banner_x, banner_y))
-
-    def display_day_counter(self):
-
-        self.assets.day_counter_anim.update()
-        
-        sprite = self.assets.day_counter_anim.get_current_frame()
-        if not sprite: 
-            return
-
-        text_color = (255, 255, 255)
-        font = pygame.font.SysFont(None, 60)
-        day_text = f"Day {self.day}"
-        surface = font.render(day_text, True, text_color)
-
-        sprite_x = 5
-        sprite_y = 65
-
-        padding = 10
-        text_x = sprite_x + sprite.get_width() + padding
-        
-        text_y = sprite_y + (sprite.get_height() // 2) - (surface.get_height() // 2)
-
-        self.screen.blit(sprite, (sprite_x, sprite_y))
-        self.screen.blit(surface, (text_x, text_y))
-
-    # 'Cinematic' effect of following enemy units during enemy turn.
-    def follow_enemy_camera(self, enemy):
-        draw_x, draw_y = self.draw_coords(enemy.x, enemy.y)
-        screen_x, screen_y = self.screen_coords(draw_x, draw_y)
-
-        if screen_x < MARGIN:
-            self.camera_x += SCROLL_SPEED
-        elif screen_x > SCREEN_WIDTH - MARGIN:
-            self.camera_x -= SCROLL_SPEED
-        if screen_y < MARGIN:
-            self.camera_y += SCROLL_SPEED
-        elif screen_y > SCREEN_HEIGHT - MARGIN:
-            self.camera_y -= SCROLL_SPEED
-
     # Camera follows hovered tile
     def display_hovered_tile(self):
         # The hovered tile is selected
         self.hovered_tile = self.selected_tile
 
         # Convert hovered tile to screen coordinates
-        draw_x, draw_y = self.draw_coords(self.hovered_tile[0], self.hovered_tile[1])
-        screen_x, screen_y = self.screen_coords(draw_x, draw_y)
+        draw_x, draw_y = self.renderer.draw_coords(self.hovered_tile[0], self.hovered_tile[1])
+        screen_x, screen_y = self.renderer.screen_coords(draw_x, draw_y, self.camera_x, self.camera_y)
 
         # Camera follow
         if screen_x < MARGIN:
@@ -575,6 +324,20 @@ class GameplayState:
             if unit:
                 # Update direction: compare unit's position to where the "cursor" is
                 unit.update_direction(unit.x, unit.y, self.hovered_tile[0], self.hovered_tile[1])
+
+    # 'Cinematic' effect of following enemy units during enemy turn.
+    def follow_enemy_camera(self, enemy):
+        draw_x, draw_y = self.draw_coords(enemy.x, enemy.y)
+        screen_x, screen_y = self.screen_coords(draw_x, draw_y)
+
+        if screen_x < MARGIN:
+            self.camera_x += SCROLL_SPEED
+        elif screen_x > SCREEN_WIDTH - MARGIN:
+            self.camera_x -= SCROLL_SPEED
+        if screen_y < MARGIN:
+            self.camera_y += SCROLL_SPEED
+        elif screen_y > SCREEN_HEIGHT - MARGIN:
+            self.camera_y -= SCROLL_SPEED
 
     # Centers the camera back onto the selected_tile.
     def camera_lerp(self):
@@ -602,185 +365,6 @@ class GameplayState:
             if resource.x == x and resource.y == y:
                 self.resources.remove(resource)
                 
-# === MAP DISPLAYING ===
-
-    # Displays a circular mini map in the bottom right corner of the screen.
-    def draw_tactical_map(self):
-        # Mini map dimensions and position
-        
-        # Create a surface for the circular mini map with per-pixel alpha
-        mini_map_surface = pygame.Surface((self.minimap_size, self.minimap_size), pygame.SRCALPHA)
-        
-        # Draw semi-transparent circular background - smaller circle
-        # circle_radius = int(RADIUS * 0.85)
-        pygame.draw.circle(mini_map_surface, (32, 32, 32, 200), (self.radius, self.radius), self.smaller_radius)
-        
-        # Calculate offset to center the map on the minimap center
-        center_sum = (PLAYABLE_WIDTH + PLAYABLE_HEIGHT - 2) // 2
-        offset_x = self.radius
-        offset_y = self.radius - center_sum * self.mini_map_scale
-        
-        # Draw only visible tiles
-        for x in range(PLAYABLE_WIDTH):
-            for y in range(PLAYABLE_HEIGHT):
-                vis = VISIBILITY_MAP[x][y]
-                if vis == 0:
-                    continue  # Skip tiles not visible
-                tile = PLAYABLE_MAP[x][y]
-                color = TILE_DRAW_COLORS.get(tile, (255, 0, 255))
-
-                draw_x = int((x - y) * self.mini_map_scale + offset_x)
-                draw_y = int((x + y) * self.mini_map_scale + offset_y)
-                
-                # Check if point is within circle before drawing
-                dist_from_center = ((draw_x - self.radius) ** 2 + (draw_y - self.radius) ** 2) ** 0.5
-                if dist_from_center < self.smaller_radius:
-                    # Top-down diamond tile
-                    pygame.draw.polygon(mini_map_surface, color, [
-                        (draw_x, draw_y - self.mini_map_scale),
-                        (draw_x + self.mini_map_scale, draw_y),
-                        (draw_x, draw_y + self.mini_map_scale),
-                        (draw_x - self.mini_map_scale, draw_y)
-                    ])
-
-        # Only draw player units/buildings/resources if on visible tiles
-        for unit in self.units:
-            ux, uy = int(unit.x), int(unit.y)
-            if 0 <= ux < PLAYABLE_WIDTH and 0 <= uy < PLAYABLE_HEIGHT and VISIBILITY_MAP[ux][uy] != 0:
-                draw_x = int((ux - uy) * self.mini_map_scale + offset_x)
-                draw_y = int((ux + uy) * self.mini_map_scale + offset_y)
-                dist_from_center = ((draw_x - self.radius) ** 2 + (draw_y - self.radius) ** 2) ** 0.5
-                if dist_from_center < self.smaller_radius:
-                    self.draw_unit(ux, uy, mini_map_surface, draw_x, draw_y)
-        
-        for building in self.buildings:
-            bx, by = int(building.x), int(building.y)
-            if 0 <= bx < PLAYABLE_WIDTH and 0 <= by < PLAYABLE_HEIGHT and VISIBILITY_MAP[bx][by] != 0:
-                draw_x = int((bx - by) * self.mini_map_scale + offset_x)
-                draw_y = int((bx + by) * self.mini_map_scale + offset_y)
-                dist_from_center = ((draw_x - self.radius) ** 2 + (draw_y - self.radius) ** 2) ** 0.5
-                if dist_from_center < self.smaller_radius:
-                    self.draw_building(bx, by, mini_map_surface, draw_x, draw_y)
-        
-        for res in self.resources:
-            rx, ry = int(res.x), int(res.y)
-            if 0 <= rx < PLAYABLE_WIDTH and 0 <= ry < PLAYABLE_HEIGHT and VISIBILITY_MAP[rx][ry] != 0:
-                draw_x = int((rx - ry) * self.mini_map_scale + offset_x)
-                draw_y = int((rx + ry) * self.mini_map_scale + offset_y)
-                dist_from_center = ((draw_x - self.radius) ** 2 + (draw_y - self.radius) ** 2) ** 0.5
-                if dist_from_center < self.smaller_radius:
-                    self.draw_resource(rx, ry, mini_map_surface, draw_x, draw_y)
-        
-        self.map_outline(mini_map_surface, offset_x, offset_y)
-        
-        # Blit the mini map surface to the screen
-        self.screen.blit(mini_map_surface, (self.mini_map_center_x - self.radius, self.mini_map_center_y - self.radius))
-        
-        # Draw circular border
-        pygame.draw.circle(self.screen, (205, 195, 183), (self.mini_map_center_x, self.mini_map_center_y), self.smaller_radius, 5)
-
-    def map_outline(self, surface, offset_x, offset_y):
-        # Draw yellow outline around playable map with margin
-        margin = -1  # tile margin inward from edges
-        corners = [
-            (margin, margin),                           # top-left
-            (PLAYABLE_WIDTH - 1 - margin, margin),      # top-right
-            (PLAYABLE_WIDTH - 1 - margin, PLAYABLE_HEIGHT - 1 - margin),  # bottom-right
-            (margin, PLAYABLE_HEIGHT - 1 - margin)      # bottom-left
-        ]
-        # Top-down diamond view (rotate 45 degrees without isometric compression)
-        corners_screen = []
-        for x, y in corners:
-            draw_x = int((x - y) * self.mini_map_scale + offset_x)
-            draw_y = int((x + y) * self.mini_map_scale + offset_y)
-            corners_screen.append([draw_x, draw_y])
-        # Draw diamond outline using polygon (unfilled, just the border)
-        if len(corners_screen) >= 3:
-            pygame.draw.polygon(surface, (255, 255, 0), corners_screen, 2)
-
-    # Displays units on the map
-    def draw_unit(self, x, y, surface=None, pre_calc_x=None, pre_calc_y=None):
-        if surface is None:
-            surface = self.screen
-            if pre_calc_x is None or pre_calc_y is None:
-                draw_x = (x - y) * HALF_WIDTH + OFFSET_DRAW_X + (PLAYABLE_WIDTH * HALF_WIDTH)
-                draw_y = (x + y) * HALF_HEIGHT + OFFSET_DRAW_Y + (PLAYABLE_HEIGHT * HALF_HEIGHT) // 2
-            else:
-                draw_x = pre_calc_x
-                draw_y = pre_calc_y
-        else:
-            # Using pre-calculated coordinates for minimap
-            draw_x = pre_calc_x
-            draw_y = pre_calc_y
-        triangle_points = [
-            (draw_x, draw_y - HALF_HEIGHT),
-            (draw_x - HALF_WIDTH, draw_y + HALF_HEIGHT),
-            (draw_x + HALF_WIDTH, draw_y + HALF_HEIGHT),
-        ]
-        pygame.draw.polygon(surface, (255, 255, 255), triangle_points)
-
-    # Displays buildings on the map
-    def draw_building(self, x, y, surface=None, pre_calc_x=None, pre_calc_y=None):
-        if surface is None:
-            surface = self.screen
-            if pre_calc_x is None or pre_calc_y is None:
-                draw_x = (x - y) * HALF_WIDTH + OFFSET_DRAW_X + (PLAYABLE_WIDTH * HALF_WIDTH)
-                draw_y = (x + y) * HALF_HEIGHT + OFFSET_DRAW_Y + (PLAYABLE_HEIGHT * HALF_HEIGHT) // 2
-            else:
-                draw_x = pre_calc_x
-                draw_y = pre_calc_y
-        else:
-            # Using pre-calculated coordinates for minimap
-            draw_x = pre_calc_x
-            draw_y = pre_calc_y
-        size = HALF_WIDTH // 2
-        pygame.draw.rect(surface, (255, 255, 255), pygame.Rect(draw_x - size, draw_y - size, size * 2, size * 2))
-
-    # Displays resources on the map
-    def draw_resource(self, x, y, surface=None, pre_calc_x=None, pre_calc_y=None):
-        if surface is None:
-            surface = self.screen
-        # Only draw resources if tile is visible
-        if 0 <= x < PLAYABLE_WIDTH and 0 <= y < PLAYABLE_HEIGHT and VISIBILITY_MAP[x][y] == 2:
-            if pre_calc_x is None or pre_calc_y is None:
-                draw_x = (x - y) * HALF_WIDTH + OFFSET_DRAW_X + (PLAYABLE_WIDTH * HALF_WIDTH)
-                draw_y = (x + y) * HALF_HEIGHT + OFFSET_DRAW_Y + (PLAYABLE_HEIGHT * HALF_HEIGHT) // 2
-            else:
-                draw_x = pre_calc_x
-                draw_y = pre_calc_y
-            circle_radius = HALF_WIDTH // 2
-            pygame.draw.circle(surface, (255, 255, 255), (draw_x, draw_y), circle_radius)
-
-    # Displays highlighted reachable tiles
-    def draw_tile_highlight(self, tx, ty, color, alpha=128):
-        draw_tx, draw_ty = self.draw_coords(tx, ty)
-        screen_x, screen_y = self.screen_coords(draw_tx, draw_ty)
-
-        overlay = pygame.Surface((BASE_TILE_WIDTH, BASE_TILE_HEIGHT), pygame.SRCALPHA)
-        pygame.draw.polygon(overlay, color, [
-            (BASE_TILE_WIDTH // 2, 0),
-            (BASE_TILE_WIDTH, BASE_TILE_HEIGHT // 2),
-            (BASE_TILE_WIDTH // 2, BASE_TILE_HEIGHT),
-            (0, BASE_TILE_HEIGHT // 2)
-        ])
-        self.screen.blit(overlay, (screen_x - BASE_TILE_WIDTH // 2, screen_y))
-
-    # Displays the red hovered tile
-    def draw_tile_highlight_crimson(self, tx, ty, color=(220, 20, 60)):
-        draw_tx, draw_ty = self.draw_coords(tx, ty)
-        screen_x, screen_y = self.screen_coords(draw_tx, draw_ty)
-
-        # Define the diamond shape points
-        points = [
-            (screen_x, screen_y),  # top
-            (screen_x + BASE_TILE_WIDTH // 2, screen_y + BASE_TILE_HEIGHT // 2),  # right
-            (screen_x, screen_y + BASE_TILE_HEIGHT),  # bottom
-            (screen_x - BASE_TILE_WIDTH // 2, screen_y + BASE_TILE_HEIGHT // 2),  # left
-        ]
-
-        # Draw the outline, not a filled polygon
-        pygame.draw.polygon(self.screen, color, points, width=5)
-
 # === UNIT ACTIONS ===
 
     # Displays a popup menu of the units available actions
@@ -1447,31 +1031,6 @@ class GameplayState:
         # Step time forward
         self.day += 1
 
-    def update_fade_screen(self):
-        if not self.is_fading:
-            return
-
-        # Increment alpha based on step directions
-        self.fade_alpha += (self.fade_speed * self.fade_direction)
-        
-        if self.fade_alpha >= 255:
-            self.fade_alpha = 255
-            self.fade_direction = -1  # Instantly reverse to transparency slide
-            
-            # Fire data alteration calculations exactly once on this frame match
-            if not self.day_processed_mid_fade:
-                self.process_day_transition()
-                self.day_processed_mid_fade = True
-
-        elif self.fade_alpha <= 0:
-            self.fade_alpha = 0
-            self.is_fading = False
-            self.day_processed_mid_fade = False  # Ready for the next day's swap
-
-        # Render step blit layer over current screen state
-        self.fade_surface.set_alpha(self.fade_alpha)
-        self.screen.blit(self.fade_surface, (0, 0))
-
     # Checks if conditions to end the game are True
     def check_game_over(self):
         # If there are no player units or buildings end the game
@@ -1793,22 +1352,6 @@ class GameplayState:
             damage = ((defender.attack * (1 + BONUS_MULTIPLYER)) / attacker.defense) * 25 + FLAT_BONUS
             attacker.health -= damage
 
-    # Returns (draw_tx, draw_ty)
-    def draw_coords(self, x, y):
-        draw_tx = x + OFFSET_X
-        draw_ty = y + OFFSET_Y
-
-        return (draw_tx, draw_ty)
-    
-    def screen_coords(self, x, y):
-        draw_x = x
-        draw_y = y
-
-        screen_x = ((draw_x - draw_y) * BASE_TILE_WIDTH // 2 + (SCREEN_WIDTH // 2) + self.camera_x)
-        screen_y = ((draw_x + draw_y) * BASE_TILE_HEIGHT // 2 + (SCREEN_HEIGHT // 4) + self.camera_y)
-
-        return(screen_x, screen_y)
-
     # Resize 
     def resize(self, w, h):
         self.screen = pygame.display.get_surface()
@@ -2078,4 +1621,4 @@ class GameplayState:
                 self.display_unit_actions()
 
         # Draws the game world, including terrain, units, buildings, and UI elements
-        self.draw_game_world()
+        self.renderer.draw_game_world(self, VISIBILITY_MAP)
