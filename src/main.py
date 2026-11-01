@@ -180,22 +180,18 @@ class GameStateManager():
             self.current_state = self.pending_state
             self.fade_direction = -1
 
-            # After switching to the new state, check if the new state object exists in the states reference. If it does, and if there are
-            # any pending keyword arguments, pass them to the new state's enter method. This allows for dynamic configuration of the new
-            # state based on the context of the transition (e.g., passing player faction or enemy faction information).
+            # After switching to the new state, check if the new state object exists in the states reference. if it does, and if it
+            #  has an "enter" method, call that method with any additional keyword arguments that were passed during 
+            # the transition. This allows the new state to initialize itself with any necessary data. kwargs include factions, and later
+            # on, colors, etc.
             target_state_obj = self.states_ref.get(self.current_state) if self.states_ref else None
             if target_state_obj:
-                if self.pending_kwargs:
-                    if hasattr(target_state_obj, "player_faction"):
-                        target_state_obj.player_faction = self.pending_kwargs.get("player_faction")
-                    if hasattr(target_state_obj, "enemy_faction"):
-                        target_state_obj.enemy_faction = self.pending_kwargs.get("enemy_faction")
-
                 if hasattr(target_state_obj, "enter"):
                     target_state_obj.enter(**self.pending_kwargs)
-            
+
+            # Clear dictionary of pending kwargs after they have been passed to the new state.
             self.pending_kwargs = {}
-        
+
         elif self.fade_alpha <= 0 and self.fade_direction == -1:
             self.fade_alpha = 0
             self.is_transitioning = False
