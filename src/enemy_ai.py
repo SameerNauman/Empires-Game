@@ -7,10 +7,13 @@ from config import *
 
 class EnemyAi():
     def __init__(self, path_enemies):
+        # Initialize the AI with a target acquisition system and a list of pathfinding enemies
         self.target_aquisition = TargetAquisition()
         self.path_enemies = path_enemies
 
+    # Execute the AI's turn, managing villagers, economy, research, and military actions
     def execute_turn(self, enemy_units, player_units, player_buildings, resource_list, enemy_buildings, gameplay_state):
+        # Rest all constructed buildings to reset their action count for the turn
         for b in enemy_buildings:
             if b.is_constructed:
                 b.rested()
@@ -29,20 +32,24 @@ class EnemyAi():
 
     # Finding resources and identifying contested tiles.
     def manage_villagers(self, enemy_units, player_units, resource_list, enemy_buildings, player_buildings, gameplay_state):
-        """Logic for finding resources with a priority on low stockpiles."""
+        # Identify villagers and assign them to gather resources based on priority and availability.
         contested_tiles = []
         claimed_resource_ids = []
-        
+
+        # Pathfinding instance for villagers to find resources
         pf = PathFinding(player_units, enemy_units, player_buildings, enemy_buildings, moving_side='enemy')
+        # Identify all active villagers that are not dead
         villagers = [u for u in enemy_units if getattr(u, "type", "") == "villager" and u.health > 0]
         
         # Identify villagers already on resources (Don't move them)
         for v in villagers:
             if getattr(v, "is_gathering", False):
+                # If the villager is already gathering, we mark the resource as claimed to prevent other villagers from targeting it.
                 claimed_resource_ids.append(getattr(v, "gather_resource_id", -1))
                 continue
                 
             for res in resource_list:
+                # Check if the resource is not depleted and if the villager is on the same tile as the resource
                 if not res.is_depleted() and int(v.x) == int(res.x) and int(v.y) == int(res.y):
                     v.is_gathering = True
                     v.gather_resource_id = res.id
@@ -114,10 +121,13 @@ class EnemyAi():
 
         return contested_tiles
 
+    # Manage the economy by checking if the AI can afford buildings, assigning villagers to construct them, and handling age advancement.
     def manage_economy(self, enemy_units, enemy_buildings, resource_list, gameplay_state):
+        # Identify all active villagers that are not dead
         villagers = [u for u in enemy_units if getattr(u, "type", "") == "villager" and u.health > 0]
         if not villagers: return
 
+        # Define building goals based on the current game state and AI strategy
         building_goals = {
             "town_center": 1,
             "market": 1,
@@ -125,10 +135,12 @@ class EnemyAi():
             "barracks": 1
         }
 
+        # Count current buildings of each type
         current_counts = {}
         for b in enemy_buildings:
             current_counts[b.type] = current_counts.get(b.type, 0) + 1
 
+        # Check if we need to construct any buildings based on goals and current counts
         for b_type, goal in building_goals.items():
             if current_counts.get(b_type, 0) < goal:
                 if self.can_afford_building(b_type, gameplay_state):
@@ -160,12 +172,14 @@ class EnemyAi():
                 if gameplay_state.enemy_food >= current_age_data["food"] * 1.2:
                     gameplay_state.attempt_age_up('enemy')
 
+    # Manage military units by determining their targets, calculating paths, and executing attacks or movements based on the game state.
     def manage_military(self, enemy_units, player_units, player_buildings, enemy_buildings, contested_tiles):
-        """Logic for military movement and attacking based on valid adjacent tiles."""
+        # Identify all active military units that are not dead
         military = [u for u in enemy_units if getattr(u, "type", "") != "villager" and u.health > 0]
         if not military:
             return
 
+        # Pathfinding instance for military units to find targets
         pf = PathFinding(player_units, enemy_units, player_buildings, enemy_buildings, moving_side='enemy')
 
         for m in military:
@@ -187,18 +201,17 @@ class EnemyAi():
                 if target_obj:
                     target_pos = (int(target_obj.x), int(target_obj.y))
 
-            # Execute Turn-Based Pathfinding & Combat Positioning
             if target_pos:
                 start_pos = (int(m.x), int(m.y))
                 
-                # --- CASE 1: ATTACKING AN OCCUPIED PLAYER TILE/STRUCTURE ---
-                # If we are pursuing an active player element, we must path to an ADJACENT tile
                 if target_obj:
+                    # Attack range is determined by the unit's attributes, defaulting to 1 if not specified
                     attack_range = getattr(m, "attack_range", 1)
+                    # If the target is a building, force the attack range to be melee adjacent
                     if getattr(target_obj, "type", "") == "building":
                         attack_range = 1  # Force structural attacks to be melee adjacent
 
-                    # Is the target already sitting comfortably within our range?
+                    # Check if the target is within attack range
                     current_dist = abs(start_pos[0] - target_pos[0]) + abs(start_pos[1] - target_pos[1])
                     if current_dist <= attack_range:
                         # Target is in range, clear path to remain stationary and strike
@@ -233,7 +246,7 @@ class EnemyAi():
                             steps = min(m.movement_range, len(path))
                             m.path = [(float(x), float(y)) for x, y in path[:steps]]
                             
-                # --- CASE 2: MOVING TO AN UNBROKEN CONTESTED GROUND TILE ---
+                # If no target object was found, but we have a contested tile, we can still path to it
                 else:
                     # Contested resource tiles are empty, meaning A* can target them directly
                     path = pf.a_star(start_pos, target_pos, 100)
@@ -243,8 +256,9 @@ class EnemyAi():
                         steps = min(m.movement_range, len(path))
                         m.path = [(float(x), float(y)) for x, y in path[:steps]]
     
+    # Manage research by checking if the AI can afford technologies, and if so, queue them for research at appropriate buildings.
     def manage_research(self, enemy_buildings, gameplay_state):
-        # Shuffle to give the Market a fair chance at resources
+        # Shuffle buildings to randomize research order
         shuffled_buildings = list(enemy_buildings)
         random.shuffle(shuffled_buildings)
         
@@ -274,8 +288,6 @@ class EnemyAi():
                     self.execute_enemy_research(tech_key, building, gameplay_state)
                     break # Building used its action, move to next building
 
-    # --- Helper Methods ---
-
     def can_afford_building(self, b_type, gameplay_state):
         # Assuming BUILDINGS[b_type] = [name, food, wood, gold, ...]
         costs = BUILDINGS.get(b_type)
@@ -291,17 +303,15 @@ class EnemyAi():
         return (gameplay_state.enemy_food >= costs['food'] and 
                 gameplay_state.enemy_wood >= costs['wood'] and 
                 gameplay_state.enemy_gold >= costs['gold'])
-    
+
+    # Execute the research process for a given technology, deducting resources and queuing it for completion.
     def execute_enemy_research(self, tech_key, building, gameplay_state):
-        """Deducts costs and adds to the enemy's pending queue."""
         r_attr = RESEARCH[tech_key]
         
         gameplay_state.enemy_food -= r_attr[1]
         gameplay_state.enemy_wood -= r_attr[2]
         gameplay_state.enemy_gold -= r_attr[3]
 
-        # Ensure your GameplayState logic handles 'enemy_pending_techs' 
-        # separately from 'player_pending_techs'!
         gameplay_state.enemy_pending_techs.append(tech_key)
         
         building.rest()
@@ -310,6 +320,7 @@ class EnemyAi():
     def get_unit_at(self, x, y, unit_list):
         return next((u for u in unit_list if int(u.x) == int(x) and int(u.y) == int(y) and u.health > 0), None)
 
+    # Find the nearest target (player unit or building) for a given enemy unit, prioritizing proximity.
     def find_nearest_target(self, unit, player_units, player_buildings):
         targets = [p for p in player_units if p.health > 0] + [b for b in player_buildings if b.hitpoints > 0]
         if not targets: return None
@@ -332,9 +343,10 @@ class EnemyAi():
         if any(int(r.x) == tx and int(r.y) == ty for r in gameplay_state.resources): return True
 
         return False
-    
+
+    # Move a villager to an adjacent unoccupied tile if their current tile is blocked, ensuring they can perform 
+    # construction or gathering tasks.
     def move_to_clear_ground(self, villager, gameplay_state):
-        """Moves a villager to an adjacent empty tile if they are standing on a building."""
         for dx, dy in [(0,1), (0,-1), (1,0), (-1,0), (1,1), (-1,-1)]:
             nx, ny = int(villager.x) + dx, int(villager.y) + dy
             
@@ -343,6 +355,8 @@ class EnemyAi():
                 villager.path = [(float(nx), float(ny))]
                 break
 
+    # Request construction of a building at the villager's current position, deducting resources and queuing the
+    # building for construction.
     def request_construction(self, building_type, villager, gameplay_state):
         # Use villager's exact current position
         tx, ty = int(villager.x), int(villager.y)
@@ -372,18 +386,16 @@ class EnemyAi():
         gameplay_state.enemy_wood -= b_attr[2]
         gameplay_state.enemy_gold -= b_attr[3]
 
-    def plan_military_infrastructure(self, gameplay_state):
-        """Placeholder for future military building logic."""
-        pass
-
+    # Train enemy units by checking each building's trainable units, filtering them based on affordability and 
+    # specific rules, and spawning them if possible.
     def train_enemy_units(self, e_buildings, enemy_units, gameplay_state):
-        """Processes unit production at enemy buildings with villager limits."""
         
         # Calculate current villager count once at the start of training
         current_villagers = [u for u in enemy_units if getattr(u, "type", "") == "villager"]
         villager_count = len(current_villagers)
         VILLAGER_LIMIT = 5
 
+        # Iterate through each building to determine if it can train units
         for building in e_buildings:
             if not building.is_constructed:
                 continue
