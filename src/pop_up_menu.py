@@ -19,9 +19,8 @@ class PopupMenu:
         self.font = pygame.font.SysFont("Arial", 25)
         self.history = []
 
-    # === Displaying Menus ===
-
     def draw(self, screen):
+        # Only draw the menu if it is open
         if not self.is_open:
             return
         
@@ -35,8 +34,6 @@ class PopupMenu:
                 # Use the Standard Vertical system for general popups
                 item_x, item_y = self._get_standard_pos(i)
                 self._draw_standard_item(screen, i, option, item_x, item_y)
-
-    # === POSITIONING METHODS ===
     
     # Calculates x and y values for the standard menu
     def _get_standard_pos(self, index):
@@ -60,6 +57,7 @@ class PopupMenu:
 
         return item_x, item_y
 
+    # Calculates x and y values for the grid menu
     def _get_grid_pos(self, index):
         columns = 5
         x_spacing = 20
@@ -77,8 +75,6 @@ class PopupMenu:
         item_y = self.y + (row * v_step)
 
         return item_x, item_y
-
-    # === DISPLAYING METHODS ===
 
     # Displays the standard menu with background, text, and an adjacent banner icon.
     def _draw_standard_item(self, screen, index, option, x, y):
@@ -130,7 +126,7 @@ class PopupMenu:
         else:
             state = "normal"
         
-        # Layer 1: The Hexagon Slot
+        # The Hexagon Slot
         build_sprites = self.sprites.get(sprite_lookup, {})
         base_sprite = build_sprites.get(state)
 
@@ -138,7 +134,7 @@ class PopupMenu:
             rect = base_sprite.get_rect(center=slot_center)
             screen.blit(base_sprite, rect)
 
-        # Layer 2: The Building Icon
+        # The Building Icon
         icon_map = self.sprites.get("building_icons", {})
         icon_surface = icon_map.get(option)
         
@@ -146,15 +142,14 @@ class PopupMenu:
             icon_rect = icon_surface.get_rect(center=slot_center)
             screen.blit(icon_surface, icon_rect)
         
-        # Layer 3: Text (For 'Cancel' or if the icon is missing)
+        # Text (For 'Cancel' or if the icon is missing)
         if option == "Cancel" or not icon_surface:
             color = (0, 255, 255) if index == self.selected_index else (255, 255, 255)
             text_surf = self.font.render(option, True, color)
             text_rect = text_surf.get_rect(center=slot_center)
             screen.blit(text_surf, text_rect)
 
-    # --- SHARED UTILITIES ---
-
+    # Opens the menu with the provided options and actions, optionally saving the current state to history.
     def open(self, options, actions, save_to_history=True):
         if save_to_history and self.options is not None:
             self.history.append((self.options, self.actions))
@@ -165,6 +160,7 @@ class PopupMenu:
         self.resize(*pygame.display.get_surface().get_size())
         self._update_description()
 
+    # Resizes the menu based on the current screen dimensions and the type of menu (grid or standard).
     def resize(self, new_width, new_height):
         VIRTUAL_W = SCREEN_WIDTH 
         VIRTUAL_H = SCREEN_HEIGHT
@@ -220,6 +216,9 @@ class PopupMenu:
             return sel
         return None
 
+    # Updates the description in the message box based on the currently selected option. It checks various dictionaries 
+    # (BUILDINGS, RESOURCE_BUILDINGS, UNITS, RESEARCH) to find a matching description for the selected option and displays 
+    # it in the message box. If no description is found, it closes the message box.
     def _update_description(self):
         if not self.options: return
         
