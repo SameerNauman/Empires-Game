@@ -18,6 +18,8 @@ class MessageBox:
         self.start_time = 0
         self.duration = 2000 # Duration in milliseconds (2 seconds)
 
+    # Open the message box with a message and an error message flag. The error message flag determines if the 
+    # countdown timer should be activated.
     def open(self, message, error_message):
         self.message = message
         self.error_message = error_message
@@ -27,8 +29,8 @@ class MessageBox:
     def close(self):
         self.visible = False
 
+    # Update the message box's state, including the countdown timer if it's an error message
     def countdown(self):
-        
         # Timer logic
         current_time = pygame.time.get_ticks()
         if current_time - self.start_time >= self.duration:
@@ -39,10 +41,13 @@ class MessageBox:
         # Store the new height so we can reposition the box
         self.visible_height = new_height
 
+    # Draw the message box and its contents on the screen
     def draw(self):
+        # Only draw the message box if it's visible
         if not self.visible:
             return
-        
+
+        # If it's an error message, we want to start the countdown timer to close the box after a set duration
         if self.error_message:
             self.countdown()
 
