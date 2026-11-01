@@ -261,6 +261,83 @@ class GameplayState:
 
 # === WORLD DISPLAYING ===
 
+    # Draws the entire game world, including terrain, units, buildings, resources, and UI elements. It respects the fog of war and
+    # depth-sorts all entities for proper rendering order. The method also handles drawing the HUD, resource bar, banners, day counter,
+    # minimap, and any active fade effects.
+    def draw_game_world(self):
+        # Clear screen / Background
+        self.screen.fill((32, 32, 32))
+
+        # Draw terrain map first (respecting Fog of War: 0=hidden, 1=explored/darkened, 2=visible)
+        self.draw_map_with_fog(PLAYABLE_MAP, VISIBILITY_MAP)
+
+        # Draw tile highlights (reachable tiles & hovered tiles)
+        if self.selected_unit:
+            for tile in (self.reachable_tiles or []):
+                self.draw_tile_highlight(tile[0], tile[1], (0, 255, 255, 90))
+
+        if self.hovered_tile:
+            self.draw_tile_highlight_crimson(*self.hovered_tile)
+
+        # Build a single, unified render queue for all world objects 
+        # (Resources, Buildings, Units) so they depth-sort correctly together!
+        render_queue = []
+
+        # Add Resources
+        render_queue.extend(self.resources)
+
+        # Add Player Buildings & Units
+        render_queue.extend(self.buildings)
+        render_queue.extend(self.units)
+
+        # Add Enemy Buildings (ONLY if fully visible: VISIBILITY_MAP == 2)
+        for eb in self.e_buildings:
+            ex, ey = int(eb.x), int(eb.y)
+            if 0 <= ex < len(VISIBILITY_MAP) and 0 <= ey < len(VISIBILITY_MAP[0]):
+                if VISIBILITY_MAP[ex][ey] == 2:
+                    render_queue.append(eb)
+
+        # Add Enemy Units (ONLY if fully visible: VISIBILITY_MAP == 2)
+        for eu in self.enemy_units:
+            eux, euy = int(eu.x), int(eu.y)
+            if 0 <= eux < len(VISIBILITY_MAP) and 0 <= euy < len(VISIBILITY_MAP[0]):
+                if VISIBILITY_MAP[eux][euy] == 2:
+                    render_queue.append(eu)
+
+        # 5. Sort everything strictly by isometric depth (x + y)
+        render_queue.sort(key=lambda obj: (obj.x + obj.y))
+
+        # 6. Draw all world entities in a single pass
+        for obj in render_queue:
+            if isinstance(obj, ResourceSource):
+                obj.draw(
+                    self.screen, OFFSET_X, OFFSET_Y, self.camera_x, self.camera_y,
+                    BASE_TILE_WIDTH, BASE_TILE_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT,
+                    self.assets.resource_sprites, VISIBILITY_MAP=VISIBILITY_MAP
+                )
+            elif hasattr(obj, 'direction'):  # It's a unit
+                obj.draw(self.screen, self.camera_x, self.camera_y, self.assets.unit_sprites)
+            elif hasattr(obj, 'hitpoints'):  # It's a building
+                obj.draw(self.screen, self.camera_x, self.camera_y, self.assets.building_sprites)
+
+        # Draw HUD & UI on top of the world
+        self.display_resource_bar()
+        self.display_banner()
+        self.display_day_counter()
+
+        for res_type in RESOURCE_ICONS.keys():
+            self.display_resource_icons(res_type)
+        for anim in self.assets.resource_animations.values():
+            anim.update()
+
+        self.message_box.draw()
+        self.popup_menu.draw(self.screen)
+        self.building_menu.draw(self.screen)
+        
+        # Minimap & Screen Fades
+        self.draw_tactical_map()
+        self.update_fade_screen()
+
     # Removes fog of war around player units and buildings according to their vision range
     def update_VISIBILITY_MAP(self):
         # Reset current visibility
@@ -337,35 +414,6 @@ class GameplayState:
                             (screen_x - BASE_TILE_WIDTH // 2, screen_y + BASE_TILE_HEIGHT // 2),
                         ],
                     )
-
-    # Draws player and enemy units
-    def display_units(self):
-        # Create a combined list of all units that should be drawn
-        units_to_draw = []
-
-        # Add player units
-        units_to_draw.extend(self.units)
-
-        # Add enemy units only if they are visible
-        for enemy in self.enemy_units:
-            ex, ey = int(enemy.x), int(enemy.y)
-            if (0 <= ex < len(VISIBILITY_MAP) and 
-                0 <= ey < len(VISIBILITY_MAP[0]) and 
-                VISIBILITY_MAP[ex][ey] == 2):
-                units_to_draw.append(enemy)
-
-        #Sort the COMBINED list by the Z-axis (x + y)
-        # Units with smaller x+y (further away) come first in the list
-        units_to_draw.sort(key=lambda u: u.x + u.y)
-
-        # Draw them all in a single pass
-        for unit in units_to_draw:
-            unit.draw(
-                self.screen, 
-                self.camera_x, 
-                self.camera_y, 
-                self.assets.unit_sprites
-            )
 
     # Displays the resource icons in the top right corner of the screen, with animation.
     def display_resource_icons(self, res_type):
@@ -2029,84 +2077,5 @@ class GameplayState:
                 self.is_moving = False
                 self.display_unit_actions()
 
-        # Displays the screen
-        self.screen.fill((32, 32, 32))
-
-        # 1. Draw the terrain tiles first (Pass 1)
-        self.draw_map_with_fog(PLAYABLE_MAP, VISIBILITY_MAP)
-
-        # Only draw reachable tiles if a unit is selected
-        if self.selected_unit:
-            for tile in (self.reachable_tiles or []):
-                self.draw_tile_highlight(tile[0], tile[1], (0, 255, 255, 90))
-
-        # Displays hovered tile
-        if self.hovered_tile:
-            self.draw_tile_highlight_crimson(*self.hovered_tile)  # crimson outline
-
-        # Combines all objects into a single list and sorts them by their y-coordinate for correct rendering order
-        render_queue = []
-
-        for r in self.resources:
-            render_queue.append(r)
-
-        # Player buildings and units
-        for b in self.buildings:
-            render_queue.append(b)
-        for u in self.units:
-            render_queue.append(u)
-
-        # Enemy Buildings (Only add if tile is '2' which is explored + currently visible)
-        for eb in self.e_buildings:
-            ex, ey = int(eb.x), int(eb.y)
-            if 0 <= ex < len(VISIBILITY_MAP) and 0 <= ey < len(VISIBILITY_MAP[0]):
-                if VISIBILITY_MAP[ex][ey] == 2:
-                    render_queue.append(eb)
-
-        # Enemy Units (Only add if tile is '2' which is explored + currently visible)
-        for eu in self.enemy_units:
-            eux, euy = int(eu.x), int(eu.y)
-            if 0 <= eux < len(VISIBILITY_MAP) and 0 <= euy < len(VISIBILITY_MAP[0]):
-                # Only display if the tile is currently within a player unit's vision range
-                if VISIBILITY_MAP[eux][euy] == 2:
-                    render_queue.append(eu)
-
-        # Sorting the render queue to ensure correct layering (objects with higher y are drawn on top)
-        render_queue.sort(key=lambda obj: (obj.x + obj.y))
-
-        # Drawing objects in order
-        for obj in render_queue:
-            # Resources
-            if isinstance(obj, ResourceSource):
-                obj.draw(
-                    self.screen, OFFSET_X, OFFSET_Y, self.camera_x, self.camera_y,
-                    BASE_TILE_WIDTH, BASE_TILE_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT,
-                    self.assets.resource_sprites, VISIBILITY_MAP=VISIBILITY_MAP
-                )
-            # Units
-            elif hasattr(obj, 'direction'):
-                obj.draw(self.screen, self.camera_x, self.camera_y, self.assets.unit_sprites)
-            # Buildings
-            elif hasattr(obj, 'hitpoints'):
-                obj.draw(self.screen, self.camera_x, self.camera_y, self.assets.building_sprites)
-
-        # Displays the resource and population bar 
-        self.display_resource_bar()
-
-        self.display_banner()
-
-        self.display_day_counter()
-
-        for res_type in RESOURCE_ICONS.keys():
-            self.display_resource_icons(res_type)
-        for anim in self.assets.resource_animations.values():
-            anim.update()
-
-        self.message_box.draw()
-        self.popup_menu.draw(self.screen)
-        self.building_menu.draw(self.screen)
-        
-        # Draw the mini map in the bottom right corner
-        self.draw_tactical_map()
-
-        self.update_fade_screen()
+        # Draws the game world, including terrain, units, buildings, and UI elements
+        self.draw_game_world()
