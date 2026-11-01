@@ -2,6 +2,7 @@ import pygame
 from config import *
 
 class BaseBuildings:
+    # Static variable to keep track of the next available ID for buildings
     next_id = 1
     def __init__(self, x, y, hitpoints, population_limit=0, type="Unknown", defense=200):
         self.x = x
@@ -9,6 +10,7 @@ class BaseBuildings:
         self.hitpoints = hitpoints
         self.max_hitpoints = hitpoints
         self.population_limit = population_limit
+        # If the building is queued for construction, it will be marked as such. Once constructed, it will be marked as constructed.
         self.queued = False
         self.is_constructed = False
         self.selected = False
@@ -18,16 +20,17 @@ class BaseBuildings:
         self.id = BaseBuildings.next_id
         BaseBuildings.next_id += 1
 
+    # Draw the building on the screen
     def draw(self, screen, camera_x, camera_y, building_sprites):
         # Sprites
         sprite_set = building_sprites[self.type]
         self.sprite_normal = sprite_set["normal"]
         self.sprite_selected = sprite_set["selected"]
         self.sprite_rested = sprite_set["rested"]
-        
+
+        # Calculate the screen position based on the building's grid position and camera offset
         draw_x = self.x + OFFSET_X
         draw_y = self.y + OFFSET_Y
-
         screen_x = (draw_x - draw_y) * BASE_TILE_WIDTH // 2 + (SCREEN_WIDTH // 2) + camera_x
         screen_y = (draw_x + draw_y) * BASE_TILE_HEIGHT // 2 + (SCREEN_HEIGHT // 4) + camera_y
 
