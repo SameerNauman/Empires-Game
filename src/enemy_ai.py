@@ -6,7 +6,7 @@ from units.base_units import BaseUnits
 from config import *
 
 class EnemyAi():
-    def __init__(self, path_enemies):
+    def __init__(self, path_enemies=None):
         # Initialize the AI with a target acquisition system and a list of pathfinding enemies
         self.target_aquisition = TargetAquisition()
         self.path_enemies = path_enemies
@@ -388,15 +388,15 @@ class EnemyAi():
 
     # Train enemy units by checking each building's trainable units, filtering them based on affordability and 
     # specific rules, and spawning them if possible.
-    def train_enemy_units(self, e_buildings, enemy_units, gameplay_state):
+    def train_enemy_units(self, game_state):
         
         # Calculate current villager count once at the start of training
-        current_villagers = [u for u in enemy_units if getattr(u, "type", "") == "villager"]
+        current_villagers = [u for u in game_state.enemy_units if getattr(u, "type", "") == "villager"]
         villager_count = len(current_villagers)
         VILLAGER_LIMIT = 5
 
         # Iterate through each building to determine if it can train units
-        for building in e_buildings:
+        for building in game_state.e_buildings:
             if not building.is_constructed:
                 continue
             if building.type not in BUILDINGS:
@@ -405,7 +405,7 @@ class EnemyAi():
             # Check if spawn location is blocked
             spawn_x, spawn_y = building.x, building.y
             spawn_blocked = any(
-                int(u.x) == spawn_x and int(u.y) == spawn_y for u in enemy_units
+                int(u.x) == spawn_x and int(u.y) == spawn_y for u in game_state.enemy_units
             )
             if spawn_blocked:
                 continue
@@ -429,9 +429,9 @@ class EnemyAi():
                 u_attr = UNITS[unit_name]
                 food, wood, gold = u_attr[1], u_attr[2], u_attr[3]
                 
-                if (gameplay_state.enemy_food >= food and
-                    gameplay_state.enemy_wood >= wood and
-                    gameplay_state.enemy_gold >= gold):
+                if (game_state.enemy_food >= food and
+                    game_state.enemy_wood >= wood and
+                    game_state.enemy_gold >= gold):
                     affordable_units.append(unit_name)
 
             # Randomly spawn from the filtered list
@@ -446,12 +446,12 @@ class EnemyAi():
                 )
                 
                 print(f"Enemy spawns: {unit_name} at ({spawn_x}, {spawn_y})")
-                enemy_units.append(new_unit)
+                game_state.enemy_units.append(new_unit)
                 
                 # Deduct resources
-                gameplay_state.enemy_food -= food
-                gameplay_state.enemy_wood -= wood
-                gameplay_state.enemy_gold -= gold
+                game_state.enemy_food -= food
+                game_state.enemy_wood -= wood
+                game_state.enemy_gold -= gold
                 
                 # Update villager count immediately if a villager was just born
                 if unit_name == "villager":

@@ -1,5 +1,6 @@
 import pygame
 from renderer import Renderer
+from turn_manager import TurnManager
 from units.base_units import BaseUnits
 from buildings.base_buildings import BaseBuildings
 from resources.resource_source import ResourceSource
@@ -24,6 +25,8 @@ class GameplayState:
         self.clock = pygame.time.Clock()
         # Initialize the renderer, which handles drawing the game world, units, buildings, and UI elements on the screen
         self.renderer = Renderer(self.screen, self.assets)
+        # Initialize the turn manager, which processes end of day events.
+        self.turn_manager = TurnManager()
         # Initial position of the selected tile
         self.selected_tile = (4, 4)
         self.hovered_tile = self.selected_tile
@@ -156,7 +159,6 @@ class GameplayState:
         )
         # Initialize pathfinding and target acquisition systems for unit movement and combat
         self.target_aquisition = TargetAquisition()
-        self.enemy_ai = EnemyAi(self.enemy_units)
         
 # === INITIALIZATION ===
 
@@ -327,8 +329,8 @@ class GameplayState:
 
     # 'Cinematic' effect of following enemy units during enemy turn.
     def follow_enemy_camera(self, enemy):
-        draw_x, draw_y = self.draw_coords(enemy.x, enemy.y)
-        screen_x, screen_y = self.screen_coords(draw_x, draw_y)
+        draw_x, draw_y = self.renderer.draw_coords(enemy.x, enemy.y)
+        screen_x, screen_y = self.renderer.screen_coords(draw_x, draw_y, self.camera_x, self.camera_y)
 
         if screen_x < MARGIN:
             self.camera_x += SCROLL_SPEED
@@ -341,19 +343,19 @@ class GameplayState:
 
     # Centers the camera back onto the selected_tile.
     def camera_lerp(self):
-        # 1. Calculate the destination coordinates
+        # Calculate the destination coordinates
         draw_x, draw_y = self.draw_coords(self.selected_tile[0], self.selected_tile[1])
         world_x, world_y = self.screen_coords(draw_x, draw_y)
         
         target_x = (SCREEN_WIDTH // 2) - world_x
         target_y = (SCREEN_HEIGHT // 2) - world_y
 
-        # 2. Lerp towards destination
+        # Lerp towards destination
         lerp_speed = 0.1 
         self.camera_x += (target_x - self.camera_x) * lerp_speed
         self.camera_y += (target_y - self.camera_y) * lerp_speed
 
-        # 3. Check if we are close enough to stop
+        # Check if we are close enough to stop
         if abs(self.camera_x - target_x) < 1 and abs(self.camera_y - target_y) < 1:
             self.camera_x = target_x
             self.camera_y = target_y
@@ -364,6 +366,27 @@ class GameplayState:
         for resource in self.resources:
             if resource.x == x and resource.y == y:
                 self.resources.remove(resource)
+
+    def update_fade_screen(self):
+        if not self.is_fading:
+            return
+
+        # Increment alpha based on step directions
+        self.fade_alpha += (self.fade_speed * self.fade_direction)
+        
+        if self.fade_alpha >= 255:
+            self.fade_alpha = 255
+            self.fade_direction = -1  # Instantly reverse to transparency slide
+            
+            # Fire data alteration calculations exactly once on this frame match
+            if not self.day_processed_mid_fade:
+                self.turn_manager.process_day_transition(self)
+                self.day_processed_mid_fade = True
+
+        elif self.fade_alpha <= 0:
+            self.fade_alpha = 0
+            self.is_fading = False
+            self.day_processed_mid_fade = False  # Ready for the next day's swap
                 
 # === UNIT ACTIONS ===
 
@@ -795,94 +818,11 @@ class GameplayState:
         self.popup_menu.close()
         self.message_box.close()
 
-    # Activates tech researched from buildings.
-    def complete_research(self, tech_key, side='player'): 
-        if side == 'player':
-            target_researched = self.researched_techs
-            multipliers = self.tech_multipliers # Player stats
-        else:
-            target_researched = self.enemy_researched_techs
-            # Ensure you have initialized self.enemy_tech_multipliers in __init__
-            multipliers = self.enemy_tech_multipliers 
-        
-        if tech_key not in target_researched:
-            target_researched.add(tech_key)
-            
-            effect_key = RESEARCH[tech_key][5]
-            effect_val = RESEARCH[tech_key][6]
-            
-            if "rate" in effect_key:
-                multipliers[effect_key] *= effect_val
-            else:
-                multipliers[effect_key] += effect_val
-
-            if side == 'player' and "vision" in effect_key:
-                self.update_VISIBILITY_MAP()
+   
 
 # === RESOURCE GATHERING ===
 
-    # Processes player's resource gathering at the end of enemy turn
-    def process_automatic_gathering(self):
-        # Iterates over all units and checks if they are gathering. 
-        for unit in self.units:
-            if unit.is_gathering:
-                res_id = unit.gather_resource_id
-                res = next((r for r in self.resources if r.id == res_id), None)
-                unit_tile = (int(unit.x), int(unit.y))
-                
-                if res and (res.x, res.y) == unit_tile:
-                    # Determine base amount to take from the resource tile
-                    raw_amount = min(100, res.amount)
-                    res.amount -= raw_amount
-                    
-                    # Apply the specific multiplier based on resource type
-                    if res.resource_type == "food":
-                        multiplier = self.tech_multipliers.get("gather_rate_food", 1.0)
-                        self.food_amount += int(raw_amount * multiplier)
-                        
-                    elif res.resource_type == "wood":
-                        multiplier = self.tech_multipliers.get("gather_rate_wood", 1.0)
-                        self.wood_amount += int(raw_amount * multiplier)
-                        
-                    elif res.resource_type == "gold":
-                        multiplier = self.tech_multipliers.get("gather_rate_gold", 1.0)
-                        self.gold_amount += int(raw_amount * multiplier)
-
-                    # Handle depletion
-                    if res.amount <= 0:
-                        self.resources.remove(res)
-                        self.message_box.open(f"{res.resource_type} has been depleted.", self.error_message)
-                        unit.is_gathering = False
-                        unit.gather_resource_id = None
-
-    # Processed enemy's resource gathering at the end of enemy turn
-    def process_enemy_gathering(self):
-        # Iterates over all enemy units and checks if they are gathering. 
-        for unit in self.enemy_units:
-            if unit.is_gathering:
-                res_id = unit.gather_resource_id
-                # Iterates over resources and checks if their ID matches the one the unit is gathering
-                # from. If the unit is gathering from a resource tile its on, it processes the gathering,
-                # and if the resource has been depleted, it is deleted.
-                res = next((r for r in self.resources if r.id == res_id), None)
-                unit_tile = (int(unit.x), int(unit.y))
-                if res and (res.x, res.y) == unit_tile:
-                    amount_gathered = min(100, res.amount)
-                    res.amount -= amount_gathered
-                    if res.resource_type == "food":
-                        self.enemy_food += amount_gathered
-                    elif res.resource_type == "wood":
-                        self.enemy_wood += amount_gathered
-                    elif res.resource_type == "gold":
-                        self.enemy_gold += amount_gathered
-                    if res.amount <= 0:
-                        self.resources.remove(res)
-                        self.message_box.open(f"{res.resource_type} has been depleted.", True)
-                        unit.is_gathering = False
-                        unit.gather_resource_id = None
-                
-                print("food:", self.enemy_food, "wood:", self.enemy_wood, "gold:", self.enemy_gold)
-
+    
     def process_enemy_construction(self):
         completed_villagers = []
 
@@ -984,52 +924,9 @@ class GameplayState:
         # Closes the popup menu
         self.popup_menu.close()
 
-    def end_enemy_day(self):
-        self.player_turn = True 
+    
         
-        self.is_fading = True
-        self.fade_direction = 1
-        self.fade_alpha = 0
-        self.day_processed_mid_fade = False
-        
-    def process_day_transition(self):
-        if self.enemy_pending_techs:
-            for tech in self.enemy_pending_techs:
-                self.complete_research(tech, side='enemy')
-            self.enemy_pending_techs.clear()
-
-        if self.pending_techs:
-            for tech in self.pending_techs:
-                self.complete_research(tech, side='player')
-            self.pending_techs.clear() 
-
-        self.enemy_paths_planned = False
-
-        # Income updates
-        self.process_automatic_gathering()
-        self.process_enemy_gathering()
-
-        # Production phase
-        self.enemy_ai.train_enemy_units(self.e_buildings, self.enemy_units, self)
-
-        # Build queues resolution
-        for building in self.buildings:
-            if getattr(building, 'queued', False):
-                building.is_constructed = True
-                building.queued = False 
-                building.rested()
-
-                for key, value in list(self.construction.items()):
-                    if value == building:
-                        self.construction.pop(key)
-        
-        for building in self.e_buildings:
-            if getattr(building, 'queued', False):
-                building.is_constructed = True
-                building.queued = False 
-
-        # Step time forward
-        self.day += 1
+    
 
     # Checks if conditions to end the game are True
     def check_game_over(self):
@@ -1517,82 +1414,11 @@ class GameplayState:
                             elif keys[pygame.K_RIGHT] and self.selected_tile[0] < PLAYABLE_WIDTH - 1:
                                 self.selected_tile = (self.selected_tile[0] + 1, self.selected_tile[1])
                                 self.tile_move_delay = 10
-            
+
+                self.update_fade_screen()
             # Enemy turn
             else: 
-                if not self.enemy_paths_planned:
-                    self.enemy_ai.execute_turn(
-                        self.enemy_units, 
-                        self.units, 
-                        self.buildings, 
-                        self.resources, 
-                        self.e_buildings, 
-                        self
-                    )
-                    self.enemy_paths_planned = True
-                    self.enemy_turn_index = 0
-                    self.enemy_turn_phase = 'move'
-                    self.enemy_turn_delay = 0
-
-                # If all enemies processed, the enemy turn ends
-                if self.enemy_turn_index >= len(self.enemy_units):
-                    self.end_enemy_day()
-                    return
-
-                enemy = self.enemy_units[self.enemy_turn_index]
-                # Delay between actions for clarity/animation (e.g. 15 frames = 0.25s at 60 FPS)
-                if self.enemy_turn_delay > 0:
-                    self.enemy_turn_delay -= 1
-                    return
-
-                if self.enemy_turn_phase == 'move':
-                    # Animate movement
-                    if enemy.path:
-                        enemy.move_along_path()
-                        self.follow_enemy_camera(enemy)
-                        # Only move one tile per frame or step (for clarity/animation)
-                        self.enemy_turn_delay = 0  # Adjust as needed for game speed
-                        if not enemy.path:
-                            self.enemy_turn_phase = 'attack'
-                    else:
-                        self.enemy_turn_phase = 'attack'
-
-                elif self.enemy_turn_phase == 'attack':
-                    # Try to attack player unit/building
-                    did_attack = False
-                    attack_range = getattr(enemy, "attack_range", 1)
-
-                    # Identify potential targets
-                    targets = [(u, 'unit') for u in self.units if u.health > 0] + \
-                            [(b, 'building') for b in self.buildings if getattr(b, 'hitpoints', 0) > 0]
-
-                    for target, target_type in targets:
-                        dist = abs(enemy.x - target.x) + abs(enemy.y - target.y)
-                        
-                        # Melee must be dist == 1, Ranged must be 1 < dist <= range
-                        is_in_range = (attack_range == 1 and dist == 1) or (attack_range > 1 and 1 < dist <= attack_range)
-
-                        if is_in_range:
-                            # If target is a building, check if a player unit is standing on it (protection)
-                            if target_type == 'building':
-                                if any(int(u.x) == int(target.x) and int(u.y) == int(target.y) for u in self.units):
-                                    continue # Unit protects the building
-
-                            # Calculate and apply damage
-                            defense = target.defense if target_type == 'unit' else getattr(target, 'defense', 1)
-                            damage = ((enemy.attack * (1 + BONUS_MULTIPLYER)) / defense) * 25 + FLAT_BONUS
-                            
-                            if target_type == 'unit':
-                                target.health -= damage
-                                self.retaliate_attack(enemy, target, dist) # Only units retaliate
-                            else:
-                                target.hitpoints -= enemy.attack # Buildings usually take raw attack or scaled damage
-
-                            did_attack = True
-                            break # One attack per turn
-                    self.enemy_turn_delay = 10  # Pause after attack for clarity/animation
-                    self.enemy_turn_index += 1
-                    self.enemy_turn_phase = 'move'
+                self.turn_manager.update_enemy_turn(self)
 
         # Checks health of units and removes dead units
         self.unit_health()

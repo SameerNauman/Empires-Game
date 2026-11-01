@@ -84,7 +84,7 @@ class Renderer:
         
         # Minimap & Screen Fades
         self.draw_tactical_map(game_state, visibility_map)
-        self.update_fade_screen(game_state)
+        self.draw_fade_screen(game_state)
 
     # Returns (draw_tx, draw_ty)
     def draw_coords(self, x, y):
@@ -293,27 +293,9 @@ class Renderer:
         self.screen.blit(sprite, (sprite_x, sprite_y))
         self.screen.blit(surface, (text_x, text_y))
 
-    def update_fade_screen(self, game_state):
+    def draw_fade_screen(self, game_state):
         if not game_state.is_fading:
             return
-
-        # Increment alpha based on step directions
-        game_state.fade_alpha += (game_state.fade_speed * game_state.fade_direction)
-        
-        if game_state.fade_alpha >= 255:
-            game_state.fade_alpha = 255
-            game_state.fade_direction = -1  # Instantly reverse to transparency slide
-            
-            # Fire data alteration calculations exactly once on this frame match
-            if not game_state.day_processed_mid_fade:
-                game_state.process_day_transition()
-                game_state.day_processed_mid_fade = True
-
-        elif game_state.fade_alpha <= 0:
-            game_state.fade_alpha = 0
-            game_state.is_fading = False
-            game_state.day_processed_mid_fade = False  # Ready for the next day's swap
-
         # Render step blit layer over current screen state
         game_state.fade_surface.set_alpha(game_state.fade_alpha)
         self.screen.blit(game_state.fade_surface, (0, 0))
