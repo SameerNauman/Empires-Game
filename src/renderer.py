@@ -84,7 +84,7 @@ class Renderer:
         
         # Minimap & Screen Fades
         self.draw_tactical_map(game_state, visibility_map)
-        self.draw_fade_screen(game_state)
+        game_state.fade_manager.draw(self.screen)
 
     # Returns (draw_tx, draw_ty)
     def draw_coords(self, x, y):
@@ -292,13 +292,6 @@ class Renderer:
 
         self.screen.blit(sprite, (sprite_x, sprite_y))
         self.screen.blit(surface, (text_x, text_y))
-
-    def draw_fade_screen(self, game_state):
-        if not game_state.is_fading:
-            return
-        # Render step blit layer over current screen state
-        game_state.fade_surface.set_alpha(game_state.fade_alpha)
-        self.screen.blit(game_state.fade_surface, (0, 0))
         
     # Displays a circular mini map in the bottom right corner of the screen.
     def draw_tactical_map(self, game_state, visibility_map):

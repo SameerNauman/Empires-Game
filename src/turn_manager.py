@@ -15,9 +15,7 @@ class TurnManager:
     def end_enemy_day(self, game_state):
         game_state.player_turn = True 
         
-        game_state.is_fading = True
-        game_state.fade_direction = 1
-        game_state.fade_alpha = 0
+        game_state.fade_manager.start_fade()
         game_state.day_processed_mid_fade = False
 
     # Activates tech researched from buildings.

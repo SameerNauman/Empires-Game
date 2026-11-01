@@ -2,6 +2,7 @@ import pygame, sys
 from message_box import MessageBox
 from pop_up_menu import PopupMenu
 from animated_sprite import AnimatedSprite
+from fade_manager import FadeManager
 from config import *
 
 class Menu():
@@ -21,15 +22,10 @@ class Menu():
 
         # Controls menu state. When True, the controls menu is displayed; when False, the main menu is displayed.
         self.open_controls_menu = False
+        self.next_menu_state = None
 
         # Fade Screen transition
-        self.fade_alpha = 0
-        self.fade_speed = 8  # Speed of the fade
-        self.is_fading = False
-        self.fade_direction = 1 # 1 for fading to black, -1 for fading to transparent
-        self.next_menu_state = None 
-        self.fade_surface = pygame.Surface((w, h))
-        self.fade_surface.fill((0, 0, 0))
+        self.fade_manager = FadeManager()
 
         # UI elements
         self.load_ui_elements()
@@ -120,9 +116,8 @@ class Menu():
     # Sets the state of the controls menu. If 'active' is True, the controls menu will be displayed; if False, the main 
     # menu will be displayed.
     def set_control_menu(self, active):
-        self.is_fading = True
-        self.fade_direction = 1
         self.next_menu_state = active
+        self.fade_manager.start_fade()
 
     # Draws the controls menu on the display surface. It displays the control sprites and their corresponding labels.
     def draw_controls_menu(self, width, height):
@@ -182,34 +177,21 @@ class Menu():
         if self.popup_menu.is_open:
             self.popup_menu.draw(self.display)
 
-        if self.is_fading:
-            self.fade_alpha += (self.fade_speed * self.fade_direction)
+        # Update and draw the fade transition
+        fade_event = self.fade_manager.update()
+        self.fade_manager.draw(self.display)
+
+        # When the screen hits peak blackness, swap the menu content safely
+        if fade_event == "PEAK_BLACK":
+            self.popup_menu.is_open = False
+            self.open_controls_menu = self.next_menu_state
             
-            # Logic when fully black
-            if self.fade_alpha >= 255:
-                self.fade_alpha = 255
-                self.fade_direction = -1 # Start fading back in
-
-                self.popup_menu.is_open = False
-                
-                # Switch the actual content here while screen is black
-                self.open_controls_menu = self.next_menu_state
-                # self.popup_menu.is_open = False # Reset popup for fresh state
-                
-                if self.open_controls_menu:
-                    options = ["Main Menu", "Quit"]
-                    actions = {"Main Menu": lambda: self.set_control_menu(active=False), "Quit": self.quit_game}
-                    self.popup_menu.open(options, actions)
-                else:
-                    self.main_options(force=True)
-
-            # Logic when fade back in is finished
-            elif self.fade_alpha <= 0:
-                self.fade_alpha = 0
-                self.is_fading = False
-
-            self.fade_surface.set_alpha(self.fade_alpha)
-            self.display.blit(self.fade_surface, (0, 0))
+            if self.open_controls_menu:
+                options = ["Main Menu", "Quit"]
+                actions = {"Main Menu": lambda: self.set_control_menu(active=False), "Quit": self.quit_game}
+                self.popup_menu.open(options, actions)
+            else:
+                self.main_options(force=True)
 
     # Handles user input events. It processes quit events, key presses for navigating the popup menu, and selection actions.
     def run(self, events):

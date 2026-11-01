@@ -1,6 +1,7 @@
 import pygame
 import sys
 from asset_manager import AssetManager
+from fade_manager import FadeManager
 from states.gameplay_state import GameplayState
 from states.menu import Menu
 from states.startup import StartUp
@@ -132,16 +133,11 @@ class GameStateManager():
         # Reference to the states dictionary, which holds the state names and their corresponding objects. This allows the game state
         # manager to access the states by name and call their methods during transitions.
         self.states_ref = None
-
         self.player_faction = None
+
+        # Initialize fade manager to handle transitions between states and at the end of a day.
+        self.fade_manager = FadeManager()
         
-        # Transition Variables.
-        self.fade_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
-        self.fade_surface.fill((0, 0, 0))
-        self.fade_alpha = 0
-        # Fade speed controls how quickly the fade effect occurs. A higher value results in a faster fade.
-        self.fade_speed = 8
-        self.fade_direction = 1  # 1 for out (to black), -1 for in (to transparent)
         # is_transitioning indicates whether a transition is currently in progress. If True, the game is in the process of fading out and
         # then fading in to the new state. pending_state holds the name of the state to transition to, and pending_kwargs holds any
         # additional arguments that need to be passed to the new state during the transition.
@@ -159,12 +155,15 @@ class GameStateManager():
     def set_state(self, state, use_fade=True, **kwargs):
         if use_fade:
             self.is_transitioning = True
-            self.fade_direction = 1
             self.pending_state = state
-            self.pending_kwargs = kwargs 
+            self.pending_kwargs = kwargs
+            self.fade_manager.start_fade()
         else:
             self.current_state = state
             self.pending_kwargs = {}
+            target_state_obj = self.states_ref.get(self.current_state) if self.states_ref else None
+            if target_state_obj and hasattr(target_state_obj, "enter"):
+                target_state_obj.enter(**kwargs)
 
     # Updates the fade effect during a state transition. This method is called in the main game loop to gradually change the alpha
     # value of the fade surface, creating a fade-out and fade-in effect. When the fade-out is complete, the current state is updated
@@ -174,34 +173,29 @@ class GameStateManager():
         if not self.is_transitioning:
             return
 
-        # Update the fade alpha value based on the fade speed and direction.
-        self.fade_alpha += (self.fade_speed * self.fade_direction)
+        # Update the fade and capture any event signal returned
+        fade_event = self.fade_manager.update()
+        
+        # Draw the fade overlay over the screen
+        self.fade_manager.draw(self.screen)
 
-        # Check if the fade-out is complete (alpha >= 255) and switch to the pending state. If the fade-in is complete (alpha <= 0),
-        # reset the transition state and allow the game to continue.
-        if self.fade_alpha >= 255 and self.fade_direction == 1:
-            self.fade_alpha = 255
+        if fade_event == "PEAK_BLACK":
             self.current_state = self.pending_state
-            self.fade_direction = -1
 
             # After switching to the new state, check if the new state object exists in the states reference. if it does, and if it
             #  has an "enter" method, call that method with any additional keyword arguments that were passed during 
             # the transition. This allows the new state to initialize itself with any necessary data. kwargs include factions, and later
             # on, colors, etc.
             target_state_obj = self.states_ref.get(self.current_state) if self.states_ref else None
-            if target_state_obj:
-                if hasattr(target_state_obj, "enter"):
-                    target_state_obj.enter(**self.pending_kwargs)
+            if target_state_obj and hasattr(target_state_obj, "enter"):
+                target_state_obj.enter(**self.pending_kwargs)
 
             # Clear dictionary of pending kwargs after they have been passed to the new state.
             self.pending_kwargs = {}
 
-        elif self.fade_alpha <= 0 and self.fade_direction == -1:
-            self.fade_alpha = 0
+        # When the fade-in finishes completely, end the transition state
+        if not self.fade_manager.is_fading and self.is_transitioning and self.fade_manager.fade_alpha == 0:
             self.is_transitioning = False
-
-        self.fade_surface.set_alpha(self.fade_alpha)
-        self.screen.blit(self.fade_surface, (0, 0))
 
 if __name__ == "__main__":
     main = Main()

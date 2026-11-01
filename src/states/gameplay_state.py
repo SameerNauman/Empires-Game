@@ -1,6 +1,7 @@
 import pygame
 from renderer import Renderer
 from turn_manager import TurnManager
+from fade_manager import FadeManager
 from units.base_units import BaseUnits
 from buildings.base_buildings import BaseBuildings
 from resources.resource_source import ResourceSource
@@ -68,13 +69,8 @@ class GameplayState:
         self.player_faction = player_faction
         self.enemy_faction = enemy_faction
         # Fade day
-        self.fade_alpha = 0
-        self.fade_speed = 8  
-        self.is_fading = False
-        self.fade_direction = 1  
+        self.fade_manager = FadeManager()
         self.day_processed_mid_fade = False
-        self.fade_surface = pygame.Surface((w, h))
-        self.fade_surface.fill((0, 0, 0))
         # Minimap dimensions and positioning
         self.minimap_size = int(h * 0.42)
         self.radius = self.minimap_size // 2
@@ -368,25 +364,18 @@ class GameplayState:
                 self.resources.remove(resource)
 
     def update_fade_screen(self):
-        if not self.is_fading:
-            return
+        # Update the fade manager each frame and catch any peak-black event
+        fade_event = self.fade_manager.update()
 
-        # Increment alpha based on step directions
-        self.fade_alpha += (self.fade_speed * self.fade_direction)
-        
-        if self.fade_alpha >= 255:
-            self.fade_alpha = 255
-            self.fade_direction = -1  # Instantly reverse to transparency slide
-            
-            # Fire data alteration calculations exactly once on this frame match
+        # Fire data alteration calculations exactly once when the screen is fully dark
+        if fade_event == "PEAK_BLACK":
             if not self.day_processed_mid_fade:
                 self.turn_manager.process_day_transition(self)
                 self.day_processed_mid_fade = True
 
-        elif self.fade_alpha <= 0:
-            self.fade_alpha = 0
-            self.is_fading = False
-            self.day_processed_mid_fade = False  # Ready for the next day's swap
+        # Reset the mid-fade flag once the fade-in finishes completely
+        if not self.fade_manager.is_fading:
+            self.day_processed_mid_fade = False
                 
 # === UNIT ACTIONS ===
 
