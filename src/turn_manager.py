@@ -106,6 +106,24 @@ class TurnManager:
                 
                 print("food:", game_state.enemy_food, "wood:", game_state.enemy_wood, "gold:", game_state.enemy_gold)
 
+    # def process_enemy_construction(self, game_state):
+    #         completed_villagers = []
+    
+    #         for villager, building in game_state.enemy_construction_tasks.items():
+    #             # Check if the villager is still alive and at the correct location
+    #             if villager.health > 0 and int(villager.x) == int(building.x) and int(villager.y) == int(building.y):
+    #                 building.is_constructed = True
+    #                 building.rested() # Reset action counts for the new building
+    #                 completed_villagers.append(villager)
+    #                 print(f"AI finished building: {building.type}")
+    #             else:
+    #                 # If the villager walked away or died, stop the task
+    #                 completed_villagers.append(villager)
+    
+    #         # Clean up the dictionary so villagers can take new jobs
+    #         for v in completed_villagers:
+    #             del game_state.enemy_construction_tasks[v]
+    
     def process_entity_health(self, game_state):
         # Player units
         for unit in game_state.units:

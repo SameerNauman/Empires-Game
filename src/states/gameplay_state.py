@@ -823,24 +823,7 @@ class GameplayState:
 # === RESOURCE GATHERING ===
 
     
-    def process_enemy_construction(self):
-        completed_villagers = []
-
-        for villager, building in self.enemy_construction_tasks.items():
-            # Check if the villager is still alive and at the correct location
-            if villager.health > 0 and int(villager.x) == int(building.x) and int(villager.y) == int(building.y):
-                building.is_constructed = True
-                building.rested() # Reset action counts for the new building
-                completed_villagers.append(villager)
-                print(f"AI finished building: {building.type}")
-            else:
-                # If the villager walked away or died, stop the task
-                completed_villagers.append(villager)
-
-        # Clean up the dictionary so villagers can take new jobs
-        for v in completed_villagers:
-            del self.enemy_construction_tasks[v]
-
+    
     # Handles the transition to the next age for both the player or enemy
     def attempt_age_up(self, side):
         
