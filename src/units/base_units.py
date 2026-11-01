@@ -2,6 +2,7 @@ import pygame
 from config import *
 
 class BaseUnits:
+    # Static variable to keep track of the next available ID for units
     next_id = 1
     def __init__(self, x, y, movement, attack, defense, attack_range=1, speed=0.1, health=100, type="Unknown"):
         self.x = x
@@ -14,6 +15,7 @@ class BaseUnits:
         self.attack = attack
         self.defense = defense
         self.selected = False
+        # Pathfinding attributes
         self.path = []
         self.previous_position = (x,y)
         self.action_count = 0
@@ -21,6 +23,7 @@ class BaseUnits:
         self.type = type
         self.id = BaseUnits.next_id
         BaseUnits.next_id += 1
+        # Resource gathering attributes
         self.is_gathering = False
         self.is_building = False
         self.gather_resource_id = None
@@ -28,11 +31,13 @@ class BaseUnits:
         self.direction = "S"
 
         self.update_vision_coords()
-    
+
+    # Update vision coordinates based on the unit's current position
     def update_vision_coords(self):
             self.vision_x = int(self.x)
             self.vision_y = int(self.y)
 
+    # Get the vision range of the unit, considering any game multipliers
     def get_vision_range(self, game_multipliers):
         bonus = game_multipliers.get("unit_vision", 0)
         return self.base_vision + bonus
