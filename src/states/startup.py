@@ -6,12 +6,14 @@ from config import *
 
 class StartUp():
     def __init__(self, screen, game_state_manager):
+        # Initialize the StartUp state with the provided screen and game state manager.
         self.display = screen
         w, h = SCREEN_WIDTH, SCREEN_HEIGHT
         self.game_state_manager = game_state_manager
 
         self.font = pygame.font.SysFont("Times New Roman", 60)
 
+        # Initialize variables to manage the selection phase and store player and enemy faction and color choices.
         self.pending_faction_choice = None
         self.selection_phase = "player"
         self.player_faction = None
@@ -19,13 +21,13 @@ class StartUp():
         self.enemy_faction = None
         self.enemy_color = None
 
+        # Load UI elements, color icons, and animated screens for the startup state.
         self.load_ui_elements()
-
         self.color_icons = {}
         self.load_color_icons()
-
         self.load_animated_screens()
 
+        # Initialize the message box and popup menus for faction and color selection.
         self.message_box = MessageBox(self.display, w, h, self.ui_elements["message_box"])
         self.error_message = True
 
@@ -34,16 +36,22 @@ class StartUp():
             sprite_key="popup_menu", state="menu"
         )
 
+        # Currently used for color selection, will change to regular popup menu in the future.
         self.building_menu = PopupMenu(
             [], {}, 0, 0, self.ui_elements, self.message_box, 
             sprite_key="building_menu", side="right"
         )
 
+        # Start the faction selection process for the player.
         self.faction_selection()
-    
+
+    # Could we package the loading into a single file or function in the future?
+
+    # Load UI elements from the specified paths and store them in a dictionary for easy access.
     def load_ui_elements(self):
         self.ui_elements = {}
         for element_name, data in UI_ELEMENTS.items():
+            # Check if the data is a dictionary (for elements with multiple states) or a single filename, and load the corresponding images.
             if isinstance(data, dict):
                 self.ui_elements[element_name] = {}
                 for sub_key, filename in data.items():
@@ -57,6 +65,7 @@ class StartUp():
                 full_path = os.path.join(UI_ELEMENTS_PATH, data)
                 self.ui_elements[element_name] = pygame.image.load(full_path).convert_alpha()
 
+    # Load color icons from the specified paths and store them in a dictionary for easy access.
     def load_color_icons(self):
         for color_name, filename in COLOR_ICONS.items():
             full_path = os.path.join(COLOR_ICONS_PATH, filename)
@@ -66,6 +75,7 @@ class StartUp():
             except pygame.error as e:
                 print(f"[UI ERROR] Unable to load color asset texture {filename} from path {COLOR_ICONS_PATH}: {e}")
 
+    # Load animated screens from the specified paths and store them in a dictionary for easy access.
     def load_animated_screens(self):
         self.animated_sprites = {}
 
@@ -78,6 +88,7 @@ class StartUp():
             
             self.animated_sprites[name] = AnimatedSprite(full_path, rows, cols)
 
+    # Display the current frame of the specified animated screen on the display surface.
     def display_animated_screens(self, name):
         anim = self.animated_sprites.get(name)
         if not anim: return
@@ -91,6 +102,7 @@ class StartUp():
             rect = sprite.get_rect(topleft=(0, 0))
             self.display.blit(sprite, rect)
 
+    # Draw text with a shadow effect on the display surface at the specified position and color.
     def draw_text_with_shadow(self, text, color, position, offset=(2, 2)):
         shadow_surf = self.font.render(text, True, (20, 20, 20))
         shadow_pos = (position[0] + offset[0], position[1] + offset[1])
@@ -99,6 +111,7 @@ class StartUp():
         main_surf = self.font.render(text, True, color)
         self.display.blit(main_surf, position)
 
+    # Handle the faction selection process for the player, displaying a popup menu with available options and corresponding actions.
     def faction_selection(self):
         if self.popup_menu.is_open: 
             return
@@ -112,6 +125,7 @@ class StartUp():
 
         self.popup_menu.open(options, actions)
     
+    # Handle the faction selection process for the enemy, displaying a popup menu with available options and corresponding actions.
     def enemy_faction_selection(self):
         if self.popup_menu.is_open:
             return
@@ -125,6 +139,7 @@ class StartUp():
 
         self.popup_menu.open(options, actions)
 
+    # Set the faction for the current player or enemy based on the selection.
     def set_faction(self, faction):
         self.popup_menu.close()
         self.popup_menu.is_open = False
@@ -146,6 +161,7 @@ class StartUp():
                 self.enemy_faction = faction
                 self.enemy_color_selection()
 
+    # Handle the color selection process for the player, displaying a popup menu with available options and corresponding actions.
     def color_selection(self):
         if self.building_menu.is_open: 
             return
@@ -174,6 +190,7 @@ class StartUp():
         self.popup_menu.close()
         self.building_menu.open(options, actions)
 
+    # Handle the color selection process for the enemy, displaying a popup menu with available options and corresponding actions.
     def enemy_color_selection(self):
         if self.building_menu.is_open:
             return
@@ -202,6 +219,7 @@ class StartUp():
         self.popup_menu.close()
         self.building_menu.open(options, actions)
 
+    # Set the color for the current player or enemy based on the selection.
     def set_color(self, color):
         self.building_menu.close()
         self.building_menu.is_open = False
@@ -234,6 +252,7 @@ class StartUp():
         pygame.quit()
         sys.exit()
 
+    # Draw the current state of the startup screen, including the animated title, selection prompts, and any open popup menus.
     def draw(self):
         w, h = self.display.get_size()
         self.display.fill((0, 0, 0))
@@ -256,6 +275,7 @@ class StartUp():
         if self.building_menu.is_open:
             self.building_menu.draw(self.display)
 
+    # Run the main game loop for the startup state, handling events and updating the display.
     def run(self, events):
         for event in events:
             if event.type == pygame.QUIT:
