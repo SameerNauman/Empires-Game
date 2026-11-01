@@ -52,6 +52,7 @@ class TargetAquisition():
                 return enemy
         return None
 
+    # returns True if any enemy unit is within the attack range of the selected tile, False otherwise
     def any_ranged_enemy_in_range(self, selected_tile, attack_range, enemy_units):
         tx, ty = selected_tile
         for enemy in enemy_units:
@@ -59,21 +60,25 @@ class TargetAquisition():
             if 1 < dist <= attack_range:
                 return True
         return False
-    
+
+    # returns a list of all enemy units that are within the attack range of the selected tile
     def all_ranged_enemies(self, pos, attack_range, enemy_units):
         tx, ty = pos
         return [
             e for e in enemy_units
             if 1 < abs(int(e.x) - tx) + abs(int(e.y) - ty) <= attack_range  # Only targets at distance > 1!
         ]
-        
+
+    # returns a list of all enemy units that are adjacent to the selected tile    
     def all_adjacent_enemies(self, pos, enemy_units):
         tx, ty = pos
         return [
             e for e in enemy_units
             if abs(int(e.x) - tx) + abs(int(e.y) - ty) == 1
         ]
-    
+
+    # returns a list of all enemy buildings that are adjacent to the selected tile, excluding any 
+    # buildings that have a living enemy unit on them
     def all_adjacent_buildings(self, pos, enemy_buildings, enemy_units):
         tx, ty = pos
         result = []
@@ -85,6 +90,7 @@ class TargetAquisition():
                     result.append(b)
         return result
 
+    # returns a list of all enemy buildings that are within the attack range of the selected tile, excluding any
     def all_ranged_buildings(self, pos, attack_range, enemy_buildings, enemy_units):
         tx, ty = pos
         result = []
@@ -94,7 +100,8 @@ class TargetAquisition():
                 if not self.is_unit_on_building(b, enemy_units):
                     result.append(b)
         return result
-    
+
+    # returns True if any enemy building is within the attack range of the selected tile, False otherwise
     def is_unit_on_building(self, building, units):
         bx, by = int(building.x), int(building.y)
         for u in units:
