@@ -803,16 +803,10 @@ class GameplayState:
         # Mark building as used so they can't research twice in one turn
         building.rest()
         building.selected = False
-        building.selected_building_id = None
+        self.selected_building_id = None
         self.popup_menu.close()
         self.message_box.close()
 
-   
-
-# === RESOURCE GATHERING ===
-
-    
-    
     # Handles the transition to the next age for both the player or enemy
     def attempt_age_up(self, side):
         
