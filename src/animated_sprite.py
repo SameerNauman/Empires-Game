@@ -1,5 +1,6 @@
 import pygame
 
+# A class to manage animated sprites
 class AnimatedSprite:
     def __init__(self, full_path, rows, cols, animation_speed=0.15):
         self.frames = self._load_frames(full_path, rows, cols)
@@ -7,8 +8,8 @@ class AnimatedSprite:
         self.animation_speed = animation_speed
         self.current_frame = 0
 
+    # Load frames from a sprite sheet and slice them into individual frames
     def _load_frames(self, path, rows, cols):
-        """Slices the sheet and returns a list of surfaces."""
         try:
             sheet = pygame.image.load(path).convert_alpha()
         except pygame.error as e:
@@ -28,11 +29,13 @@ class AnimatedSprite:
                 frames.append(frame)
         return frames
 
+    # Update the animation frame
     def update(self):
         self.current_frame += self.animation_speed
         if self.current_frame >= self.total_frames:
             self.current_frame = 0
 
+    # Get the current frame of the animation
     def get_current_frame(self):
         if not self.frames: return None
         return self.frames[int(self.current_frame)]
