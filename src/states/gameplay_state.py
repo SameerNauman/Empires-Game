@@ -924,10 +924,6 @@ class GameplayState:
         # Closes the popup menu
         self.popup_menu.close()
 
-    
-        
-    
-
     # Checks if conditions to end the game are True
     def check_game_over(self):
         # If there are no player units or buildings end the game
@@ -1179,40 +1175,6 @@ class GameplayState:
                     self.selected_unit.is_gathering = False
                     self.selected_unit.gather_resource_id = None
 
-# === UNIT / BUILDING HEALTH ===
-
-    # Checks health of units and removes dead ones
-    def unit_health(self):
-        for unit in self.units:
-            if unit.health <= 0:
-                print(f"Player at ({unit.x},{unit.y}) is defeated!")
-                # Remove any dead units from construction dictionary.
-                for key in list(self.construction):
-                    if key == unit:
-                        self.construction.pop(key)
-                self.units.remove(unit)
-
-    # Checks health of buildings and removes destroyed ones
-    def building_health(self):
-        for building in self.buildings:
-            if building.hitpoints <= 0:
-                print(f"Building at ({building.x},{building.y}) is destroyed!")
-                self.buildings.remove(building)
-
-    # Checks health of enemy units and removes dead ones
-    def enemy_unit_health(self):
-        for enemy in self.enemy_units:
-            if enemy.health <= 0:
-                self.enemy_units.remove(enemy)
-                print(enemy, "died")
-
-    # Checks health of enemy buildings and removes destroyed ones
-    def enemy_building_health(self):
-        for eb in self.e_buildings:
-            if eb.hitpoints <= 0:
-                print(f"Building at ({eb.x},{eb.y}) is destroyed!")
-                self.e_buildings.remove(eb)
-
 # === MISC. ===
 
     # Checks if the selected tile is adjacent to a mill for farm building   
@@ -1419,15 +1381,6 @@ class GameplayState:
             # Enemy turn
             else: 
                 self.turn_manager.update_enemy_turn(self)
-
-        # Checks health of units and removes dead units
-        self.unit_health()
-        # Checks health of buildings and removes destroyed buildings
-        self.building_health()
-        # Checks health of enemy units and removes dead units
-        self.enemy_unit_health()
-        # checks health of enemy buildings and removes destroyed buildings
-        self.enemy_building_health()
         
         # Check if the condition to end the game is true
         self.game_over = self.check_game_over()

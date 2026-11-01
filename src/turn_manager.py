@@ -105,48 +105,36 @@ class TurnManager:
                         unit.gather_resource_id = None
                 
                 print("food:", game_state.enemy_food, "wood:", game_state.enemy_wood, "gold:", game_state.enemy_gold)
-    
-    def process_day_transition(self, game_state):
-        # Completes any pending enemy techs and then clears the pending queue
-        if game_state.enemy_pending_techs:
-            for tech in game_state.enemy_pending_techs:
-                self.complete_research(tech, game_state, side='enemy')
-            game_state.enemy_pending_techs.clear()
 
-        # Completes any pending player techs and then clears the pending queue
-        if game_state.pending_techs:
-            for tech in game_state.pending_techs:
-                self.complete_research(tech, game_state, side='player')
-            game_state.pending_techs.clear() 
-
-        self.enemy_paths_planned = False
-
-        # Income updates
-        self.process_automatic_gathering(game_state)
-        self.process_enemy_gathering(game_state)
-
-        # Production phase
-        self.enemy_ai.train_enemy_units(game_state)
-
-        # Build queues resolution
-        for building in game_state.buildings:
-            if getattr(building, 'queued', False):
-                building.is_constructed = True
-                building.queued = False 
-                building.rested()
-
-                for key, value in list(game_state.construction.items()):
-                    if value == building:
+    def process_entity_health(self, game_state):
+        # Player units
+        for unit in game_state.units:
+            if unit.health <= 0:
+                print(f"Player at ({unit.x},{unit.y}) is defeated!")
+                # Remove any dead units from construction dictionary.
+                for key in list(game_state.construction):
+                    if key == unit:
                         game_state.construction.pop(key)
+                game_state.units.remove(unit)
+
+        # Player buildings
+        for building in game_state.buildings:
+            if building.hitpoints <= 0:
+                print(f"Building at ({building.x},{building.y}) is destroyed!")
+                game_state.buildings.remove(building)
+
+        # Enemy units
+        for enemy in game_state.enemy_units:
+            if enemy.health <= 0:
+                game_state.enemy_units.remove(enemy)
+                print(enemy, "died")
+
+        # Enemy buildings
+        for eb in game_state.e_buildings:
+            if eb.hitpoints <= 0:
+                print(f"Building at ({eb.x},{eb.y}) is destroyed!")
+                game_state.e_buildings.remove(eb)
         
-        for building in game_state.e_buildings:
-            if getattr(building, 'queued', False):
-                building.is_constructed = True
-                building.queued = False 
-
-        # Step time forward
-        game_state.day += 1
-
     # Updates the enemy unit paths.
     def update_enemy_turn(self, game_state):
         if not self.enemy_paths_planned:
@@ -222,3 +210,46 @@ class TurnManager:
             self.enemy_turn_delay = 10  # Pause after attack for clarity/animation
             self.enemy_turn_index += 1
             self.enemy_turn_phase = 'move'
+    
+    def process_day_transition(self, game_state):
+        # Completes any pending enemy techs and then clears the pending queue
+        if game_state.enemy_pending_techs:
+            for tech in game_state.enemy_pending_techs:
+                self.complete_research(tech, game_state, side='enemy')
+            game_state.enemy_pending_techs.clear()
+
+        # Completes any pending player techs and then clears the pending queue
+        if game_state.pending_techs:
+            for tech in game_state.pending_techs:
+                self.complete_research(tech, game_state, side='player')
+            game_state.pending_techs.clear() 
+
+        self.enemy_paths_planned = False
+
+        # Income updates
+        self.process_automatic_gathering(game_state)
+        self.process_enemy_gathering(game_state)
+
+        # Production phase
+        self.enemy_ai.train_enemy_units(game_state)
+
+        # Build queues resolution
+        for building in game_state.buildings:
+            if getattr(building, 'queued', False):
+                building.is_constructed = True
+                building.queued = False 
+                building.rested()
+
+                for key, value in list(game_state.construction.items()):
+                    if value == building:
+                        game_state.construction.pop(key)
+        
+        for building in game_state.e_buildings:
+            if getattr(building, 'queued', False):
+                building.is_constructed = True
+                building.queued = False 
+
+        # Check entity health
+        self.process_entity_health(game_state)
+        # Step time forward
+        game_state.day += 1
