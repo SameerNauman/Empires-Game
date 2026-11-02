@@ -38,77 +38,182 @@ class Renderer:
                 anim.update()
                 self.screen.blit(sprite, (0, 0))
 
-        # Determine title (Only 2 steps now: 0 = Player Faction, 1 = Enemy Faction)
-        if startup.step == 0:
-            title = "Select Player Faction"
-        else:
-            title = "Select Enemy Faction"
-            
-        current_list = startup.factions
-
-        # Draw Header
-        title_rect = self.font.render(title, True, "#C0C0C0").get_rect(center=(w // 2, h // 4))
+        # Main Header
+        title = "Select Factions"
+        title_rect = self.font.render(title, True, "#C0C0C0").get_rect(center=(w // 2, int(h*0.12)))
         self.draw_text_with_shadow(title, "#C0C0C0", title_rect.topleft)
 
-        # Smooth Lerp for Continuous Scroll Position
-        startup.scroll_pos += (startup.target_scroll_pos - startup.scroll_pos) * 0.15
-
-        # === CAROUSEL VIEWPORT FRAME ===
         card_bg = self.assets.ui_elements.get("carousel")
         if card_bg:
             card_w, card_h = card_bg.get_size()
         else:
             card_w, card_h = 240, 140
 
-        viewport_width = 750
+        frame_img = self.assets.ui_elements.get("carousel_frame")
+
+        viewport_width = 700
         viewport_height = card_h + 10
-        viewport_rect = pygame.Rect(0, 0, viewport_width, viewport_height)
-        viewport_rect.center = (w // 2, h // 2)
 
-        pygame.draw.rect(self.screen, (60, 50, 40), viewport_rect.inflate(6, 6), border_radius=4)
-        pygame.draw.rect(self.screen, (20, 20, 20), viewport_rect, border_radius=2)
+        carousel_centers_y = [int(h * 0.30), int(h * 0.52)]
+        labels = ["Player 1 Faction", "Player 2 Faction"]
 
-        # Set clipping region
-        self.screen.set_clip(viewport_rect)
+        for idx in range(2):
+            # Smooth Lerp for Continuous Scroll Position per carousel
+            startup.scroll_pos[idx] += (startup.target_scroll_pos[idx] - startup.scroll_pos[idx]) * 0.15
 
-        num_items = len(current_list)
-        center_x = viewport_rect.centerx
-        center_y = viewport_rect.centery
-        base_idx = int(math.floor(startup.scroll_pos))
+            cy = carousel_centers_y[idx]
+            viewport_rect = pygame.Rect(0, 0, viewport_width, viewport_height)
+            viewport_rect.center = (w // 2, cy)
 
-        for i in range(-2, 3):
-            item_index = (base_idx + i) % num_items
-            item_text = current_list[item_index]
+            # Draw label centered on top of each carousel box
+            is_focused = (startup.focus_index == idx)
+            label_color = "#FFD700" if is_focused else "#A0A0A0"
+            lbl_surf = self.small_font.render(labels[idx], True, label_color)
+            lbl_rect = lbl_surf.get_rect(midbottom=(w // 2, viewport_rect.top - 8))
+            self.draw_text_with_shadow(labels[idx], label_color, lbl_rect.topleft, font=self.small_font)
 
-            slot_x = center_x + ((base_idx + i - startup.scroll_pos) * startup.slot_width)
+            # Frame geometry
+            rect_w = viewport_width // 2
+            rect_left = viewport_rect.left + (viewport_width // 4)
+            rect_right = viewport_rect.right - (viewport_width // 4)
 
-            if viewport_rect.left - 200 < slot_x < viewport_rect.right + 200:
-                distance_from_center = abs(slot_x - center_x)
-                is_selected = distance_from_center < (startup.slot_width / 2.0)
+            banner_points = [
+                (viewport_rect.left, viewport_rect.centery),  # Left triangle tip meeting the border
+                (rect_left, viewport_rect.top),               # Top-left of central rectangle
+                (rect_right, viewport_rect.top),              # Top-right of central rectangle
+                (viewport_rect.right, viewport_rect.centery), # Right triangle tip meeting the border
+                (rect_right, viewport_rect.bottom),           # Bottom-right of central rectangle
+                (rect_left, viewport_rect.bottom)             # Bottom-left of central rectangle
+            ]
 
-                # Render native sprite
-                if card_bg:
-                    card_rect = card_bg.get_rect(center=(int(slot_x), center_y))
-                    self.screen.blit(card_bg, card_rect)
+            trans_surface = pygame.Surface((viewport_width, viewport_height), pygame.SRCALPHA)
+            
+            local_banner_points = [
+                (pt[0] - viewport_rect.left, pt[1] - viewport_rect.top) 
+                for pt in banner_points
+            ]
+
+            # Fill the stylized polygon shape with translucent dark color
+            pygame.draw.polygon(trans_surface, (15, 15, 20, 160), local_banner_points)
+
+            # Apply the reverse vignette inside the banner surface
+            fade_width = 500
+            center_x_local = viewport_width // 2
+            
+            for f_x in range(viewport_width):
+                dist_from_center = abs(f_x - center_x_local)
+                if dist_from_center < fade_width:
+                    ratio = 1.0 - (dist_from_center / fade_width)
+                    alpha_val = int(180 * (ratio ** 1.5)) 
                 else:
-                    card_rect = pygame.Rect(0, 0, card_w, card_h)
-                    card_rect.center = (int(slot_x), center_y)
-                    pygame.draw.rect(self.screen, (40, 40, 40), card_rect, border_radius=4)
-                    pygame.draw.rect(self.screen, (100, 100, 100), card_rect, 2, border_radius=4)
+                    alpha_val = 0
 
-                # Item label text centered cleanly in the card frame
-                text_color = "#FFD700" if is_selected else "#A0A0A0"
-                txt_surf = self.small_font.render(item_text, True, text_color)
-                txt_rect = txt_surf.get_rect(center=(int(slot_x), center_y))
-                self.screen.blit(txt_surf, txt_rect)
+                if alpha_val > 0:
+                    edge_fade_surf = pygame.Surface((1, viewport_height), pygame.SRCALPHA)
+                    edge_fade_surf.fill((0, 0, 0, alpha_val))
+                    trans_surface.blit(edge_fade_surf, (f_x, 0), special_flags=pygame.BLEND_RGBA_MIN)
 
-        # Reset clipping region
-        self.screen.set_clip(None)
+            # Blit banner background + vignette
+            self.screen.blit(trans_surface, viewport_rect.topleft)
 
-        # Draw footer instructions
-        instructions = "Use A/D or Left/Right to Cycle | LSHIFT to Select | ESC to Back"
-        inst_rect = self.small_font.render(instructions, True, "#C0C0C0").get_rect(center=(w // 2, (h // 8) * 7))
-        self.draw_text_with_shadow(instructions, "#C0C0C0", inst_rect.topleft, font=self.small_font, surface=self.screen)
+            # Create a content surface for the carousel items
+            content_surf = pygame.Surface((viewport_width, viewport_height), pygame.SRCALPHA)
+
+            num_items = len(startup.factions)
+            center_x_global = viewport_rect.centerx
+            local_center_y = viewport_height // 2
+            base_idx = int(math.floor(startup.scroll_pos[idx]))
+
+            for i in range(-2, 3):
+                item_index = (base_idx + i) % num_items
+                item_text = startup.factions[item_index]
+
+                slot_x_global = center_x_global + ((base_idx + i - startup.scroll_pos[idx]) * startup.slot_width)
+                local_slot_x = int(slot_x_global - viewport_rect.left)
+
+                if -200 < local_slot_x < viewport_width + 200:
+                    distance_from_center = abs(local_slot_x - center_x_local) # relative to screen center or content center
+                    is_selected = abs(slot_x_global - center_x_global) < (startup.slot_width / 2.0)
+
+                    # Render native sprite with translucency onto content_surf
+                    if card_bg:
+                        card_bg.set_alpha(100)
+                        card_rect = card_bg.get_rect(center=(local_slot_x, local_center_y))
+                        content_surf.blit(card_bg, card_rect)
+                    else:
+                        fallback_surf = pygame.Surface((card_w, card_h), pygame.SRCALPHA)
+                        fallback_surf.fill((40, 40, 40, 180))
+                        pygame.draw.rect(fallback_surf, (100, 100, 100, 180), fallback_surf.get_rect(), 2, border_radius=4)
+                        card_rect = fallback_surf.get_rect(center=(local_slot_x, local_center_y))
+                        content_surf.blit(fallback_surf, card_rect)
+
+                    # Item label text onto content_surf
+                    text_color = "#00FFFF" if is_selected else "#A0A0A0"
+                    txt_surf = self.small_font.render(item_text, True, text_color)
+                    txt_rect = txt_surf.get_rect(center=(local_slot_x, local_center_y))
+                    content_surf.blit(txt_surf, txt_rect)
+
+            # Create polygon mask surface to clip items strictly inside the banner shape
+            mask_surf = pygame.Surface((viewport_width, viewport_height), pygame.SRCALPHA)
+            mask_surf.fill((0, 0, 0, 0))
+            pygame.draw.polygon(mask_surf, (255, 255, 255, 255), local_banner_points)
+
+            # Apply polygon mask multiplication
+            content_surf.blit(mask_surf, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+
+            # Blit the strictly clipped sprites and text onto the screen
+            self.screen.blit(content_surf, viewport_rect.topleft)
+
+            if frame_img:
+                frame_rect = frame_img.get_rect(center=viewport_rect.center)
+                self.screen.blit(frame_img, frame_rect)
+
+        # Main menu button
+        btn_y = int(h * 0.70)
+        btn_rect = pygame.Rect(0, 0, 260, 50)
+        btn_rect.center = (w // 2, btn_y)
+        is_btn_focused = (startup.focus_index == 2)
+
+        if card_bg:
+            btn_bg = pygame.transform.scale(card_bg, (btn_rect.width, btn_rect.height))
+            btn_bg.set_alpha(140 if is_btn_focused else 90)
+            self.screen.blit(btn_bg, btn_rect)
+        else:
+            pygame.draw.rect(self.screen, (50, 50, 60), btn_rect, border_radius=4)
+            pygame.draw.rect(self.screen, (200, 170, 80) if is_btn_focused else (80, 80, 80), btn_rect, 2, border_radius=4)
+
+        btn_text_color = "#FFD700" if is_btn_focused else "#C0C0C0"
+        btn_surf = self.small_font.render("Main Menu", True, btn_text_color)
+        btn_txt_rect = btn_surf.get_rect(center=btn_rect.center)
+        self.draw_text_with_shadow("Main Menu", btn_text_color, btn_txt_rect.topleft, font=self.small_font)
+
+        # Faction description
+        active_carousel_idx = startup.focus_index if startup.focus_index < 2 else 0
+        selected_item_idx = int(round(startup.target_scroll_pos[active_carousel_idx])) % len(startup.factions)
+        current_faction_name = startup.factions[selected_item_idx]
+        description_text = startup.faction_descriptions.get(current_faction_name, "")
+
+        max_width = w - 120  # 60px margin on left and right
+        words = description_text.split(" ")
+        lines = []
+        current_line = ""
+
+        for word in words:
+            test_line = current_line + word + " "
+            if self.small_font.size(test_line)[0] < max_width:
+                current_line = test_line
+            else:
+                lines.append(current_line)
+                current_line = word + " "
+        lines.append(current_line)
+
+        # Render multiline description text neatly above the bottom
+        start_y = int(h * 0.83)
+        line_spacing = 22
+        for i, line in enumerate(lines):
+            line_surf = self.small_font.render(line.strip(), True, "#D0D0D0")
+            line_rect = line_surf.get_rect(center=(w // 2, start_y + (i * line_spacing)))
+            self.draw_text_with_shadow(line.strip(), "#D0D0D0", line_rect.topleft, font=self.small_font, surface=self.screen)
 
     # Controls state drawing
     # Draws the controls menu on the display surface. It displays the control sprites and their corresponding labels.

@@ -282,6 +282,7 @@ UI_ELEMENTS = {
         "byzantines": "byzantine_small2.png"
     },
     "carousel": "carousel.png",
+    "carousel_frame": "carousel_frame.png",
     "awsd": "awsd2.png",
     "arrows": "arrows2.png",
     "shift": "shift2.png",
