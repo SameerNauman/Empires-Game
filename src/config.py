@@ -281,6 +281,7 @@ UI_ELEMENTS = {
         "seljuks": "seljuk_small2.png",
         "byzantines": "byzantine_small2.png"
     },
+    "carousel": "carousel.png",
     "awsd": "awsd2.png",
     "arrows": "arrows2.png",
     "shift": "shift2.png",

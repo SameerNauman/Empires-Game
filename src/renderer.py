@@ -1,10 +1,165 @@
+import math
 import pygame
+from animated_sprite import AnimatedSprite
+from fade_manager import FadeManager
 from config import *
 
 class Renderer:
     def __init__(self, screen, asset_manager):
         self.screen = screen
         self.assets = asset_manager
+        self.fade_manager = FadeManager()
+
+        self.font = pygame.font.SysFont("Times New Roman", 50)
+        self.small_font = pygame.font.SysFont("Times New Roman", 35)
+
+    # Shadow effect for title screens
+    def draw_text_with_shadow(self, text, color, position, offset=(2, 2), font=None, surface=None):
+        f = font if font else self.font
+        surf = surface if surface else self.screen
+        
+        shadow_surf = f.render(text, True, (20, 20, 20))
+        shadow_pos = (position[0] + offset[0], position[1] + offset[1])
+        surf.blit(shadow_surf, shadow_pos)
+
+        main_surf = f.render(text, True, color)
+        surf.blit(main_surf, position)
+
+    # Startup state faction selection carousel.
+    def draw_startup(self, startup):
+        w, h = self.screen.get_size()
+        self.screen.fill((0, 0, 0))
+
+        # Display title animation using AssetManager
+        anim = self.assets.animated_sprites.get("title")
+        if anim:
+            sprite = anim.get_current_frame()
+            if sprite:
+                anim.update()
+                self.screen.blit(sprite, (0, 0))
+
+        # Determine title (Only 2 steps now: 0 = Player Faction, 1 = Enemy Faction)
+        if startup.step == 0:
+            title = "Select Player Faction"
+        else:
+            title = "Select Enemy Faction"
+            
+        current_list = startup.factions
+
+        # Draw Header
+        title_rect = self.font.render(title, True, "#C0C0C0").get_rect(center=(w // 2, h // 4))
+        self.draw_text_with_shadow(title, "#C0C0C0", title_rect.topleft)
+
+        # Smooth Lerp for Continuous Scroll Position
+        startup.scroll_pos += (startup.target_scroll_pos - startup.scroll_pos) * 0.15
+
+        # === CAROUSEL VIEWPORT FRAME ===
+        card_bg = self.assets.ui_elements.get("carousel")
+        if card_bg:
+            card_w, card_h = card_bg.get_size()
+        else:
+            card_w, card_h = 240, 140
+
+        viewport_width = 750
+        viewport_height = card_h + 10
+        viewport_rect = pygame.Rect(0, 0, viewport_width, viewport_height)
+        viewport_rect.center = (w // 2, h // 2)
+
+        pygame.draw.rect(self.screen, (60, 50, 40), viewport_rect.inflate(6, 6), border_radius=4)
+        pygame.draw.rect(self.screen, (20, 20, 20), viewport_rect, border_radius=2)
+
+        # Set clipping region
+        self.screen.set_clip(viewport_rect)
+
+        num_items = len(current_list)
+        center_x = viewport_rect.centerx
+        center_y = viewport_rect.centery
+        base_idx = int(math.floor(startup.scroll_pos))
+
+        for i in range(-2, 3):
+            item_index = (base_idx + i) % num_items
+            item_text = current_list[item_index]
+
+            slot_x = center_x + ((base_idx + i - startup.scroll_pos) * startup.slot_width)
+
+            if viewport_rect.left - 200 < slot_x < viewport_rect.right + 200:
+                distance_from_center = abs(slot_x - center_x)
+                is_selected = distance_from_center < (startup.slot_width / 2.0)
+
+                # Render native sprite
+                if card_bg:
+                    card_rect = card_bg.get_rect(center=(int(slot_x), center_y))
+                    self.screen.blit(card_bg, card_rect)
+                else:
+                    card_rect = pygame.Rect(0, 0, card_w, card_h)
+                    card_rect.center = (int(slot_x), center_y)
+                    pygame.draw.rect(self.screen, (40, 40, 40), card_rect, border_radius=4)
+                    pygame.draw.rect(self.screen, (100, 100, 100), card_rect, 2, border_radius=4)
+
+                # Item label text centered cleanly in the card frame
+                text_color = "#FFD700" if is_selected else "#A0A0A0"
+                txt_surf = self.small_font.render(item_text, True, text_color)
+                txt_rect = txt_surf.get_rect(center=(int(slot_x), center_y))
+                self.screen.blit(txt_surf, txt_rect)
+
+        # Reset clipping region
+        self.screen.set_clip(None)
+
+        # Draw footer instructions
+        instructions = "Use A/D or Left/Right to Cycle | LSHIFT to Select | ESC to Back"
+        inst_rect = self.small_font.render(instructions, True, "#C0C0C0").get_rect(center=(w // 2, (h // 8) * 7))
+        self.draw_text_with_shadow(instructions, "#C0C0C0", inst_rect.topleft, font=self.small_font, surface=self.screen)
+
+    # Controls state drawing
+    # Draws the controls menu on the display surface. It displays the control sprites and their corresponding labels.
+    def draw_controls_menu(self, width, height):
+        # Sprites
+        awsd_sprite = self.assets.ui_elements.get("awsd")
+        awsd_rect = awsd_sprite.get_rect(center=((width // 8) * 7, (height // 16) * 3.5))
+        
+        arrows_sprite = self.assets.ui_elements.get("arrows")
+        arrows_rect = arrows_sprite.get_rect(center=((width // 8) * 7, (height // 16) * 7.5))
+
+        shift_sprite = self.assets.ui_elements.get("shift")
+        shift_rect = shift_sprite.get_rect(center=((width // 8) * 7, (height // 16) * 11))
+
+        tab_sprite = self.assets.ui_elements.get("tab")
+        tab_rect = tab_sprite.get_rect(center=((width // 8) * 7, (height // 16) * 14))
+
+        # Text
+        self.draw_text_with_shadow("Controls", "#C0C0C0", ((width // 8) - 100, (height // 16)))
+        self.draw_text_with_shadow("Movement", "#C0C0C0", ((width // 8) * 4.5, (height // 8) * 2.5))
+        self.draw_text_with_shadow("Selection", "#C0C0C0", ((width // 8) * 4.5, (height // 16) * 10.5))
+        self.draw_text_with_shadow("Cycle", "#C0C0C0", ((width // 8) * 4.5, (height // 16) * 13.5))
+
+        # Display Sprites
+        self.screen.blit(awsd_sprite, awsd_rect)
+        self.screen.blit(arrows_sprite, arrows_rect)
+        self.screen.blit(shift_sprite, shift_rect)
+        self.screen.blit(tab_sprite, tab_rect)
+
+    # Menu state drawing
+    # Draws the menu on the display surface. It handles the rendering of the background, title, controls menu, popup menu,
+    # and fade transition effect. The method also manages the state transitions between the main menu and the controls menu.
+    def draw_menu(self, menu):
+        w, h = self.screen.get_size()
+
+        # Clear the screen surface with a black background before drawing the menu elements.
+        self.screen.fill((0, 0, 0))
+
+        # Animated Screens
+        self.display_animated_screens("title")
+
+        # Controls menu
+        if menu.open_controls_menu:
+            self.draw_controls_menu(w, h)
+        else:
+            # Title
+            title_rect = menu.title_text.get_rect(center=menu.title.center)
+            self.draw_text_with_shadow("Faith & Fury", "#C0C0C0", title_rect)
+        
+        if menu.popup_menu.is_open:
+            menu.popup_menu.draw(self.screen)
 
     # Draws the entire game world, including terrain, units, buildings, resources, and UI elements. It respects the fog of war and
     # depth-sorts all entities for proper rendering order. The method also handles drawing the HUD, resource bar, banners, day counter,
@@ -405,3 +560,18 @@ class Renderer:
     def draw_resource(self, x, y, surface, draw_x, draw_y, game_state):
         circle_radius = HALF_WIDTH // 2
         pygame.draw.circle(surface, (255, 255, 255), (draw_x, draw_y), circle_radius)
+
+    # Displays the current frame of the animated screen specified by 'name' on the display surface.
+    def display_animated_screens(self, name):
+        anim = self.assets.animated_sprites.get(name)
+        if not anim: return
+        
+        w, h = self.screen.get_size()
+        sprite = anim.get_current_frame()
+
+        if sprite:
+            # Update the animation frame based on the elapsed time and blit it to the display surface
+            anim.update() 
+            
+            rect = sprite.get_rect(topleft=(0, 0))
+            self.screen.blit(sprite, rect)

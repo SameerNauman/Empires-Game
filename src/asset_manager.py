@@ -13,6 +13,7 @@ class AssetManager:
         self.resource_sprites = {}
         self.resource_animations = {}
         self.ui_elements = {}
+        self.animated_sprites = {}
 
         self.load_all_assets()
 
@@ -33,6 +34,7 @@ class AssetManager:
         self.load_resource_sprites()
         self.load_resource_icons()
         self.load_ui_elements()
+        self.load_animated_screens()
 
     # Loads the sprites for the world tiles
     def load_terrain_sprites(self):
@@ -108,3 +110,16 @@ class AssetManager:
                 # It's a regular string (like message_box)
                 full_path = os.path.join(UI_ELEMENTS_PATH, data)
                 self.ui_elements[element_name] = pygame.image.load(full_path).convert_alpha()
+
+    # Loads the animated screens from the ANIMATED_SCREENS dictionary and creates AnimatedSprite objects for each screen.
+    def load_animated_screens(self):
+        
+        for name, data in ANIMATED_SCREENS.items():
+            filename = data[0]
+            full_path = os.path.join(SCREENS_PATH, filename)
+
+            rows = data[3]
+            cols = data[4]
+
+            # Create an AnimatedSprite object for the screen and store it in self.animated_sprites
+            self.animated_sprites[name] = AnimatedSprite(full_path, rows, cols)
