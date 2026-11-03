@@ -340,8 +340,8 @@ class GameplayState:
     # Centers the camera back onto the selected_tile.
     def camera_lerp(self):
         # Calculate the destination coordinates
-        draw_x, draw_y = self.draw_coords(self.selected_tile[0], self.selected_tile[1])
-        world_x, world_y = self.screen_coords(draw_x, draw_y)
+        draw_x, draw_y = self.renderer.draw_coords(self.selected_tile[0], self.selected_tile[1])
+        world_x, world_y = self.renderer.screen_coords(draw_x, draw_y, self.camera_x, self.camera_y)
         
         target_x = (SCREEN_WIDTH // 2) - world_x
         target_y = (SCREEN_HEIGHT // 2) - world_y
