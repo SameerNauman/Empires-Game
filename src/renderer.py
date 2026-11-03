@@ -215,6 +215,142 @@ class Renderer:
             line_rect = line_surf.get_rect(center=(w // 2, start_y + (i * line_spacing)))
             self.draw_text_with_shadow(line.strip(), "#D0D0D0", line_rect.topleft, font=self.small_font, surface=self.screen)
 
+    # 3-Column Grid Version for Startup Screen
+    def draw_startup2(self, startup):
+        w, h = self.screen.get_size()
+        self.screen.fill((0, 0, 0))
+
+        # 1. Background Animation
+        anim = self.assets.animated_sprites.get("title")
+        if anim:
+            sprite = anim.get_current_frame()
+            if sprite:
+                anim.update()
+                self.screen.blit(sprite, (0, 0))
+
+        # 2. Translucent Dark Backdrop
+        overlay = pygame.Surface((w, h), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 190))
+        self.screen.blit(overlay, (0, 0))
+
+        # 3. Header Title
+        title = "FACTION & PLAYER CONFIGURATION"
+        title_rect = self.font.render(title, True, "#D0D0D0").get_rect(center=(w // 2, int(h * 0.10)))
+        self.draw_text_with_shadow(title, "#D0D0D0", title_rect.topleft)
+
+        popup_sprite = self.assets.ui_elements.get("carousel") # Popup/card sprite asset
+        
+        color_map = {
+            "Blue": (50, 130, 240),
+            "Red": (220, 50, 50),
+            "Green": (40, 180, 80),
+            "Gold": (230, 190, 40)
+        }
+
+        # 3-Column X Positions
+        col1_x = int(w * 0.22)  # Player 1 Column
+        col2_x = int(w * 0.50)  # Middle Labels Column
+        col3_x = int(w * 0.78)  # Player 2 Column
+
+        header_y = int(h * 0.22)  # Player Headers Row
+        row1_y = int(h * 0.32)    # Faction Row
+        row2_y = int(h * 0.46)    # Color Row
+        row3_y = int(h * 0.64)    # Confirm Button Row
+        row4_y = int(h * 0.75)    # Main Menu Button Row
+
+        btn_w, btn_h = 240, 48
+
+        # --- PLAYER COLUMN HEADERS (Highlighted only when column is active) ---
+        p1_active = (startup.selected_col == 0 and startup.selected_row < 2)
+        p2_active = (startup.selected_col == 2 and startup.selected_row < 2)
+
+        p1_hdr_color = "#FFD700" if p1_active else "#808080"
+        p2_hdr_color = "#FFD700" if p2_active else "#808080"
+
+        p1_lbl = self.small_font.render("PLAYER 1", True, p1_hdr_color)
+        p1_rect = p1_lbl.get_rect(center=(col1_x, header_y))
+        self.draw_text_with_shadow("PLAYER 1", p1_hdr_color, p1_rect.topleft, font=self.small_font)
+
+        p2_lbl = self.small_font.render("PLAYER 2", True, p2_hdr_color)
+        p2_rect = p2_lbl.get_rect(center=(col3_x, header_y))
+        self.draw_text_with_shadow("PLAYER 2", p2_hdr_color, p2_rect.topleft, font=self.small_font)
+
+        # --- MIDDLE COLUMN LABELS ---
+        labels = [("FACTION", row1_y), ("COLOR", row2_y)]
+        for lbl_text, ry in labels:
+            lbl_surf = self.small_font.render(lbl_text, True, "#A0A0A0")
+            lbl_rect = lbl_surf.get_rect(center=(col2_x, ry))
+            self.draw_text_with_shadow(lbl_text, "#A0A0A0", lbl_rect.topleft, font=self.small_font)
+
+        # --- ROW 0: FACTIONS (Col 0: P1, Col 2: P2) ---
+        p1_faction_name = startup.factions[startup.p1_faction_idx]
+        p2_faction_name = startup.factions[startup.p2_faction_idx]
+
+        p1_f_rect = pygame.Rect(0, 0, btn_w, btn_h)
+        p1_f_rect.center = (col1_x, row1_y)
+        p1_f_sel = (startup.selected_row == 0 and startup.selected_col == 0)
+        self._draw_borderless_button(p1_faction_name, p1_f_rect, p1_f_sel, startup.is_editing and p1_f_sel, popup_sprite)
+
+        p2_f_rect = pygame.Rect(0, 0, btn_w, btn_h)
+        p2_f_rect.center = (col3_x, row1_y)
+        p2_f_sel = (startup.selected_row == 0 and startup.selected_col == 2)
+        self._draw_borderless_button(p2_faction_name, p2_f_rect, p2_f_sel, startup.is_editing and p2_f_sel, popup_sprite)
+
+        # --- ROW 1: COLORS (Col 0: P1, Col 2: P2) ---
+        p1_color_name = startup.colors[startup.p1_color_idx]
+        p2_color_name = startup.colors[startup.p2_color_idx]
+
+        p1_c_rect = pygame.Rect(0, 0, btn_w, btn_h)
+        p1_c_rect.center = (col1_x, row2_y)
+        p1_c_sel = (startup.selected_row == 1 and startup.selected_col == 0)
+        self._draw_borderless_button(p1_color_name, p1_c_rect, p1_c_sel, startup.is_editing and p1_c_sel, popup_sprite, color_rgb=color_map.get(p1_color_name))
+
+        p2_c_rect = pygame.Rect(0, 0, btn_w, btn_h)
+        p2_c_rect.center = (col3_x, row2_y)
+        p2_c_sel = (startup.selected_row == 1 and startup.selected_col == 2)
+        self._draw_borderless_button(p2_color_name, p2_c_rect, p2_c_sel, startup.is_editing and p2_c_sel, popup_sprite, color_rgb=color_map.get(p2_color_name))
+
+        # --- ROW 2: CONFIRM & START BUTTON ---
+        confirm_rect = pygame.Rect(0, 0, 300, 50)
+        confirm_rect.center = (w // 2, row3_y)
+        is_confirm_sel = (startup.selected_row == 2)
+        self._draw_borderless_button("CONFIRM & COMMENCE", confirm_rect, is_confirm_sel, False, popup_sprite)
+
+        # --- ROW 3: MAIN MENU BUTTON ---
+        menu_rect = pygame.Rect(0, 0, 300, 50)
+        menu_rect.center = (w // 2, row4_y)
+        is_menu_sel = (startup.selected_row == 3)
+        self._draw_borderless_button("MAIN MENU", menu_rect, is_menu_sel, False, popup_sprite)
+
+        # Instructions Footer
+        instructions = "WASD to Navigate Grid | LSHIFT to Edit/Select | A / D to Change Value | ESC to Back"
+        inst_rect = self.small_font.render(instructions, True, "#909090").get_rect(center=(w // 2, int(h * 0.89)))
+        self.draw_text_with_shadow(instructions, "#909090", inst_rect.topleft, font=self.small_font, surface=self.screen)
+
+    def _draw_borderless_button(self, text, rect, is_selected, is_editing, popup_sprite, color_rgb=None):
+        if popup_sprite:
+            bg_surf = pygame.transform.scale(popup_sprite, (rect.width, rect.height))
+            alpha = 250 if is_editing else (180 if is_selected else 110)
+            bg_surf.set_alpha(alpha)
+            self.screen.blit(bg_surf, rect)
+        else:
+            pygame.draw.rect(self.screen, (40, 40, 50), rect, border_radius=4)
+
+        # NOTE ON COLOR ICON SPRITES:
+        # If you want to replace the drawn color icon square with a sprite image asset, 
+        # load your sprite (e.g., self.assets.ui_elements.get("color_icon_sprite")) and 
+        # blit it here using `self.screen.blit(sprite, icon_rect)` instead of pygame.draw.rect!
+        if color_rgb:
+            icon_rect = pygame.Rect(rect.left + 16, rect.centery - 10, 20, 20)
+            pygame.draw.rect(self.screen, color_rgb, icon_rect, border_radius=3)
+
+        # Centered Text Label
+        text_color = "#FFD700" if is_editing else ("#00FFFF" if is_selected else "#C0C0C0")
+        txt_surf = self.small_font.render(text, True, text_color)
+        txt_rect = txt_surf.get_rect(center=rect.center)
+        
+        self.draw_text_with_shadow(text, text_color, txt_rect.topleft, font=self.small_font)
+
     # Controls state drawing
     # Draws the controls menu on the display surface. It displays the control sprites and their corresponding labels.
     def draw_controls_menu(self, width, height):
