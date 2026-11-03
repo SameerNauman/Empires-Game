@@ -65,11 +65,25 @@ class StartUp:
 
     # Confirms selection in carousel and begins the game
     def confirm_selection(self):
-        p1_idx = int(round(self.target_scroll_pos[0])) % len(self.factions)
-        p2_idx = int(round(self.target_scroll_pos[1])) % len(self.factions)
+        if hasattr(self, 'p1_faction_idx'):
+            p1_faction = self.factions[self.p1_faction_idx]
+            p2_faction = self.factions[self.p2_faction_idx]
+            p1_color = self.colors[self.p1_color_idx]
+            p2_color = self.colors[self.p2_color_idx]
+        else:
+            p1_idx = int(round(self.target_scroll_pos[0])) % len(self.factions)
+            p2_idx = int(round(self.target_scroll_pos[1])) % len(self.factions)
+            p1_faction = self.factions[p1_idx]
+            p2_faction = self.factions[p2_idx]
+            p1_color = self.colors[0]
+            p2_color = self.colors[1]
 
-        self.player_faction = self.factions[p1_idx].lower()
-        self.enemy_faction = self.factions[p2_idx].lower()
+        self.player_faction = p1_faction.lower()
+        self.enemy_faction = p2_faction.lower()
+        self.player_color = p1_color.lower()
+        self.enemy_color = p2_color.lower()
+
+        self.assets.load_unit_sprites(self.player_faction, self.enemy_faction, self.player_color, self.enemy_color)
 
         self.game_state_manager.set_state(
             "gameplay state", 
@@ -79,7 +93,7 @@ class StartUp:
             player_color=self.player_color,
             enemy_color=self.enemy_color
         )
-
+        
     # Main menu button in startup 1
     def go_back(self):
         self.game_state_manager.set_state("menu", use_fade=True)

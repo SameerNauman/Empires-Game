@@ -133,10 +133,10 @@ UNIT_SPRITES_CONFIG = {
     "basil": {
         "folder": "basil",
         "files": {
-            "normal_N": "basil_N.png",
-            "normal_S": "basil_S.png",
-            "normal_E": "basil_E.png",
-            "normal_W": "basil_W.png",
+            "normal_N": "normal_N.png",
+            "normal_S": "normal_S.png",
+            "normal_E": "normal_E.png",
+            "normal_W": "normal_W.png",
             "selected_N": "selected_N.png",
             "selected_S": "selected_S.png",
             "selected_E": "selected_E.png",
@@ -150,10 +150,10 @@ UNIT_SPRITES_CONFIG = {
     "villager": {
         "folder": "villager",
         "files": {
-            "normal_N": "villager_N.png",
-            "normal_S": "villager_S.png",
-            "normal_E": "villager_E.png",
-            "normal_W": "villager_W.png",
+            "normal_N": "normal_N.png",
+            "normal_S": "normal_S.png",
+            "normal_E": "normal_E.png",
+            "normal_W": "normal_W.png",
             "selected_N": "selected_N.png",
             "selected_S": "selected_S.png",
             "selected_E": "selected_E.png",
@@ -372,7 +372,7 @@ ARCHER_DESC = ("Archers are ranged units that can attack from a distance. \n"
 SPEARMEN_DESC = ("Spearmen are melee units that excel at defending against cavalry.\n"
 "Equipped with spears, and leather armor. \n\n" "100 / 100")
 
-# [name, food cost, wood cost, gold cost, pop cost, movement, attack, defense, attack_range=1, description=""]
+# [name, food cost, wood cost, gold cost, pop cost, movement, attack, defense, attack_range=1, description="", loyalty = player]
 UNITS = {
     "malik_shah": ["Malik Shah", 300, 0, 300, 1, 10, 300, 300, 5, MALIK_SHAH_DESC],
     "basil": ["Basil", 300, 0, 300, 1, 10, 300, 300, 1, BASIL_DESC],

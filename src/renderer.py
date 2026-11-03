@@ -460,7 +460,12 @@ class Renderer:
                     self.assets.resource_sprites, VISIBILITY_MAP=visibility_map
                 )
             elif hasattr(obj, 'direction'):  # It's a unit
-                obj.draw(self.screen, cam_x, cam_y, self.assets.unit_sprites)
+                # Check your loyalty attribute cleanly
+                loyalty = getattr(obj, 'loyalty', 'player')
+                if loyalty == 'player':
+                    obj.draw(self.screen, cam_x, cam_y, self.assets.punit_sprites)
+                else:
+                    obj.draw(self.screen, cam_x, cam_y, self.assets.eunit_sprites)
             elif hasattr(obj, 'hitpoints'):  # It's a building
                 obj.draw(self.screen, cam_x, cam_y, self.assets.building_sprites)
 

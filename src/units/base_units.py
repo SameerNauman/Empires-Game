@@ -4,7 +4,7 @@ from config import *
 class BaseUnits:
     # Static variable to keep track of the next available ID for units
     next_id = 1
-    def __init__(self, x, y, movement, attack, defense, attack_range=1, speed=0.1, health=100, type="Unknown"):
+    def __init__(self, x, y, movement, attack, defense, attack_range=1, speed=0.1, health=100, type="Unknown", loyalty=None):
         self.x = x
         self.y = y
         self.base_vision = 3
@@ -21,6 +21,7 @@ class BaseUnits:
         self.action_count = 0
         self.attack_range = attack_range
         self.type = type
+        self.loyalty = loyalty
         self.id = BaseUnits.next_id
         BaseUnits.next_id += 1
         # Resource gathering attributes
@@ -89,7 +90,6 @@ class BaseUnits:
     # Unit and unit health bar displaying
     def draw(self, screen, camera_x, camera_y, unit_sprites):
         # Sprites
-        # Determine the correct key based on selection and direction
         if self.selected:
             state = "selected"
         elif self.unit_tired():
@@ -98,10 +98,21 @@ class BaseUnits:
             state = "normal"
         sprite_key = f"{state}_{self.direction}"
 
-        # Access the pre-loaded surface
-        # unit_sprites["Villager"]["normal_N"]
-        sprite_set = unit_sprites[self.type]
-        self.sprite_to_draw = sprite_set[sprite_key]
+        # Normalize type key to lowercase to match UNIT_SPRITES_CONFIG ("villager", "malik_shah", etc.)
+        unit_type_key = str(self.type).lower()
+        
+        sprite_set = unit_sprites.get(unit_type_key, {})
+        
+        # Safe fallback check if sprite key exists
+        if sprite_key in sprite_set:
+            self.sprite_to_draw = sprite_set[sprite_key]
+        else:
+            # Fallback to normal_S or first available sprite to prevent hard crashes
+            fallback_key = "normal_S" if "normal_S" in sprite_set else (next(iter(sprite_set)) if sprite_set else None)
+            if fallback_key:
+                self.sprite_to_draw = sprite_set[fallback_key]
+            else:
+                return # Skip drawing if no sprites are loaded for this unit type
 
         # Isometric Math
         draw_x = self.x + OFFSET_X

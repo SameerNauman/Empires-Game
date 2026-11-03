@@ -7,7 +7,8 @@ class AssetManager:
     def __init__(self):
         # Sprite dictionaries to hold loaded assets for terrain, units, and buildings
         self.terrain_sprites = {}
-        self.unit_sprites = {}
+        self.punit_sprites = {}
+        self.eunit_sprites = {}
         self.building_sprites = {}
         self.building_icons = {}
         self.resource_sprites = {}
@@ -27,8 +28,7 @@ class AssetManager:
 
     # Loads all assets by calling individual loading methods for each asset type
     def load_all_assets(self):
-        self.load_terrain_sprites()        
-        self.load_unit_sprites()     
+        self.load_terrain_sprites()      
         self.load_building_sprites()
         self.load_building_icons()
         self.load_resource_sprites()
@@ -43,14 +43,32 @@ class AssetManager:
             self.terrain_sprites[tile_code] = pygame.image.load(path).convert_alpha()
     
     # loads the sprites for the units
-    def load_unit_sprites(self):
+    def load_unit_sprites(self, pfaction, efaction, pcolor, ecolor):
+        # player path
+        player_path = os.path.join("..", "assets", "units", pfaction, pcolor)
+        enemy_path = os.path.join("..", "assets", "units", efaction, ecolor)
+
         for unit_name, config in UNIT_SPRITES_CONFIG.items():
             unit_folder = config["folder"]
-            self.unit_sprites[unit_name] = {}  # Assign directly to self.unit_sprites!
+            self.punit_sprites[unit_name] = {}  # player units
+            self.eunit_sprites[unit_name] = {}  
             
+            # Load Player Sprites Safely
             for key, filename in config["files"].items():
-                full_path = os.path.join(UNIT_ASSETS_BASE, unit_folder, filename)
-                self.unit_sprites[unit_name][key] = pygame.image.load(full_path).convert_alpha()
+                full_path = os.path.join(player_path, unit_folder, filename)
+                
+                # Check if file exists before loading
+                if os.path.exists(full_path):
+                    self.punit_sprites[unit_name][key] = pygame.image.load(full_path).convert_alpha()
+                # If it doesn't exist, it is skipped entirely (no crash, no fallback)
+
+            # Load Enemy Sprites Safely
+            for key, filename in config["files"].items():
+                full_path = os.path.join(enemy_path, unit_folder, filename)
+                
+                # Check if file exists before loading
+                if os.path.exists(full_path):
+                    self.eunit_sprites[unit_name][key] = pygame.image.load(full_path).convert_alpha()
 
     # Loads the sprites for the buildings
     def load_building_sprites(self):

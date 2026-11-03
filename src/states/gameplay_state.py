@@ -68,6 +68,9 @@ class GameplayState:
         # Player and enemy factions
         self.player_faction = player_faction
         self.enemy_faction = enemy_faction
+        # Player and enemy colors
+        self.player_color = player_color
+        self.enemy_color = enemy_color
         # Fade day
         self.fade_manager = FadeManager()
         self.day_processed_mid_fade = False
@@ -192,15 +195,15 @@ class GameplayState:
 
         # Set up the player and enemy factions by calling their respective setup methods. These methods initialize the starting 
         # units and buildings
-        self.player_setup(self.player_faction)
-        self.enemy_setup(self.enemy_faction)
+        self.player_setup(self.player_faction, self.player_color)
+        self.enemy_setup(self.enemy_faction, self.enemy_color)
 
         # Update the visibility map to reflect the initial positions of units and buildings, ensuring that the fog of war is 
         # correctly applied
         self.update_VISIBILITY_MAP()
 
     # Sets up the player's starting hero unit based on the selected faction. It retrieves the hero's stats from the UNITS database    
-    def player_setup(self, faction):
+    def player_setup(self, faction, color):
         # Safety. Could remove in the future.
         if not faction:
             print("[ERROR] No faction string provided to player_setup!")
@@ -228,12 +231,12 @@ class GameplayState:
         print(f"[INIT] Spawning Player Hero: {hero_stats[0]} at ({start_x}, {start_y})")
 
         # Create the player's hero unit using the retrieved stats and starting position. The hero is added to the player's units list.
-        player_hero = BaseUnits(start_x, start_y, hero_stats[5], hero_stats[6], hero_stats[7], hero_stats[8], type=hero_key)
+        player_hero = BaseUnits(start_x, start_y, hero_stats[5], hero_stats[6], hero_stats[7], hero_stats[8], type=hero_key, loyalty="player")
         self.units.append(player_hero)
 
     # Sets up the enemy's starting hero unit based on the selected faction. It retrieves the hero's stats from the UNITS database
     # and positions the enemy hero at a distinct starting tile. The enemy hero is added to the enemy_units list.
-    def enemy_setup(self, faction):
+    def enemy_setup(self, faction, color):
         if not faction:
             print("[ERROR] No faction string provided to enemy_setup!")
             return
@@ -739,7 +742,7 @@ class GameplayState:
         u_attr = UNITS[unit_name]
         # Creates a unit instance with appropriate attributes. Then subtracts from the player's 
         # resources based on its cost.
-        new_unit = BaseUnits(spawn_x, spawn_y, u_attr[5], u_attr[6], u_attr[7], u_attr[8], type=unit_name)
+        new_unit = BaseUnits(spawn_x, spawn_y, u_attr[5], u_attr[6], u_attr[7], u_attr[8], type=unit_name, loyalty="player")
         # Sets the unit's action count to 2 and appends it to the player's unit list.
         new_unit.unit_queued()
         self.units.append(new_unit)
