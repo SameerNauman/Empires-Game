@@ -221,6 +221,8 @@ class TurnManager:
                     else:
                         target.hitpoints -= enemy.attack # Buildings usually take raw attack or scaled damage
 
+                    self.process_entity_health(game_state)
+                    
                     did_attack = True
                     break # One attack per turn
             self.enemy_turn_delay = 10  # Pause after attack for clarity/animation

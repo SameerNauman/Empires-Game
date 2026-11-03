@@ -639,6 +639,8 @@ class GameplayState:
             selected_unit.update_vision_coords() # Sync coordinates
             self.update_VISIBILITY_MAP() # Refresh the Fog of War
 
+        self.turn_manager.process_entity_health(self)
+
         if selected_unit:
             selected_unit.selected = False
         self.selected_unit_id = None
