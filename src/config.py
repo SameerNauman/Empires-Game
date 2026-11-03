@@ -205,7 +205,8 @@ BUILDING_SPRITES = {
     },
     "farm": {
         "normal": "farm.png",
-        "selected": "farm.png"
+        "selected": "farm.png",
+        "rested": "farm_rested.png"
     }
 }
 

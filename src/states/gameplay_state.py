@@ -498,11 +498,11 @@ class GameplayState:
         
         # Map icons to display names
         icon_mapping = {
-            "Town Centre": self.building_icons.get("town_centre"),
-            "House": self.building_icons.get("house"),
-            "Market": self.building_icons.get("market"),
-            "Mill": self.building_icons.get("mill"),
-            "Farm": self.building_icons.get("farm"),
+            "Town Centre": self.assets.building_icons.get("town_centre"),
+            "House": self.assets.building_icons.get("house"),
+            "Market": self.assets.building_icons.get("market"),
+            "Mill": self.assets.building_icons.get("mill"),
+            "Farm": self.assets.building_icons.get("farm"),
             "Cancel": None
         }
 
