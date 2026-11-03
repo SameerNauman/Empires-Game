@@ -93,7 +93,7 @@ class StartUp:
             player_color=self.player_color,
             enemy_color=self.enemy_color
         )
-        
+
     # Main menu button in startup 1
     def go_back(self):
         self.game_state_manager.set_state("menu", use_fade=True)
@@ -104,6 +104,11 @@ class StartUp:
     def startup2_init(self):
         self.factions = ["Seljuks", "Byzantines"]
         self.colors = ["Blue", "Red", "Green", "Gold"]
+
+        self.faction_descriptions = {
+            "Seljuks": "Masters of cavalry warfare and swift raiding tactics, emphasizing mobile archery and heavy shock charges.",
+            "Byzantines": "Heirs to the Roman legacy, relying on disciplined defensive lines, Varangian guards, and advanced engineering."
+        }
 
         self.p1_faction_idx = 0
         self.p1_color_idx = 0

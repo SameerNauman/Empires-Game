@@ -281,6 +281,14 @@ UI_ELEMENTS = {
         "seljuks": "seljuk_small2.png",
         "byzantines": "byzantine_small2.png"
     },
+    "flag": {
+        "seljuks": "seljuks_flag2.png",
+        "byzantines": "byzantines_flag2.png"
+    },
+    "blue": "blue.png",
+    "red": "red.png",
+    "green": "green.png",
+    "yellow": "yellow.png",
     "carousel": "carousel.png",
     "carousel_frame": "carousel_frame.png",
     "awsd": "awsd2.png",
