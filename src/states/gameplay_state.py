@@ -1,4 +1,5 @@
 import pygame
+import math
 from renderer import Renderer
 from turn_manager import TurnManager
 from fade_manager import FadeManager
@@ -481,17 +482,25 @@ class GameplayState:
     def build_action(self):
         self.reachable_tiles = set()
 
-        options = ["Town Centre", "House", "Market", "Mill"]
-        actions = {
-            "Town Centre": lambda: self.building_construction("town_centre"),
-            "House": lambda: self.building_construction("house"),
-            "Market": lambda: self.building_construction("market"),
-            "Mill": lambda: self.building_construction("mill")
-        }
+        options = []
+        actions = {}
 
-        if self.is_adjacent_to_mill():
-            options.append("Farm")
-            actions["Farm"] = lambda: self.building_construction("farm")
+        # Town Centres can be built anywhere as long as they are 10+ tiles away from other Town Centres
+        if self.can_build_town_centre(min_distance=10):
+            options.append("Town Centre")
+            actions["Town Centre"] = lambda: self.building_construction("town_centre")
+
+        # Other buildings (House, Market, Mill) require adjacency to a Town Centre
+        if self.is_adjacent_to_town_centre():
+            options.extend(["House", "Market", "Mill"])
+            actions["House"] = lambda: self.building_construction("house")
+            actions["Market"] = lambda: self.building_construction("market")
+            actions["Mill"] = lambda: self.building_construction("mill")
+
+            # Farms require adjacency to a Mill (and since Mills require a Town Centre, this chains correctly)
+            if self.is_adjacent_to_mill():
+                options.append("Farm")
+                actions["Farm"] = lambda: self.building_construction("farm")
 
         options.append("Cancel")
         actions["Cancel"] = self.cancel_action
@@ -507,12 +516,22 @@ class GameplayState:
         }
 
         self.building_menu.sprites["building_icons"] = icon_mapping
-        
         self.building_menu.sprite_key = "building_menu" 
 
         self.popup_menu.close()
         self.building_menu.open(options, actions)
-    
+
+    # Checks if the selected tile is far enough away from any existing Town Centre
+    def can_build_town_centre(self, min_distance=10):
+        tx, ty = self.selected_tile
+        for b in self.buildings:
+            if b.type == "town_centre":
+                bx, by = int(b.x), int(b.y)
+                # Calculate Euclidean distance
+                if math.hypot(tx - bx, ty - by) < min_distance:
+                    return False
+        return True
+
     # Creates instance of chosen building and subtracts resource cost.
     def building_construction(self, building_name):
         # Aquiring list of building attributes
@@ -1298,6 +1317,21 @@ class GameplayState:
         for b in self.buildings:
             # Check if building is a Mill and its position matches any neighbor
             if b.type == "mill" and (int(b.x), int(b.y)) in neighbors:
+                return True
+        return False
+
+    # Checks if the selected tile is adjacent to a Town Centre
+    def is_adjacent_to_town_centre(self):
+        tx, ty = self.selected_tile
+        # Get all 8 neighbors (North, South, East, West, and diagonals)
+        neighbors = [
+            (tx-1, ty), (tx+1, ty), (tx, ty-1), (tx, ty+1),
+            (tx-1, ty-1), (tx+1, ty-1), (tx-1, ty+1), (tx+1, ty+1)
+        ]
+        
+        for b in self.buildings:
+            # Check if building is a Town Centre and its position matches any neighbor
+            if b.type == "town_centre" and (int(b.x), int(b.y)) in neighbors:
                 return True
         return False
 
