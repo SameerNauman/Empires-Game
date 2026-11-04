@@ -234,7 +234,7 @@ UNIT_SPRITES_CONFIG = {
     }
 }
 
-BUILDING_PATH = os.path.join("..", "assets", "buildings4")
+BUILDING_PATH = os.path.join("..", "assets", "buildings5")
 
 # Base color sprites for buildings.
 BUILDING_SPRITES = {
@@ -243,19 +243,19 @@ BUILDING_SPRITES = {
         "selected": "tc_selected2.png",
         "rested": "tc_rested2.png"
     },
-    "house": {
-        "normal": "house.png",
-        "selected": "house_selected.png",
-        "rested": "house_rested.png"
-    },
-    "market": {
-        "normal": "market.png",
-        "selected": "market_selected.png",
-        "rested": "market_rested.png"
-    },
+    # "house": {
+    #     "normal": "house.png",
+    #     "selected": "house_selected.png",
+    #     "rested": "house_rested.png"
+    # },
+    # "market": {
+    #     "normal": "market.png",
+    #     "selected": "market_selected.png",
+    #     "rested": "market_rested.png"
+    # },
     "mill": {
         "normal": "mill.png",
-        "selected": "mill_selected.png",
+        "selected": "mill.png",
         "rested": "mill_rested.png"
     },
     "farm": {

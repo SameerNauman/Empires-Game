@@ -229,12 +229,14 @@ class GameplayState:
             print(f"[ERROR] Hero stats key '{hero_key}' not found in UNITS database!")
             return
 
-        start_x, start_y = 4,4
+        start_x, start_y = 5, 5
         print(f"[INIT] Spawning Player Hero: {hero_stats[0]} at ({start_x}, {start_y})")
 
         # Create the player's hero unit using the retrieved stats and starting position. The hero is added to the player's units list.
         player_hero = BaseUnits(start_x, start_y, hero_stats[5], hero_stats[6], hero_stats[7], hero_stats[8], type=hero_key, loyalty="player")
+        player_villager = BaseUnits(4, 4, 5, 50, 25, 1, type="villager", loyalty="player")
         self.units.append(player_hero)
+        self.units.append(player_villager)
 
     # Sets up the enemy's starting hero unit based on the selected faction. It retrieves the hero's stats from the UNITS database
     # and positions the enemy hero at a distinct starting tile. The enemy hero is added to the enemy_units list.
@@ -410,22 +412,15 @@ class GameplayState:
 
         landed_tile = (int(self.selected_unit.x), int(self.selected_unit.y))
 
-        # If the unit is a villager, allow building if tile is empty
+        # If the unit is a villager, check if the tile they are standing on is valid for building
         if self.selected_unit.type == "villager":
-            if not self.is_tile_occupied(*self.hovered_tile):
+            # Check if the landed tile has a resource on it
+            is_on_resource = any((res.x, res.y) == landed_tile for res in self.resources)
+
+            # Valid build locations: Adjacent to a Town Centre OR standing on a Resource tile
+            if self.is_adjacent_to_town_centre() or is_on_resource:
                 options.insert(1, "Build")
                 actions["Build"] = self.build_action
-                for res in self.resources:
-                    if (res.x, res.y) == landed_tile:
-                        options.insert(2, "Gather")
-                        actions["Gather"] = lambda u=self.selected_unit, r=res: self.gather_action(u, r)
-                        break
-            else:
-                for res in self.resources:
-                    if (res.x, res.y) == landed_tile:
-                        options.insert(1, "Gather")
-                        actions["Gather"] = lambda u=self.selected_unit, r=res: self.gather_action(u, r)
-                        break
 
         # Ranged attack logic
         if self.selected_unit.attack_range > 1:
@@ -1313,11 +1308,11 @@ class GameplayState:
     # Checks if unit is gathering at a resource tile. If a unit moves off, it stops gathering.
     def gathering_check(self):
         if self.selected_unit.is_gathering:
-                res_id = self.selected_unit.gather_resource_id
-                res = next((r for r in self.resources if r.id == res_id), None)
-                if not res or (int(self.selected_unit.x), int(self.selected_unit.y)) != (res.x, res.y):
-                    self.selected_unit.is_gathering = False
-                    self.selected_unit.gather_resource_id = None
+            res_id = self.selected_unit.gather_resource_id
+            res = next((r for r in self.resources if r.id == res_id), None)
+            if not res or (int(self.selected_unit.x), int(self.selected_unit.y)) != (res.x, res.y):
+                self.selected_unit.is_gathering = False
+                self.selected_unit.gather_resource_id = None
 
 # === MISC. ===
 
@@ -1339,10 +1334,9 @@ class GameplayState:
     # Checks if the selected tile is adjacent to a Town Centre
     def is_adjacent_to_town_centre(self):
         tx, ty = self.selected_tile
-        # Get all 8 neighbors (North, South, East, West, and diagonals)
+        # Get 4 neighbors (North, South, East, West)
         neighbors = [
-            (tx-1, ty), (tx+1, ty), (tx, ty-1), (tx, ty+1),
-            (tx-1, ty-1), (tx+1, ty-1), (tx-1, ty+1), (tx+1, ty+1)
+            (tx-1, ty), (tx+1, ty), (tx, ty-1), (tx, ty+1)
         ]
         
         for b in self.buildings:
