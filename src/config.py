@@ -262,6 +262,11 @@ BUILDING_SPRITES = {
         "normal": "farm.png",
         "selected": "farm.png",
         "rested": "farm_rested.png"
+    },
+    "gold_mine": {
+        "normal": "gold_mine.png",
+        "selected": "gold_mine.png",
+        "rested": "gold_mine.png"
     }
 }
 
@@ -275,14 +280,13 @@ RESOURCE_SPRITES = {
 
 # === UI ===
 
-BUILDING_ICONS_PATH = os.path.join("..", "assets", "buildings")
+BUILDING_ICONS_PATH = os.path.join("..", "assets", "building icons")
 
 BUILDING_ICONS = {
-    "town_centre": "towncenter4.png",
-    "house": "house.png",
-    "market": "market2.png",
-    "mill": "mill2.png",
-    "farm": "farm.png"
+    "town_centre": "town_centre.png",
+    "mill": "mill.png",
+    "farm": "farm.png",
+    "gold_mine": "gold_mine.png"
 
 }
 
@@ -359,8 +363,9 @@ ANIMATED_SCREENS = {
 TOWN_CENTRE_DESC = ("The Town Centre can train Villagers. It is the beginning of your civilization.")
 HOUSE_DESC = ("The House increases the maximum population.")
 MARKET_DESC = ("The Market is a building where you can exchange resources.")
-MILL_DESC = ("The Mill is a resource building, where Villagers can gather food.")
-FARM_DESC = ("The Farm is a resource building, which can only be built on tiles adjacent to Mills. Villagers can gather food from farms.")
+MILL_DESC = ("The Mill is a resource building, which can only be built on farmable land. Generates food every turn.")
+FARM_DESC = ("The Farm is a resource building, which can only be built on tiles adjacent to Mills. Generates gold every turn.")
+GOLD_MINE_DESC = ("The Gold Mine is a resource building, which can only be built on a gold vein. Generates gold every turn.")
 
 # Buildings = [name, food cost, wood cost, gold cost, hitpoints, pop capacity, trainable units, building description, researchable technologies]
 BUILDINGS = {
@@ -372,7 +377,8 @@ BUILDINGS = {
 # [name, food cost, wood cost, gold cost, hitpoints, pop capacity, resource type, resource amount, description, researchable technologies]
 RESOURCE_BUILDINGS = {
     "mill": ["mill", 0, 50, 0, 200, 0, "food", 500000, MILL_DESC, ["irrigation"]],
-    "farm": ["farm", 0, 50, 0, 100, 0, "food", 500000, FARM_DESC, []]
+    "farm": ["farm", 0, 50, 0, 100, 0, "food", 500000, FARM_DESC, []],
+    "gold_mine": ["gold_mine", 200, 100, 0, 200, 0, "gold", 500000, GOLD_MINE_DESC, []]
 }
 
 # === UNITS ===
@@ -460,60 +466,5 @@ FACTIONS = {
         "hero": "basil",
         "unique_units": [],
         "unique_buildings": []
-    }
-}
-
-# Color Testing
-UNIT_COLOR_SPRITES = {
-    "blue": {
-        "malik_shah": "malik_shah_blue.png",
-        "basil": "basil_blue.png",
-        "villager": "villager_blue.png",
-        "archers": "archer_blue.png"
-    },
-    "red": {
-        "malik_shah": "malik_shah_red.png",
-        "basil": "basil_red.png",
-        "villager": "villager_red.png",
-        "archers": "archer_red.png"
-    },
-    "green": {
-        "malik_shah": "malik_shah_green.png",
-        "basil": "basil_green.png",
-        "villager": "villager_green.png",
-        "archers": "archer_green.png"
-    },
-    "yellow": {
-        "malik_shah": "malik_shah_yellow.png",
-        "basil": "basil_yellow.png",
-        "villager": "villager_yellow.png",
-        "archers": "archer_yellow.png"
-    }
-}
-
-BUILDING_COLOR_SPRITES = {
-    "blue": {
-        "town_centre": "town_centre_blue.png",
-        "house": "house_blue.png",
-        "market": "market_blue.png",
-        "mill": "mill_blue.png"
-    },
-    "red": {
-        "town_centre": "town_centre_red.png",
-        "house": "house_red.png",
-        "market": "market_red.png",
-        "mill": "mill_red.png"
-    },
-    "green": {
-        "town_centre": "town_centre_green.png",
-        "house": "house_green.png",
-        "market": "market_green.png",
-        "mill": "mill_green.png"
-    },
-    "yellow": {
-        "town_centre": "town_centre_yellow.png",
-        "house": "house_yellow.png",
-        "market": "market_yellow.png",
-        "mill": "mill_yellow.png"
     }
 }

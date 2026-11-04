@@ -496,6 +496,8 @@ class GameplayState:
         options = []
         actions = {}
 
+        landed_tile = (int(self.selected_unit.x), int(self.selected_unit.y))
+
         # Town Centres can be built anywhere as long as they are 10+ tiles away from other Town Centres
         if self.can_build_town_centre(min_distance=10):
             options.append("Town Centre")
@@ -503,15 +505,18 @@ class GameplayState:
 
         # Other buildings (House, Market, Mill) require adjacency to a Town Centre
         if self.is_adjacent_to_town_centre():
-            options.extend(["House", "Market", "Mill"])
-            actions["House"] = lambda: self.building_construction("house")
-            actions["Market"] = lambda: self.building_construction("market")
+            pass
+
+        is_on_food_resource = any(res.resource_type == "food" and (res.x, res.y) == landed_tile for res in self.resources)
+        is_on_gold_resource = any(res.resource_type == "gold" and (res.x, res.y) == landed_tile for res in self.resources)
+
+        if is_on_food_resource:
+            options.append("Mill")
             actions["Mill"] = lambda: self.building_construction("mill")
 
-            # Farms require adjacency to a Mill (and since Mills require a Town Centre, this chains correctly)
-            if self.is_adjacent_to_mill():
-                options.append("Farm")
-                actions["Farm"] = lambda: self.building_construction("farm")
+        if is_on_gold_resource:
+            options.append("Gold Mine")
+            actions["Gold Mine"] = lambda: self.building_construction("gold_mine") 
 
         options.append("Cancel")
         actions["Cancel"] = self.cancel_action
@@ -519,10 +524,9 @@ class GameplayState:
         # Map icons to display names
         icon_mapping = {
             "Town Centre": self.assets.building_icons.get("town_centre"),
-            "House": self.assets.building_icons.get("house"),
-            "Market": self.assets.building_icons.get("market"),
             "Mill": self.assets.building_icons.get("mill"),
             "Farm": self.assets.building_icons.get("farm"),
+            "Gold Mine": self.assets.building_icons.get("gold_mine"),
             "Cancel": None
         }
 
