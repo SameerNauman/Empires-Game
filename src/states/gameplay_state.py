@@ -58,6 +58,7 @@ class GameplayState:
         # camera_x and camera_y are used to control the camera's position in the game world
         self.camera_x = 0
         self.camera_y = 0
+        self.camera_initialized = False
         # Free camera mode allows the player to move the camera independently of the selected tile
         self.free_cam_active = False
         self.camera_return = False
@@ -109,9 +110,9 @@ class GameplayState:
         self.targetable_enemies = []
         self.selected_target_index = 0
         # Player and enemy town centers, initialized with their positions, health, and population limits
-        town_centre = BaseBuildings(3, 3, 500, 10, type="town_centre")
+        town_centre = BaseBuildings(4, 4, 500, 10, type="town_centre")
         town_centre.is_constructed = True
-        e_town_centre = BaseBuildings(6, 10, 500, 10, type="town_centre")
+        e_town_centre = BaseBuildings(17, 4, 500, 10, type="town_centre")
         e_town_centre.is_constructed = True
         # Initialize player and enemy units, buildings, resources, and construction queues
         self.units = []
@@ -228,7 +229,7 @@ class GameplayState:
             print(f"[ERROR] Hero stats key '{hero_key}' not found in UNITS database!")
             return
 
-        start_x, start_y = 3, 3
+        start_x, start_y = 4,4
         print(f"[INIT] Spawning Player Hero: {hero_stats[0]} at ({start_x}, {start_y})")
 
         # Create the player's hero unit using the retrieved stats and starting position. The hero is added to the player's units list.
@@ -257,7 +258,7 @@ class GameplayState:
             return
 
         # Position opponent hero at distinct starting tile coordinates
-        start_x, start_y = 6, 10
+        start_x, start_y = 17, 4
         print(f"[INIT] Spawning Enemy Hero: {hero_stats[0]} at ({start_x}, {start_y})")
 
         enemy_hero = BaseUnits(start_x, start_y, hero_stats[5], hero_stats[6], hero_stats[7], hero_stats[8], type=hero_key)
@@ -308,6 +309,12 @@ class GameplayState:
         draw_x, draw_y = self.renderer.draw_coords(self.hovered_tile[0], self.hovered_tile[1])
         screen_x, screen_y = self.renderer.screen_coords(draw_x, draw_y, self.camera_x, self.camera_y)
 
+        if not getattr(self, 'camera_initialized', False):
+            self.center_camera_on_tile(self.hovered_tile[0], self.hovered_tile[1])
+            self.camera_initialized = True
+            # Recalculate screen coordinates after centering
+            screen_x, screen_y = self.renderer.screen_coords(draw_x, draw_y, self.camera_x, self.camera_y)
+
         # Camera follow
         if screen_x < MARGIN:
             self.camera_x += SCROLL_SPEED
@@ -326,6 +333,15 @@ class GameplayState:
             if unit:
                 # Update direction: compare unit's position to where the "cursor" is
                 unit.update_direction(unit.x, unit.y, self.hovered_tile[0], self.hovered_tile[1])
+
+    def center_camera_on_tile(self, tile_x, tile_y):
+        # Get the world draw coordinates of the target tile
+        draw_x, draw_y = self.renderer.draw_coords(tile_x, tile_y)
+        
+        # Calculate camera offsets so the tile lands precisely in the center of the screen
+        # (Adjust the signs '+' or '-' depending on whether your renderer adds or subtracts camera offsets)
+        self.camera_x = (SCREEN_WIDTH // 2) - draw_x
+        self.camera_y = (SCREEN_HEIGHT // 2) - draw_y
 
     # 'Cinematic' effect of following enemy units during enemy turn.
     def follow_enemy_camera(self, enemy):

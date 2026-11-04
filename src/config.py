@@ -5,10 +5,6 @@ from resources.resource_source import ResourceSource
 # Screen dimensions
 SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
 
-# Map dimensions
-PLAYABLE_WIDTH, PLAYABLE_HEIGHT = 20, 20
-BOUNDARY_WIDTH, BOUNDARY_HEIGHT = 20, 20
-
 # Mini Map dimensions and position
 MINIMAP_SIZE = 400
 
@@ -19,11 +15,6 @@ HALF_HEIGHT = MINI_TILE // 4
 RADIUS = MINIMAP_SIZE // 2
 SMALLER_RADIUS = int(RADIUS * 0.85)
 
-# Top-down view scale (no isometric compression) - reduced size (0.40 is the multiplier)
-MINI_MAP_SCALE = int(RADIUS // (PLAYABLE_WIDTH // 2 + 1) * 0.40)
-
-OFFSET_DRAW_X = RADIUS
-OFFSET_DRAW_Y = RADIUS - (PLAYABLE_HEIGHT - 1) * HALF_HEIGHT
 MINI_MAP_MARGIN = 0
 CENTER_X = SCREEN_WIDTH - RADIUS - MINI_MAP_MARGIN
 CENTER_Y = SCREEN_HEIGHT - RADIUS - MINI_MAP_MARGIN
@@ -31,6 +22,45 @@ CENTER_Y = SCREEN_HEIGHT - RADIUS - MINI_MAP_MARGIN
 # Popup and message box positions
 POPUP_X = 25
 MESSAGE_BOX_TOP = SCREEN_HEIGHT - 150
+
+# Camera
+MARGIN = 250
+SCROLL_SPEED = 10
+
+# Tile size and zoom
+BASE_TILE_WIDTH, BASE_TILE_HEIGHT = 128, 64
+
+DAMAGE = 0
+BONUS_MULTIPLYER = 0
+FLAT_BONUS = 0
+
+# === Map Loading ===
+
+# LOAD TERRAIN MAP
+MAP_CSV = os.path.join("..", "assets", "maps", "test.csv")
+PLAYABLE_MAP = []
+with open(MAP_CSV, newline='') as csvfile:
+    reader = csv.reader(csvfile)
+    for row in reader:
+        # Load exactly as is; these should now only be P, H, M, W, etc.
+        clean_row = [cell.strip() for cell in row if cell.strip()]
+        if clean_row:
+            PLAYABLE_MAP.append(clean_row)
+
+# Transpose for [x][y] access
+if PLAYABLE_MAP:
+    PLAYABLE_MAP = [list(row) for row in zip(*PLAYABLE_MAP)]
+
+# Dynamically set map dimensions based on the loaded CSV file
+PLAYABLE_WIDTH = len(PLAYABLE_MAP) if PLAYABLE_MAP else 20
+PLAYABLE_HEIGHT = len(PLAYABLE_MAP[0]) if PLAYABLE_MAP and PLAYABLE_MAP[0] else 20
+BOUNDARY_WIDTH, BOUNDARY_HEIGHT = PLAYABLE_HEIGHT, PLAYABLE_WIDTH
+
+# Top-down view scale (no isometric compression) - reduced size (0.40 is the multiplier)
+MINI_MAP_SCALE = int(RADIUS // (PLAYABLE_WIDTH // 2 + 1) * 0.40)
+
+OFFSET_DRAW_X = RADIUS
+OFFSET_DRAW_Y = RADIUS - (PLAYABLE_HEIGHT - 1) * HALF_HEIGHT
 
 # Boundary and playable maps
 BOUNDARY_MAP = [[0 for _ in range(BOUNDARY_WIDTH)] for _ in range(BOUNDARY_HEIGHT)]
@@ -43,16 +73,41 @@ VISIBILITY_MAP = [[0 for _ in range(PLAYABLE_HEIGHT)] for _ in range(PLAYABLE_WI
 OFFSET_X = (BOUNDARY_WIDTH - PLAYABLE_WIDTH) // 2
 OFFSET_Y = (BOUNDARY_HEIGHT - PLAYABLE_HEIGHT) // 2
 
-# Camera
-MARGIN = 50
-SCROLL_SPEED = 10
+# LOAD RESOURCE OVERLAY 
+# Resource type, amount defaults
+RESOURCE_TILE_TYPES = {
+    "FO": ("food", 500),
+    "WO": ("wood", 400),
+    "GO": ("gold", 2000)
+}
 
-# Tile size and zoom
-BASE_TILE_WIDTH, BASE_TILE_HEIGHT = 128, 64
+RESOURCE_CSV = os.path.join("..", "assets", "maps", "rtest.csv")
+resources = []
+with open(RESOURCE_CSV, newline='') as csvfile:
+    reader = csv.reader(csvfile)
+    resource_data = []
+    for row in reader:
+        # Keep empty cells as None or empty strings to maintain grid alignment
+        resource_data.append([cell.strip() for cell in row])
 
-DAMAGE = 0
-BONUS_MULTIPLYER = 0
-FLAT_BONUS = 0
+# Transpose resource map to match terrain map [x][y]
+if resource_data:
+    resource_data = [list(row) for row in zip(*resource_data)]
+
+# POPULATE RESOURCE OBJECTS
+# Iterate through the resource_data grid
+for x in range(len(resource_data)):
+    for y in range(len(resource_data[0])):
+        tile = resource_data[x][y]
+        
+        # Check if this cell in the resource map contains a valid resource code
+        if tile in RESOURCE_TILE_TYPES:
+            r_type, r_amt = RESOURCE_TILE_TYPES[tile]
+            
+            # Create the resource source at these coordinates
+            # It will now sit "on top" of whatever is in PLAYABLE_MAP[x][y]
+            resources.append(ResourceSource(x, y, r_type, r_amt, False))
+
 
 # === Sprites ===
 TERRAIN_PATH = os.path.join("..", "assets", "terrain2")
@@ -218,13 +273,6 @@ RESOURCE_SPRITES = {
     "gold": "gold3.png"
 }
 
-# Resource type, amount defaults
-RESOURCE_TILE_TYPES = {
-    "FO": ("food", 500),
-    "WO": ("wood", 400),
-    "GO": ("gold", 2000)
-}
-
 # === UI ===
 
 BUILDING_ICONS_PATH = os.path.join("..", "assets", "buildings")
@@ -305,49 +353,6 @@ SCREENS_PATH = os.path.join("..", "assets", "ui", "screens")
 ANIMATED_SCREENS = {
     "title": ["title5.png", 0, 0, 1, 15]
 }
-
-# LOAD TERRAIN MAP
-MAP_CSV = os.path.join("..", "assets", "maps", "alps4.csv")
-PLAYABLE_MAP = []
-with open(MAP_CSV, newline='') as csvfile:
-    reader = csv.reader(csvfile)
-    for row in reader:
-        # Load exactly as is; these should now only be P, H, M, W, etc.
-        clean_row = [cell.strip() for cell in row if cell.strip()]
-        if clean_row:
-            PLAYABLE_MAP.append(clean_row)
-
-# Transpose for [x][y] access
-if PLAYABLE_MAP:
-    PLAYABLE_MAP = [list(row) for row in zip(*PLAYABLE_MAP)]
-
-# LOAD RESOURCE OVERLAY 
-RESOURCE_CSV = os.path.join("..", "assets", "maps", "resources.csv")
-resources = []
-with open(RESOURCE_CSV, newline='') as csvfile:
-    reader = csv.reader(csvfile)
-    resource_data = []
-    for row in reader:
-        # Keep empty cells as None or empty strings to maintain grid alignment
-        resource_data.append([cell.strip() for cell in row])
-
-# Transpose resource map to match terrain map [x][y]
-if resource_data:
-    resource_data = [list(row) for row in zip(*resource_data)]
-
-# POPULATE RESOURCE OBJECTS
-# Iterate through the resource_data grid
-for x in range(len(resource_data)):
-    for y in range(len(resource_data[0])):
-        tile = resource_data[x][y]
-        
-        # Check if this cell in the resource map contains a valid resource code
-        if tile in RESOURCE_TILE_TYPES:
-            r_type, r_amt = RESOURCE_TILE_TYPES[tile]
-            
-            # Create the resource source at these coordinates
-            # It will now sit "on top" of whatever is in PLAYABLE_MAP[x][y]
-            resources.append(ResourceSource(x, y, r_type, r_amt, False))
 
 # === BUILDINGS ===
 

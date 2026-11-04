@@ -566,7 +566,7 @@ class Renderer:
         pygame.draw.circle(mini_map_surface, (32, 32, 32, 200), (game_state.radius, game_state.radius), game_state.smaller_radius)
         
         # Calculate offset to center the map on the minimap center
-        center_sum = (PLAYABLE_WIDTH + PLAYABLE_HEIGHT - 2) // 2
+        center_sum = (PLAYABLE_WIDTH + PLAYABLE_HEIGHT) // 2
         offset_x = game_state.radius
         offset_y = game_state.radius - center_sum * game_state.mini_map_scale
         
