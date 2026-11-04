@@ -566,9 +566,11 @@ class Renderer:
         pygame.draw.circle(mini_map_surface, (32, 32, 32, 200), (game_state.radius, game_state.radius), game_state.smaller_radius)
         
         # Calculate offset to center the map on the minimap center
-        center_sum = (PLAYABLE_WIDTH + PLAYABLE_HEIGHT) // 2
-        offset_x = game_state.radius
-        offset_y = game_state.radius - center_sum * game_state.mini_map_scale
+        center_x_grid = (PLAYABLE_WIDTH - 1) / 2.0
+        center_y_grid = (PLAYABLE_HEIGHT - 1) / 2.0
+        
+        offset_x = game_state.radius - int((center_x_grid - center_y_grid) * game_state.mini_map_scale)
+        offset_y = game_state.radius - int((center_x_grid + center_y_grid) * game_state.mini_map_scale)
         
         # Draw only visible tiles
         for x in range(PLAYABLE_WIDTH):
