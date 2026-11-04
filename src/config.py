@@ -184,7 +184,7 @@ BUILDING_PATH = os.path.join("..", "assets", "buildings4")
 # Base color sprites for buildings.
 BUILDING_SPRITES = {
     "town_centre": {
-        "normal": "town_centre.png",
+        "normal": "town_centre2.png",
         "selected": "tc_selected.png",
         "rested": "tc_rested.png"
     },
@@ -213,9 +213,9 @@ BUILDING_SPRITES = {
 RESOURCES_PATH = os.path.join("..", "assets", "resources")
 
 RESOURCE_SPRITES = {
-    "food": "berry_bush.png",
+    "food": "wheat3.png",
     "wood": "tree4.png",
-    "gold": "gold2.png"
+    "gold": "gold3.png"
 }
 
 # Resource type, amount defaults
