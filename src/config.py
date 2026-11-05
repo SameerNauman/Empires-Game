@@ -243,16 +243,11 @@ BUILDING_SPRITES = {
         "selected": "tc_selected2.png",
         "rested": "tc_rested2.png"
     },
-    # "house": {
-    #     "normal": "house.png",
-    #     "selected": "house_selected.png",
-    #     "rested": "house_rested.png"
-    # },
-    # "market": {
-    #     "normal": "market.png",
-    #     "selected": "market_selected.png",
-    #     "rested": "market_rested.png"
-    # },
+    "barracks": {
+        "normal": "barracks.png",
+        "selected": "barracks_selected.png",
+        "rested": "barracks_rested.png"
+    },
     "mill": {
         "normal": "mill.png",
         "selected": "mill.png",
@@ -284,6 +279,7 @@ BUILDING_ICONS_PATH = os.path.join("..", "assets", "building icons")
 
 BUILDING_ICONS = {
     "town_centre": "town_centre.png",
+    "barracks": "barracks.png",
     "mill": "mill.png",
     "farm": "farm.png",
     "gold_mine": "gold_mine.png"
@@ -361,6 +357,7 @@ ANIMATED_SCREENS = {
 # === BUILDINGS ===
 
 TOWN_CENTRE_DESC = ("The Town Centre can train Villagers. It is the beginning of your civilization.")
+BARRACKS_DESC = ("The Barracks can train Infantry.")
 HOUSE_DESC = ("The House increases the maximum population.")
 MARKET_DESC = ("The Market is a building where you can exchange resources.")
 MILL_DESC = ("The Mill is a resource building, which can only be built on farmable land. Generates food every turn.")
@@ -370,6 +367,7 @@ GOLD_MINE_DESC = ("The Gold Mine is a resource building, which can only be built
 # Buildings = [name, food cost, wood cost, gold cost, hitpoints, pop capacity, trainable units, building description, researchable technologies]
 BUILDINGS = {
     "town_centre": ["town_centre", 0, 400, 400, 500, 10, ["villager"], TOWN_CENTRE_DESC, ["town_watch", "scout_training", "marched_pace"]],
+    "barracks": ["barracks", 100, 100, 50, 300, 0, [], BARRACKS_DESC, []],
     "house": ["house", 0, 100, 0, 100, 5, [], HOUSE_DESC, []],
     "market": ["market", 0, 100, 100, 200, 0, [], MARKET_DESC, ["basket_weaving", "double-blade_axe", "smelting"]]
 }

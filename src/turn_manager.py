@@ -21,8 +21,7 @@ class TurnManager:
             unit.rested()
 
         for building in game_state.buildings:
-            if not building.queued:
-                building.action_count = 0
+            building.rested()
 
         # 3. Complete Tech Research
         if game_state.enemy_pending_techs:

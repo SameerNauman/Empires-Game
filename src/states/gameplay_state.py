@@ -512,7 +512,8 @@ class GameplayState:
 
         # Other buildings (House, Market, Mill) require adjacency to a Town Centre
         if self.is_adjacent_to_town_centre():
-            pass
+            options.append("Barracks")
+            actions["Barracks"] = lambda: self.building_construction("barracks")
 
         is_on_food_resource = any(res.resource_type == "food" and (res.x, res.y) == landed_tile for res in self.resources)
         is_on_gold_resource = any(res.resource_type == "gold" and (res.x, res.y) == landed_tile for res in self.resources)
@@ -531,6 +532,7 @@ class GameplayState:
         # Map icons to display names
         icon_mapping = {
             "Town Centre": self.assets.building_icons.get("town_centre"),
+            "Barracks": self.assets.building_icons.get("barracks"),
             "Mill": self.assets.building_icons.get("mill"),
             "Farm": self.assets.building_icons.get("farm"),
             "Gold Mine": self.assets.building_icons.get("gold_mine"),
