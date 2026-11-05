@@ -129,7 +129,7 @@ class GameplayState:
             self.enemy_max_population += building.population_limit
         self.allow_villager_training = True
         # Turn control
-        self.player_turn = True
+        self.state = "PLAYER_TURN"
         self.enemy_moving = False
         self.enemy_paths_planned = False
         self.enemy_turn_index = 0      
@@ -386,18 +386,25 @@ class GameplayState:
                 self.resources.remove(resource)
 
     def update_fade_screen(self):
-        # Update the fade manager each frame and catch any peak-black event
         fade_event = self.fade_manager.update()
 
-        # Fire data alteration calculations exactly once when the screen is fully dark
-        if fade_event == "PEAK_BLACK":
-            if not self.day_processed_mid_fade:
-                self.turn_manager.process_day_transition(self)
-                self.day_processed_mid_fade = True
+        # Fading from Player -> Enemy
+        if self.state == "PLAYER_TO_ENEMY_FADE":
+            if fade_event == "PEAK_BLACK":
+                # Start enemy turn at peak black
+                self.player_turn = False
+                self.turn_manager.start_enemy_turn(self)
+            elif fade_event == "FADE_COMPLETE":
+                self.state = "ENEMY_TURN"
 
-        # Reset the mid-fade flag once the fade-in finishes completely
-        if not self.fade_manager.is_fading:
-            self.day_processed_mid_fade = False
+        # Fading from Enemy -> Player
+        elif self.state == "ENEMY_TO_PLAYER_FADE":
+            if fade_event == "PEAK_BLACK":
+                # Execute all day updates, income, and unit resets at peak black
+                self.turn_manager.end_enemy_day(self)
+                self.player_turn = True
+            elif fade_event == "FADE_COMPLETE":
+                self.state = "PLAYER_TURN"
                 
 # === UNIT ACTIONS ===
 
@@ -567,7 +574,7 @@ class GameplayState:
             new_building.is_constructed = False
             self.buildings.append(new_building)
             if building_name in RESOURCE_BUILDINGS:
-                new_resource = ResourceSource(self.selected_tile[0], self.selected_tile[1], b_attr[6], b_attr[7], b_attr[8], b_attr[9], True)
+                new_resource = ResourceSource(self.selected_tile[0], self.selected_tile[1], b_attr[6], b_attr[7], b_attr[8], b_attr[9], True, "player")
                 self.resources.append(new_resource)
             self.popup_menu.close()
             self.building_menu.close()
@@ -778,7 +785,6 @@ class GameplayState:
         selected_building = next((b for b in self.buildings if b.id == self.selected_building_id), None)
         if selected_building:
             selected_building.rest()
-            selected_building.rest()
             selected_building.selected = False
             self.selected_building_id = None
         self.popup_menu.close()
@@ -906,15 +912,8 @@ class GameplayState:
 
     # At the end of player's turn, resets unit and building action count
     def end_day(self):
-        # Ends player turn
-        self.player_turn = False
-        # Iterates through all units and resets their action count.
-        for unit in self.units:
-            unit.rested()
-        # Iterates through all buildings and resets their action count if they aren't under construction
-        for building in self.buildings:
-            if building.queued == False:
-                building.rested()
+        self.state = "PLAYER_TO_ENEMY_FADE"
+        self.fade_manager.start_fade()
         # Closes the popup menu
         self.popup_menu.close()
 
@@ -1377,15 +1376,15 @@ class GameplayState:
         # global actions, callbacks
         if not self.game_over:
             # Events during the player's turn
-            if self.player_turn:
+            if self.state == "PLAYER_TURN":
                 self.handle_input(events)
-                self.update_fade_screen()
-            # Enemy turn
-            else: 
+            elif self.state == "ENEMY_TURN":
                 self.turn_manager.update_enemy_turn(self)
+
+            self.update_fade_screen()
         
-        # Check if the condition to end the game is true
-        self.game_over = self.check_game_over()
+            # Check if the condition to end the game is true
+            self.game_over = self.check_game_over()
 
         # Displays hovered tile and camera scroll
         self.display_hovered_tile()

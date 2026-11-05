@@ -266,7 +266,7 @@ BUILDING_SPRITES = {
     "gold_mine": {
         "normal": "gold_mine.png",
         "selected": "gold_mine.png",
-        "rested": "gold_mine.png"
+        "rested": "gold_mine_rested.png"
     }
 }
 

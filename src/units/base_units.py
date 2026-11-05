@@ -45,12 +45,12 @@ class BaseUnits:
         self.action_count += 1
 
     def unit_tired(self):
-        return self.action_count == 2
+        return self.action_count == 1
     
     # Use after training a unit at a building.
     def unit_queued(self):
         self.queued = True
-        self.action_count = 2
+        self.action_count = 1
 
     # Reset action count
     def rested(self):

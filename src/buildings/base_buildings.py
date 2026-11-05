@@ -40,7 +40,7 @@ class BaseBuildings:
             selected_rect = self.sprite_selected.get_rect()
             selected_rect.midbottom = (screen_x, screen_y)
             screen.blit(self.sprite_selected, selected_rect)
-        elif self.building_tired():
+        elif self.action_count == 1:
             rested_rect = self.sprite_rested.get_rect()
             rested_rect.midbottom = (screen_x, screen_y)
             screen.blit(self.sprite_rested, rested_rect)
@@ -74,12 +74,12 @@ class BaseBuildings:
         self.action_count += 1
 
     def building_tired(self):
-        return self.action_count == 2
+        return self.action_count == 1
     
     # Use after construction
     def building_queued(self):
         self.queued = True
-        self.action_count = 2
+        self.action_count = 1
 
     # Resets action count to 0
     def rested(self):

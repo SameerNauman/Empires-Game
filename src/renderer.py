@@ -683,3 +683,6 @@ class Renderer:
             
             rect = sprite.get_rect(topleft=(0, 0))
             self.screen.blit(sprite, rect)
+
+    def day_updates(self, game_state):
+        pass

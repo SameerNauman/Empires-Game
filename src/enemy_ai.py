@@ -354,12 +354,9 @@ class EnemyAi():
                 villager.path = [(float(nx), float(ny))]
                 break
 
-    # Request construction of a building at the villager's current position, deducting resources and queuing the building.
     def request_construction(self, building_type, villager, gameplay_state):
-        # Use villager's exact current position
         tx, ty = int(villager.x), int(villager.y)
         
-        # Check regular buildings vs resource buildings
         if building_type in BUILDINGS:
             b_attr = BUILDINGS[building_type]
         elif building_type in RESOURCE_BUILDINGS:
@@ -367,7 +364,6 @@ class EnemyAi():
         else:
             return
         
-        # Visual cleanup
         gameplay_state.cover_resources(tx, ty)
         
         # Create foundation
@@ -375,15 +371,16 @@ class EnemyAi():
         new_building = BaseBuildings(tx, ty, b_attr[4], b_attr[5])
         new_building.id = new_building_id
         new_building.type = building_type
+        
+        # Ensure ALL buildings start queued as foundations
         new_building.building_queued()
         new_building.is_constructed = False
 
         gameplay_state.e_buildings.append(new_building)
         
-        # If it's a resource building, spawn a resource source on that tile
+        # If it's a resource building, spawn resource source
         if building_type in RESOURCE_BUILDINGS:
-            # b_attr indices matching: [name, food_cost, wood_cost, gold_cost, hp, pop, res_type, amount, base_gather, desc, techs]
-            new_resource = ResourceSource(tx, ty, b_attr[6], b_attr[7], b_attr[8], b_attr[9], True)
+            new_resource = ResourceSource(tx, ty, b_attr[6], b_attr[7], b_attr[8], b_attr[9], True, "enemy")
             gameplay_state.resources.append(new_resource)
         
         # Task the villager
@@ -391,7 +388,7 @@ class EnemyAi():
         villager.path = [] 
         gameplay_state.construction[villager] = new_building 
 
-        # Pay for the building
+        # Pay for building
         gameplay_state.enemy_food -= b_attr[1]
         gameplay_state.enemy_wood -= b_attr[2]
         gameplay_state.enemy_gold -= b_attr[3]
@@ -471,7 +468,7 @@ class EnemyAi():
                     spawn_x, spawn_y,
                     u_attr[5], u_attr[6], u_attr[7], u_attr[8], type=unit_name
                 )
-                
+                new_unit.unit_queued()
                 print(f"Enemy spawns: {unit_name} at ({spawn_x}, {spawn_y})")
                 game_state.enemy_units.append(new_unit)
                 
