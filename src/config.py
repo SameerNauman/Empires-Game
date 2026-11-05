@@ -106,7 +106,7 @@ for x in range(len(resource_data)):
             
             # Create the resource source at these coordinates
             # It will now sit "on top" of whatever is in PLAYABLE_MAP[x][y]
-            resources.append(ResourceSource(x, y, r_type, r_amt, False))
+            resources.append(ResourceSource(x, y, r_type, r_amt, 50, None, False))
 
 
 # === Sprites ===
@@ -374,11 +374,11 @@ BUILDINGS = {
     "market": ["market", 0, 100, 100, 200, 0, [], MARKET_DESC, ["basket_weaving", "double-blade_axe", "smelting"]]
 }
 
-# [name, food cost, wood cost, gold cost, hitpoints, pop capacity, resource type, resource amount, description, researchable technologies]
+# [name, food cost, wood cost, gold cost, hitpoints, pop capacity, resource type, resource amount, base gather amount, description, researchable technologies]
 RESOURCE_BUILDINGS = {
-    "mill": ["mill", 0, 50, 0, 200, 0, "food", 500000, MILL_DESC, ["irrigation"]],
-    "farm": ["farm", 0, 50, 0, 100, 0, "food", 500000, FARM_DESC, []],
-    "gold_mine": ["gold_mine", 200, 100, 0, 200, 0, "gold", 500000, GOLD_MINE_DESC, []]
+    "mill": ["mill", 0, 50, 0, 200, 0, "food", 500000, 50, MILL_DESC, ["irrigation"]],
+    "farm": ["farm", 0, 50, 0, 100, 0, "food", 500000, 25, FARM_DESC, []],
+    "gold_mine": ["gold_mine", 200, 100, 0, 200, 0, "gold", 500000, 150, GOLD_MINE_DESC, []]
 }
 
 # === UNITS ===

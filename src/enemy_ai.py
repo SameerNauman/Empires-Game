@@ -1,4 +1,4 @@
-import random
+import random, math
 from buildings.base_buildings import BaseBuildings
 from path_finding import PathFinding
 from target_aquisition import TargetAquisition
@@ -41,22 +41,6 @@ class EnemyAi():
         # Identify all active villagers that are not dead
         villagers = [u for u in enemy_units if getattr(u, "type", "") == "villager" and u.health > 0]
         
-        # Identify villagers already on resources (Don't move them)
-        for v in villagers:
-            if getattr(v, "is_gathering", False):
-                # If the villager is already gathering, we mark the resource as claimed to prevent other villagers from targeting it.
-                claimed_resource_ids.append(getattr(v, "gather_resource_id", -1))
-                continue
-                
-            for res in resource_list:
-                # Check if the resource is not depleted and if the villager is on the same tile as the resource
-                if not res.is_depleted() and int(v.x) == int(res.x) and int(v.y) == int(res.y):
-                    v.is_gathering = True
-                    v.gather_resource_id = res.id
-                    v.path = [] 
-                    claimed_resource_ids.append(res.id)
-                    break
-
         # Determine which resource type the AI needs most
         stockpiles = {
             'gold': getattr(gameplay_state, 'enemy_gold', 0),
@@ -121,18 +105,20 @@ class EnemyAi():
 
         return contested_tiles
 
-    # Manage the economy by checking if the AI can afford buildings, assigning villagers to construct them, and handling age advancement.
     def manage_economy(self, enemy_units, enemy_buildings, resource_list, gameplay_state):
-        # Identify all active villagers that are not dead
         villagers = [u for u in enemy_units if getattr(u, "type", "") == "villager" and u.health > 0]
         if not villagers: return
 
-        # Define building goals based on the current game state and AI strategy
+        # Dynamic strategy: Scale food/gold production based on stockpiles or villager growth
+        target_mills = 1 + (len(villagers) // 3)  # More villagers = need more food infrastructure
+        target_farms = target_mills * 2         # Scale farms alongside mills
+        target_gold_mines = 2 if gameplay_state.enemy_gold < 500 else 1 # Prioritize gold if running low
+
         building_goals = {
-            "town_center": 1,
-            "market": 1,
-            "house": (gameplay_state.enemy_max_population // 5) + 1,
-            "barracks": 1
+            "town_centre": 1,
+            "mill": target_mills,
+            "farm": target_farms,
+            "gold_mine": target_gold_mines
         }
 
         # Count current buildings of each type
@@ -140,37 +126,46 @@ class EnemyAi():
         for b in enemy_buildings:
             current_counts[b.type] = current_counts.get(b.type, 0) + 1
 
-        # Check if we need to construct any buildings based on goals and current counts
         for b_type, goal in building_goals.items():
             if current_counts.get(b_type, 0) < goal:
+                print(f"Checking {b_type}: Current={current_counts.get(b_type, 0)}, Goal={goal}")
                 if self.can_afford_building(b_type, gameplay_state):
                     
-                    potential_builders = [v for v in villagers if not v.is_gathering and v not in gameplay_state.construction]
+                    potential_builders = [v for v in villagers if v not in gameplay_state.construction]
+                    print(f"-> Available builders: {len(potential_builders)}")
                     
                     for builder in potential_builders:
                         tx, ty = int(builder.x), int(builder.y)
                         
-                        # Check Player Buildings
+                        is_valid_tile = False
+                        
+                        if b_type == "town_centre":
+                            is_valid_tile = self.can_build_town_centre(tx, ty, gameplay_state, min_distance=10)
+                        elif b_type == "mill":
+                            is_valid_tile = any(res.resource_type == "food" and int(res.x) == tx and int(res.y) == ty for res in gameplay_state.resources)
+                        elif b_type == "gold_mine":
+                            is_valid_tile = any(res.resource_type == "gold" and int(res.x) == tx and int(res.y) == ty for res in gameplay_state.resources)
+                        elif b_type == "farm":
+                            is_valid_tile = self.is_adjacent_to_mill(tx, ty, gameplay_state)
+
+                        if not is_valid_tile:
+                            continue # This builder isn't on a valid tile for this building, check next builder
+
+                        # Check if tile is blocked by units or existing buildings
                         is_blocked = any(int(b.x) == tx and int(b.y) == ty for b in gameplay_state.buildings)
-                        # Check Enemy Buildings (This catches the Town Centre)
                         is_blocked |= any(int(b.x) == tx and int(b.y) == ty for b in gameplay_state.e_buildings)
-                        # Check Resources
-                        is_blocked |= any(int(r.x) == tx and int(r.y) == ty for r in gameplay_state.resources)
+                        
+                        # Note: For Mills and Gold Mines, standing on the resource tile is required, so we don't block on resources there.
 
                         if not is_blocked:
                             self.request_construction(b_type, builder, gameplay_state)
+                            print(f"Enemy AI building {b_type} at ({tx}, {ty})")
                             break 
                         else:
                             self.move_to_clear_ground(builder, gameplay_state)
                             break
-
-        current_age_data = AGES.get(gameplay_state.enemy_age)
-        if current_age_data and "next_age" in current_age_data:
-            # AI checks if it meets the tech requirement and has surplus resources
-            if len(gameplay_state.enemy_researched_techs) >= current_age_data["req_techs"]:
-                # AI will attempt to age up if it has 20% more than the required cost (buffer)
-                if gameplay_state.enemy_food >= current_age_data["food"] * 1.2:
-                    gameplay_state.attempt_age_up('enemy')
+                else:
+                    print(f"-> Cannot afford {b_type} yet.")
 
     # Manage military units by determining their targets, calculating paths, and executing attacks or movements based on the game state.
     def manage_military(self, enemy_units, player_units, player_buildings, enemy_buildings, contested_tiles):
@@ -289,9 +284,13 @@ class EnemyAi():
                     break # Building used its action, move to next building
 
     def can_afford_building(self, b_type, gameplay_state):
-        # Assuming BUILDINGS[b_type] = [name, food, wood, gold, ...]
+        # Check both BUILDINGS and RESOURCE_BUILDINGS dictionaries
         costs = BUILDINGS.get(b_type)
-        if not costs: return False
+        if not costs:
+            costs = RESOURCE_BUILDINGS.get(b_type)
+        if not costs: 
+            return False
+            
         return (gameplay_state.enemy_food >= costs[1] and 
                 gameplay_state.enemy_wood >= costs[2] and 
                 gameplay_state.enemy_gold >= costs[3])
@@ -355,12 +354,18 @@ class EnemyAi():
                 villager.path = [(float(nx), float(ny))]
                 break
 
-    # Request construction of a building at the villager's current position, deducting resources and queuing the
-    # building for construction.
+    # Request construction of a building at the villager's current position, deducting resources and queuing the building.
     def request_construction(self, building_type, villager, gameplay_state):
         # Use villager's exact current position
         tx, ty = int(villager.x), int(villager.y)
-        b_attr = BUILDINGS[building_type]
+        
+        # Check regular buildings vs resource buildings
+        if building_type in BUILDINGS:
+            b_attr = BUILDINGS[building_type]
+        elif building_type in RESOURCE_BUILDINGS:
+            b_attr = RESOURCE_BUILDINGS[building_type]
+        else:
+            return
         
         # Visual cleanup
         gameplay_state.cover_resources(tx, ty)
@@ -375,9 +380,14 @@ class EnemyAi():
 
         gameplay_state.e_buildings.append(new_building)
         
+        # If it's a resource building, spawn a resource source on that tile
+        if building_type in RESOURCE_BUILDINGS:
+            # b_attr indices matching: [name, food_cost, wood_cost, gold_cost, hp, pop, res_type, amount, base_gather, desc, techs]
+            new_resource = ResourceSource(tx, ty, b_attr[6], b_attr[7], b_attr[8], b_attr[9], True)
+            gameplay_state.resources.append(new_resource)
+        
         # Task the villager
         villager.rest()
-        # Ensure they stop moving and stay on this tile to work
         villager.path = [] 
         gameplay_state.construction[villager] = new_building 
 
@@ -386,6 +396,23 @@ class EnemyAi():
         gameplay_state.enemy_wood -= b_attr[2]
         gameplay_state.enemy_gold -= b_attr[3]
 
+    # Checks if the AI's target tile is far enough away from any existing Enemy Town Centre
+    def can_build_town_centre(self, tx, ty, gameplay_state, min_distance=10):
+        for b in gameplay_state.e_buildings:
+            if b.type == "town_centre":
+                bx, by = int(b.x), int(b.y)
+                if math.hypot(tx - bx, ty - by) < min_distance:
+                    return False
+        return True
+
+    # Checks if a tile is adjacent to any Mill owned by the enemy
+    def is_adjacent_to_mill(self, tx, ty, gameplay_state):
+        neighbors = [(tx-1, ty), (tx+1, ty), (tx, ty-1), (tx, ty+1)]
+        for b in gameplay_state.e_buildings:
+            if b.type == "mill" and (int(b.x), int(b.y)) in neighbors:
+                return True
+        return False
+    
     # Train enemy units by checking each building's trainable units, filtering them based on affordability and 
     # specific rules, and spawning them if possible.
     def train_enemy_units(self, game_state):

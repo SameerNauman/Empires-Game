@@ -25,9 +25,7 @@ class BaseUnits:
         self.id = BaseUnits.next_id
         BaseUnits.next_id += 1
         # Resource gathering attributes
-        self.is_gathering = False
         self.is_building = False
-        self.gather_resource_id = None
         self.queued = False
         self.direction = "S"
 

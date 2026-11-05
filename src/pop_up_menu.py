@@ -232,7 +232,7 @@ class PopupMenu:
             desc = BUILDINGS[key][7]
         # Check Resource Buildings (Index 8)
         elif key in RESOURCE_BUILDINGS:
-            desc = RESOURCE_BUILDINGS[key][8]
+            desc = RESOURCE_BUILDINGS[key][9]
         # Check Units (Index 9)
         elif key in UNITS:
             desc = UNITS[key][9]

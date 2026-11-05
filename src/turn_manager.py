@@ -44,65 +44,52 @@ class TurnManager:
 
     # Processes player's resource gathering at the end of enemy turn
     def process_automatic_gathering(self, game_state):
-        # Iterates over all units and checks if they are gathering. 
-        for unit in game_state.units:
-            if unit.is_gathering:
-                res_id = unit.gather_resource_id
-                res = next((r for r in game_state.resources if r.id == res_id), None)
-                unit_tile = (int(unit.x), int(unit.y))
+        # Iterates through the list of resources and finds only player built resources such as farms or mines.
+        for res in game_state.resources:
+            if res.building:
+                # Determine base amount to take from the resource tile
+                base_gather_amount = res.base_gather_amount
+                res.amount -= base_gather_amount
                 
-                if res and (res.x, res.y) == unit_tile:
-                    # Determine base amount to take from the resource tile
-                    raw_amount = min(100, res.amount)
-                    res.amount -= raw_amount
+                # Apply the specific multiplier based on resource type
+                if res.resource_type == "food":
+                    multiplier = game_state.tech_multipliers.get("gather_rate_food", 1.0)
+                    game_state.food_amount += int(base_gather_amount * multiplier)
                     
-                    # Apply the specific multiplier based on resource type
-                    if res.resource_type == "food":
-                        multiplier = game_state.tech_multipliers.get("gather_rate_food", 1.0)
-                        game_state.food_amount += int(raw_amount * multiplier)
-                        
-                    elif res.resource_type == "wood":
-                        multiplier = game_state.tech_multipliers.get("gather_rate_wood", 1.0)
-                        game_state.wood_amount += int(raw_amount * multiplier)
-                        
-                    elif res.resource_type == "gold":
-                        multiplier = game_state.tech_multipliers.get("gather_rate_gold", 1.0)
-                        game_state.gold_amount += int(raw_amount * multiplier)
-
-                    # Handle depletion
-                    if res.amount <= 0:
-                        game_state.resources.remove(res)
-                        game_state.message_box.open(f"{res.resource_type} has been depleted.", game_state.error_message)
-                        unit.is_gathering = False
-                        unit.gather_resource_id = None
+                elif res.resource_type == "wood":
+                    multiplier = game_state.tech_multipliers.get("gather_rate_wood", 1.0)
+                    game_state.wood_amount += int(base_gather_amount * multiplier)
+                    
+                elif res.resource_type == "gold":
+                    multiplier = game_state.tech_multipliers.get("gather_rate_gold", 1.0)
+                    game_state.gold_amount += int(base_gather_amount * multiplier)
 
     # Processed enemy's resource gathering at the end of enemy turn
     def process_enemy_gathering(self, game_state):
-        # Iterates over all enemy units and checks if they are gathering. 
-        for unit in game_state.enemy_units:
-            if unit.is_gathering:
-                res_id = unit.gather_resource_id
-                # Iterates over resources and checks if their ID matches the one the unit is gathering
-                # from. If the unit is gathering from a resource tile its on, it processes the gathering,
-                # and if the resource has been depleted, it is deleted.
-                res = next((r for r in game_state.resources if r.id == res_id), None)
-                unit_tile = (int(unit.x), int(unit.y))
-                if res and (res.x, res.y) == unit_tile:
-                    amount_gathered = min(100, res.amount)
-                    res.amount -= amount_gathered
-                    if res.resource_type == "food":
-                        game_state.enemy_food += amount_gathered
-                    elif res.resource_type == "wood":
-                        game_state.enemy_wood += amount_gathered
-                    elif res.resource_type == "gold":
-                        game_state.enemy_gold += amount_gathered
-                    if res.amount <= 0:
-                        game_state.resources.remove(res)
-                        game_state.message_box.open(f"{res.resource_type} has been depleted.", True)
-                        unit.is_gathering = False
-                        unit.gather_resource_id = None
+        # Iterates through the list of resources and finds resource buildings (farms, mills, mines)
+        for res in game_state.resources:
+            if getattr(res, "building", False):
+                # Ensure we only process non-depleted buildings
+                if res.is_depleted():
+                    continue
                 
-                print("food:", game_state.enemy_food, "wood:", game_state.enemy_wood, "gold:", game_state.enemy_gold)
+                base_gather_amount = res.base_gather_amount
+                res.amount -= base_gather_amount
+                
+                # Apply tech multipliers if the enemy has them tracked
+                if res.resource_type == "food":
+                    multiplier = getattr(game_state, "enemy_tech_multipliers", {}).get("gather_rate_food", 1.0)
+                    game_state.enemy_food += int(base_gather_amount * multiplier)
+                    
+                elif res.resource_type == "wood":
+                    multiplier = getattr(game_state, "enemy_tech_multipliers", {}).get("gather_rate_wood", 1.0)
+                    game_state.enemy_wood += int(base_gather_amount * multiplier)
+                    
+                elif res.resource_type == "gold":
+                    multiplier = getattr(game_state, "enemy_tech_multipliers", {}).get("gather_rate_gold", 1.0)
+                    game_state.enemy_gold += int(base_gather_amount * multiplier)
+
+        print("Enemy Resources -> food:", game_state.enemy_food, "wood:", game_state.enemy_wood, "gold:", game_state.enemy_gold)
 
     # def process_enemy_construction(self, game_state):
     #         completed_villagers = []

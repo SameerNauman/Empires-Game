@@ -567,7 +567,7 @@ class GameplayState:
             new_building.is_constructed = False
             self.buildings.append(new_building)
             if building_name in RESOURCE_BUILDINGS:
-                new_resource = ResourceSource(self.selected_tile[0], self.selected_tile[1], b_attr[6], b_attr[7], True)
+                new_resource = ResourceSource(self.selected_tile[0], self.selected_tile[1], b_attr[6], b_attr[7], b_attr[8], b_attr[9], True)
                 self.resources.append(new_resource)
             self.popup_menu.close()
             self.building_menu.close()
@@ -591,17 +591,6 @@ class GameplayState:
     def cancel_action(self):
         self.building_menu.close()
         self.popup_menu.is_open = True
-
-    # Unit gathers the resource from the resource tile its on and increases the action count by 1
-    def gather_action(self, unit, resource):
-        self.reachable_tiles = set()
-        unit.is_gathering = True
-        unit.gather_resource_id = resource.id
-        if unit:
-            unit.rest()
-            unit.selected = False
-        self.selected_unit_id = None
-        self.popup_menu.close()
 
     # Unit enters target aquisition mode
     def attack_action(self, unit):
@@ -1309,15 +1298,6 @@ class GameplayState:
 
         # self.message_box.close()
 
-    # Checks if unit is gathering at a resource tile. If a unit moves off, it stops gathering.
-    def gathering_check(self):
-        if self.selected_unit.is_gathering:
-            res_id = self.selected_unit.gather_resource_id
-            res = next((r for r in self.resources if r.id == res_id), None)
-            if not res or (int(self.selected_unit.x), int(self.selected_unit.y)) != (res.x, res.y):
-                self.selected_unit.is_gathering = False
-                self.selected_unit.gather_resource_id = None
-
 # === MISC. ===
 
     # Checks if the selected tile is adjacent to a mill for farm building   
@@ -1413,8 +1393,6 @@ class GameplayState:
         # When a player unit is moving
         if self.is_moving:
             self.selected_unit.move_along_path()
-            # Stops gathering if the unit moves off the resource tile
-            self.gathering_check()
             
             # If the selected unit is not moving, displays a popup menu of its actions
             if not self.selected_unit.path:

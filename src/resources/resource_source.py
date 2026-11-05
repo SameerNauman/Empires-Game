@@ -4,11 +4,13 @@ from config import *
 class ResourceSource:
     # Static variable to keep track of the next available ID for resource sources
     next_id = 1
-    def __init__(self, x, y, resource_type, amount, building):
+    def __init__(self, x, y, resource_type, amount, base_gather_amount, desc, building):
         self.x = x
         self.y = y
         self.resource_type = resource_type  # e.g., "wood", "gold", "food"
         self.amount = amount
+        self.base_gather_amount = base_gather_amount
+        self.desc = desc
         self.building = building
         self.id = ResourceSource.next_id
         ResourceSource.next_id += 1
