@@ -185,6 +185,23 @@ UNIT_SPRITES_CONFIG = {
             "rested_W": "rested_W.png"
         }
     },
+    "spearmen": {
+        "folder": "spearmen",
+        "files": {
+            "normal_N": "normal_N.png",
+            "normal_S": "normal_S.png",
+            "normal_E": "normal_E.png",
+            "normal_W": "normal_W.png",
+            "selected_N": "selected_N.png",
+            "selected_S": "selected_S.png",
+            "selected_E": "selected_E.png",
+            "selected_W": "selected_W.png",
+            "rested_N": "rested_N.png",
+            "rested_S": "rested_S.png",
+            "rested_E": "rested_E.png",
+            "rested_W": "rested_W.png"
+        }
+    },
     "basil": {
         "folder": "basil",
         "files": {
