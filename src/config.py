@@ -202,6 +202,23 @@ UNIT_SPRITES_CONFIG = {
             "rested_W": "rested_W.png"
         }
     },
+    "limitanei": {
+        "folder": "limitanei",
+        "files": {
+            "normal_N": "normal_N.png",
+            "normal_S": "normal_S.png",
+            "normal_E": "normal_E.png",
+            "normal_W": "normal_W.png",
+            "selected_N": "selected_N.png",
+            "selected_S": "selected_S.png",
+            "selected_E": "selected_E.png",
+            "selected_W": "selected_W.png",
+            "rested_N": "rested_N.png",
+            "rested_S": "rested_S.png",
+            "rested_E": "rested_E.png",
+            "rested_W": "rested_W.png"
+        }
+    },
     "villager": {
         "folder": "villager",
         "files": {
@@ -367,7 +384,7 @@ GOLD_MINE_DESC = ("The Gold Mine is a resource building, which can only be built
 # Buildings = [name, food cost, wood cost, gold cost, hitpoints, pop capacity, trainable units, building description, researchable technologies]
 BUILDINGS = {
     "town_centre": ["town_centre", 0, 400, 400, 500, 10, ["villager"], TOWN_CENTRE_DESC, ["town_watch", "scout_training", "marched_pace"]],
-    "barracks": ["barracks", 100, 100, 50, 300, 0, [], BARRACKS_DESC, []],
+    "barracks": ["barracks", 100, 100, 50, 300, 0, ["limitanei"], BARRACKS_DESC, []],
     "house": ["house", 0, 100, 0, 100, 5, [], HOUSE_DESC, []],
     "market": ["market", 0, 100, 100, 200, 0, [], MARKET_DESC, ["basket_weaving", "double-blade_axe", "smelting"]]
 }
@@ -387,7 +404,7 @@ BASIL_DESC = ("Basil II is the Emperor of the Byzantine Empire. He is a cavalry 
 VILLAGER_DESC = ("Villagers gather resources and construct buildings. They are weak in combat but essential for your economy. \n\n" "50 / 25")
 ARCHER_DESC = ("Archers are ranged units that can attack from a distance. \n" 
 "Equipped with bows, and leather armor. \n\n" "150 / 100")
-SPEARMEN_DESC = ("Spearmen are melee units that excel at defending against cavalry.\n"
+LIMITANEI_DESC = ("Limitanei are melee units that excel at defending against cavalry.\n"
 "Equipped with spears, and leather armor. \n\n" "100 / 100")
 
 # [name, food cost, wood cost, gold cost, pop cost, movement, attack, defense, attack_range=1, description="", loyalty = player]
@@ -396,7 +413,7 @@ UNITS = {
     "basil": ["Basil", 300, 0, 300, 1, 10, 300, 300, 1, BASIL_DESC],
     "villager": ["Villager", 50, 0, 0, 1, 5, 50, 25, 1, VILLAGER_DESC],
     "archers": ["Archers", 60, 60, 0, 1, 7, 150, 100, 3, ARCHER_DESC],
-    "spearmen": ["Spearmen", 50, 50, 0, 1, 7, 100, 100, 1, SPEARMEN_DESC]
+    "limitanei": ["Limitanei", 50, 50, 0, 1, 7, 100, 100, 1, LIMITANEI_DESC]
 }
 
 HEROES = {

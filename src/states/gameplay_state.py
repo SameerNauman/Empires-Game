@@ -777,13 +777,13 @@ class GameplayState:
         # Creates a unit instance with appropriate attributes. Then subtracts from the player's 
         # resources based on its cost.
         new_unit = BaseUnits(spawn_x, spawn_y, u_attr[5], u_attr[6], u_attr[7], u_attr[8], type=unit_name, loyalty="player")
-        # Sets the unit's action count to 2 and appends it to the player's unit list.
+        # Sets the unit's action count to 1 and appends it to the player's unit list.
         new_unit.unit_queued()
         self.units.append(new_unit)
         self.food_amount -= u_attr[1]
         self.wood_amount -= u_attr[2]
         self.gold_amount -= u_attr[3]
-        # Sets the building's action count to 2
+        # Sets the building's action count to 1
         selected_building = next((b for b in self.buildings if b.id == self.selected_building_id), None)
         if selected_building:
             selected_building.rest()
@@ -1218,7 +1218,7 @@ class GameplayState:
                     b_desc = b_attr[7]
                 elif self.selected_building.type in RESOURCE_BUILDINGS:
                     b_attr = RESOURCE_BUILDINGS[self.selected_building.type]
-                    b_desc = b_attr[8]
+                    b_desc = b_attr[9]
 
                 # Deselect any selected unit
                 if self.selected_unit_id is not None:
