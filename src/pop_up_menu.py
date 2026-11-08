@@ -216,8 +216,7 @@ class PopupMenu:
             return sel
         return None
 
-    # Updates the description in the message box based on the currently selected option. It checks various dictionaries 
-    # (BUILDINGS, RESOURCE_BUILDINGS, UNITS, RESEARCH) to find a matching description for the selected option and displays 
+    # Updates the description based on the selected option using building, unit, and research data.
     # it in the message box. If no description is found, it closes the message box.
     def _update_description(self):
         if not self.options: return
@@ -227,17 +226,24 @@ class PopupMenu:
         
         desc = None
 
-        # Check Buildings (Index 7)
-        if key in BUILDINGS:
-            desc = BUILDINGS[key][7]
-        # Check Resource Buildings (Index 8)
-        elif key in RESOURCE_BUILDINGS:
-            desc = RESOURCE_BUILDINGS[key][9]
-        # Check Units (Index 9)
-        elif key in UNITS:
-            desc = UNITS[key][9]
+        for faction_data in FACTIONS.values():
+            data_groups = [faction_data]
+            data_groups.extend(
+                value for value in faction_data.values() if isinstance(value, dict)
+            )
+            for data_group in data_groups:
+                building_data = data_group.get("buildings", {}).get(key)
+                unit_data = data_group.get("units", {}).get(key)
+                entity_data = building_data or unit_data
+                if entity_data is not None:
+                    desc = entity_data.get("description")
+                    if desc is not None:
+                        break
+            if desc is not None:
+                break
+
         # Check Research (Index 4)
-        elif key in RESEARCH:
+        if desc is None and key in RESEARCH:
             desc = RESEARCH[key][4]
         
         # Display or Close

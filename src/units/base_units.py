@@ -40,7 +40,7 @@ class BaseUnits:
     def get_vision_range(self, game_multipliers):
         bonus = game_multipliers.get("unit_vision", 0)
         return self.base_vision + bonus
-            
+          
     def rest(self):
         self.action_count += 1
 
@@ -96,7 +96,7 @@ class BaseUnits:
             state = "normal"
         sprite_key = f"{state}_{self.direction}"
 
-        # Normalize type key to lowercase to match UNIT_SPRITES_CONFIG ("villager", "malik_shah", etc.)
+        # Normalize type key to lowercase to match config keys
         unit_type_key = str(self.type).lower()
         
         sprite_set = unit_sprites.get(unit_type_key, {})
@@ -105,7 +105,6 @@ class BaseUnits:
         if sprite_key in sprite_set:
             self.sprite_to_draw = sprite_set[sprite_key]
         else:
-            # Fallback to normal_S or first available sprite to prevent hard crashes
             fallback_key = "normal_S" if "normal_S" in sprite_set else (next(iter(sprite_set)) if sprite_set else None)
             if fallback_key:
                 self.sprite_to_draw = sprite_set[fallback_key]

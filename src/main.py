@@ -23,7 +23,7 @@ class Main():
         self.fullscreen = False
 
         # Initialize the asset manager to load all game assets (sprites, icons, etc.)
-        self.assets = AssetManager()
+        self.assets = AssetManager("seljuks", "byzantines", "blue", "red")
 
         # initialize game state manager and states. Game state manager handles transitions between states and keeps track of the 
         # current state. Menu state is the initial state, so it is passed to the game state manager as the current state.

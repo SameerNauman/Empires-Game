@@ -83,7 +83,13 @@ class StartUp:
         self.player_color = p1_color.lower()
         self.enemy_color = p2_color.lower()
 
-        self.assets.load_unit_sprites(self.player_faction, self.enemy_faction, self.player_color, self.enemy_color)
+        # Reload assets in place using the shared reference
+        self.assets.reload_factions(
+            self.player_faction, 
+            self.enemy_faction, 
+            self.player_color, 
+            self.enemy_color
+        )
 
         self.game_state_manager.set_state(
             "gameplay state", 

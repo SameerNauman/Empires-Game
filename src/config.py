@@ -278,20 +278,6 @@ LIMITANEI_DESC = ("Limitanei are melee units that excel at defending against cav
 SPEARMEN_DESC = ("Spearmen are melee units that excel at defending against cavalry. \n"
                  "Equipped with spears, and leather armor. \n\n" "100 / 100")
 
-# [name, food cost, wood cost, gold cost, pop cost, movement, attack, defense, attack_range=1, description="", loyalty = player]
-UNITS = {
-    "malik_shah": ["Malik Shah", 300, 0, 300, 1, 10, 300, 300, 5, MALIK_SHAH_DESC],
-    "basil": ["Basil", 300, 0, 300, 1, 10, 300, 300, 1, BASIL_DESC],
-    "villager": ["Villager", 50, 0, 0, 1, 5, 50, 25, 1, VILLAGER_DESC],
-    "archers": ["Archers", 60, 60, 0, 1, 7, 150, 100, 3, ARCHER_DESC],
-    "limitanei": ["Limitanei", 50, 50, 0, 1, 7, 100, 100, 1, LIMITANEI_DESC]
-}
-
-HEROES = {
-    "malik_shah": ["Malik Shah", 300, 0, 300, 1, 10, 300, 300, 5, MALIK_SHAH_DESC],
-    "basil": ["Basil", 300, 0, 300, 1, 10, 300, 300, 1, BASIL_DESC],
-}
-
 # === RESEARCH ===
 
 # Town Centre
@@ -336,166 +322,6 @@ AGES = {
         "gold": 1000,
         "req_techs": 8
     }
-}
-
-# The base path for all unit assets
-UNIT_ASSETS_BASE = os.path.join("..", "assets", "units", "base")
-
-# Base color sprites for units.
-UNIT_SPRITES_CONFIG = {
-    "malik_shah": {
-        "folder": "malik_shah",
-        "files": {
-            "normal_N": "normal_N.png",
-            "normal_S": "normal_S.png",
-            "normal_E": "normal_E.png",
-            "normal_W": "normal_W.png",
-            "selected_N": "selected_N.png",
-            "selected_S": "selected_S.png",
-            "selected_E": "selected_E.png",
-            "selected_W": "selected_W.png",
-            "rested_N": "rested_N.png",
-            "rested_S": "rested_S.png",
-            "rested_E": "rested_E.png",
-            "rested_W": "rested_W.png"
-        }
-    },
-    "spearmen": {
-        "folder": "spearmen",
-        "files": {
-            "normal_N": "normal_N.png",
-            "normal_S": "normal_S.png",
-            "normal_E": "normal_E.png",
-            "normal_W": "normal_W.png",
-            "selected_N": "selected_N.png",
-            "selected_S": "selected_S.png",
-            "selected_E": "selected_E.png",
-            "selected_W": "selected_W.png",
-            "rested_N": "rested_N.png",
-            "rested_S": "rested_S.png",
-            "rested_E": "rested_E.png",
-            "rested_W": "rested_W.png"
-        }
-    },
-    "basil": {
-        "folder": "basil",
-        "files": {
-            "normal_N": "normal_N.png",
-            "normal_S": "normal_S.png",
-            "normal_E": "normal_E.png",
-            "normal_W": "normal_W.png",
-            "selected_N": "selected_N.png",
-            "selected_S": "selected_S.png",
-            "selected_E": "selected_E.png",
-            "selected_W": "selected_W.png",
-            "rested_N": "rested_N.png",
-            "rested_S": "rested_S.png",
-            "rested_E": "rested_E.png",
-            "rested_W": "rested_W.png"
-        }
-    },
-    "limitanei": {
-        "folder": "limitanei",
-        "files": {
-            "normal_N": "normal_N.png",
-            "normal_S": "normal_S.png",
-            "normal_E": "normal_E.png",
-            "normal_W": "normal_W.png",
-            "selected_N": "selected_N.png",
-            "selected_S": "selected_S.png",
-            "selected_E": "selected_E.png",
-            "selected_W": "selected_W.png",
-            "rested_N": "rested_N.png",
-            "rested_S": "rested_S.png",
-            "rested_E": "rested_E.png",
-            "rested_W": "rested_W.png"
-        }
-    },
-    "villager": {
-        "folder": "villager",
-        "files": {
-            "normal_N": "normal_N.png",
-            "normal_S": "normal_S.png",
-            "normal_E": "normal_E.png",
-            "normal_W": "normal_W.png",
-            "selected_N": "selected_N.png",
-            "selected_S": "selected_S.png",
-            "selected_E": "selected_E.png",
-            "selected_W": "selected_W.png",
-            "rested_N": "rested_N.png",
-            "rested_S": "rested_S.png",
-            "rested_E": "rested_E.png",
-            "rested_W": "rested_W.png"
-        }
-    },
-    "archers": {
-        "folder": "archer2",
-        "files": {
-            "normal_N": "archer_N.png",
-            "normal_S": "archer_S.png",
-            "normal_E": "archer_E.png",
-            "normal_W": "archer_W.png",
-            "selected_N": "selected_N.png",
-            "selected_S": "selected_S.png",
-            "selected_E": "selected_E.png",
-            "selected_W": "selected_W.png"
-        }
-    }
-}
-
-BUILDING_PATH = os.path.join("..", "assets", "buildings5")
-
-# Base color sprites for buildings.
-BUILDING_SPRITES = {
-    "town_centre": {
-        "normal": "town_centre4.png",
-        "selected": "tc_selected2.png",
-        "rested": "tc_rested2.png"
-    },
-    "barracks": {
-        "normal": "barracks.png",
-        "selected": "barracks_selected.png",
-        "rested": "barracks_rested.png"
-    },
-    "mill": {
-        "normal": "mill.png",
-        "selected": "mill.png",
-        "rested": "mill_rested.png"
-    },
-    "farm": {
-        "normal": "farm.png",
-        "selected": "farm.png",
-        "rested": "farm_rested.png"
-    },
-    "gold_mine": {
-        "normal": "gold_mine.png",
-        "selected": "gold_mine.png",
-        "rested": "gold_mine_rested.png"
-    }
-}
-
-# [name, food cost, wood cost, gold cost, pop cost, movement, attack, defense, attack_range=1, description="", loyalty = player]
-UNITS = {
-    "malik_shah": ["Malik Shah", 300, 0, 300, 1, 10, 300, 300, 5, MALIK_SHAH_DESC],
-    "basil": ["Basil", 300, 0, 300, 1, 10, 300, 300, 1, BASIL_DESC],
-    "villager": ["Villager", 50, 0, 0, 1, 5, 50, 25, 1, VILLAGER_DESC],
-    "archers": ["Archers", 60, 60, 0, 1, 7, 150, 100, 3, ARCHER_DESC],
-    "limitanei": ["Limitanei", 50, 50, 0, 1, 7, 100, 100, 1, LIMITANEI_DESC]
-}
-
-# Buildings = [name, food cost, wood cost, gold cost, hitpoints, pop capacity, trainable units, building description, researchable technologies]
-BUILDINGS = {
-    "town_centre": ["town_centre", 0, 400, 400, 500, 10, ["villager"], TOWN_CENTRE_DESC, ["town_watch", "scout_training", "marched_pace"]],
-    "barracks": ["barracks", 100, 100, 50, 300, 0, ["limitanei"], BARRACKS_DESC, []],
-    "house": ["house", 0, 100, 0, 100, 5, [], HOUSE_DESC, []],
-    "market": ["market", 0, 100, 100, 200, 0, [], MARKET_DESC, ["basket_weaving", "double-blade_axe", "smelting"]]
-}
-
-# [name, food cost, wood cost, gold cost, hitpoints, pop capacity, resource type, resource amount, base gather amount, description, researchable technologies]
-RESOURCE_BUILDINGS = {
-    "mill": ["mill", 0, 50, 0, 200, 0, "food", 500000, 50, MILL_DESC, ["irrigation"]],
-    "farm": ["farm", 0, 50, 0, 100, 0, "food", 500000, 25, FARM_DESC, []],
-    "gold_mine": ["gold_mine", 200, 100, 0, 200, 0, "gold", 500000, 150, GOLD_MINE_DESC, []]
 }
 
 # === FACTIONS ===
@@ -615,9 +441,9 @@ FACTIONS = {
                     "trainable units": ["villager"],
                     "research": ["town_watch", "scout_training", "marched_pace"],
                     "files": {
-                        "normal": "town_centre4.png",
-                        "selected": "tc_selected2.png",
-                        "rested": "tc_rested2.png"
+                        "normal": "town_centre.png",
+                        "selected": "tc_selected.png",
+                        "rested": "tc_rested.png"
                     }
                 },
                 "barracks": {
@@ -639,6 +465,33 @@ FACTIONS = {
                         "selected": "barracks_selected.png",
                         "rested": "barracks_rested.png"
                     }
+                },
+                "mill": {
+                    "folder": "mill",
+                    "cost": {"food": 0, "wood": 50, "gold": 0},
+                    "stats": {"hitpoints": 200, "pop capacity": 0},
+                    "description": MILL_DESC,
+                    "resource": {"type": "food", "amount": 500000, "gather_amount": 50},
+                    "research": ["irrigation"],
+                    "files": {"normal": "mill.png", "rested": "mill_rested.png"}
+                },
+                "farm": {
+                    "folder": "farm",
+                    "cost": {"food": 0, "wood": 50, "gold": 0},
+                    "stats": {"hitpoints": 100, "pop capacity": 0},
+                    "description": FARM_DESC,
+                    "resource": {"type": "food", "amount": 500000, "gather_amount": 25},
+                    "research": [],
+                    "files": {"normal": "farm.png", "rested": "farm_rested.png"}
+                },
+                "gold_mine": {
+                    "folder": "gold_mine",
+                    "cost": {"food": 200, "wood": 100, "gold": 0},
+                    "stats": {"hitpoints": 200, "pop capacity": 0},
+                    "description": GOLD_MINE_DESC,
+                    "resource": {"type": "gold", "amount": 500000, "gather_amount": 150},
+                    "research": [],
+                    "files": {"normal": "gold_mine.png", "rested": "gold_mine_rested.png"}
                 }
             }
         }
@@ -756,9 +609,9 @@ FACTIONS = {
                 "trainable units": ["villager"],
                 "research": ["town_watch", "scout_training", "marched_pace"],
                 "files": {
-                    "normal": "town_centre4.png",
-                    "selected": "tc_selected2.png",
-                    "rested": "tc_rested2.png"
+                    "normal": "town_centre.png",
+                    "selected": "tc_selected.png",
+                    "rested": "tc_rested.png"
                 }
             },
             "barracks": {
@@ -780,6 +633,33 @@ FACTIONS = {
                     "selected": "barracks_selected.png",
                     "rested": "barracks_rested.png"
                 }
+            },
+            "mill": {
+                "folder": "mill",
+                "cost": {"food": 0, "wood": 50, "gold": 0},
+                "stats": {"hitpoints": 200, "pop capacity": 0},
+                "description": MILL_DESC,
+                "resource": {"type": "food", "amount": 500000, "gather_amount": 50},
+                "research": ["irrigation"],
+                "files": {"normal": "mill.png", "rested": "mill_rested.png"}
+            },
+            "farm": {
+                "folder": "farm",
+                "cost": {"food": 0, "wood": 50, "gold": 0},
+                "stats": {"hitpoints": 100, "pop capacity": 0},
+                "description": FARM_DESC,
+                "resource": {"type": "food", "amount": 500000, "gather_amount": 25},
+                "research": [],
+                "files": {"normal": "farm.png", "rested": "farm_rested.png"}
+            },
+            "gold_mine": {
+                "folder": "gold_mine",
+                "cost": {"food": 200, "wood": 100, "gold": 0},
+                "stats": {"hitpoints": 200, "pop capacity": 0},
+                "description": GOLD_MINE_DESC,
+                "resource": {"type": "gold", "amount": 500000, "gather_amount": 150},
+                "research": [],
+                "files": {"normal": "gold_mine.png", "rested": "gold_mine_rested.png"}
             }
         }
     }

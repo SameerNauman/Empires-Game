@@ -4,29 +4,38 @@ from config import *
 class BaseBuildings:
     # Static variable to keep track of the next available ID for buildings
     next_id = 1
-    def __init__(self, x, y, hitpoints, population_limit=0, type="Unknown", defense=200):
+    def __init__(self, x, y, hitpoints, population_limit=0, type="Unknown", defense=200, loyalty="player"):
         self.x = x
         self.y = y
         self.hitpoints = hitpoints
         self.max_hitpoints = hitpoints
         self.population_limit = population_limit
-        # If the building is queued for construction, it will be marked as such. Once constructed, it will be marked as constructed.
         self.queued = False
         self.is_constructed = False
         self.selected = False
         self.action_count = 0
         self.type = type
         self.defense = defense
+        self.loyalty = loyalty
         self.id = BaseBuildings.next_id
         BaseBuildings.next_id += 1
 
     # Draw the building on the screen
     def draw(self, screen, camera_x, camera_y, building_sprites):
-        # Sprites
-        sprite_set = building_sprites[self.type]
-        self.sprite_normal = sprite_set["normal"]
-        self.sprite_selected = sprite_set["selected"]
-        self.sprite_rested = sprite_set["rested"]
+        # Normalize type key to lowercase
+        bldg_type_key = str(self.type).lower()
+        sprite_set = building_sprites.get(bldg_type_key, {})
+        
+        if not sprite_set:
+            return  # Skip drawing if no sprites are found for this building type
+
+        # Safely fetch sprite states with fallbacks
+        self.sprite_normal = sprite_set.get("normal", next(iter(sprite_set.values()), None))
+        self.sprite_selected = sprite_set.get("selected", self.sprite_normal)
+        self.sprite_rested = sprite_set.get("rested", self.sprite_normal)
+
+        if not self.sprite_normal:
+            return
 
         # Calculate the screen position based on the building's grid position and camera offset
         draw_x = self.x + OFFSET_X
@@ -76,11 +85,9 @@ class BaseBuildings:
     def building_tired(self):
         return self.action_count == 1
     
-    # Use after construction
     def building_queued(self):
         self.queued = True
         self.action_count = 1
 
-    # Resets action count to 0
     def rested(self):
         self.action_count = 0

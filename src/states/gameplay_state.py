@@ -112,7 +112,7 @@ class GameplayState:
         # Player and enemy town centers, initialized with their positions, health, and population limits
         town_centre = BaseBuildings(4, 4, 500, 10, type="town_centre")
         town_centre.is_constructed = True
-        e_town_centre = BaseBuildings(17, 4, 500, 10, type="town_centre")
+        e_town_centre = BaseBuildings(17, 4, 500, 10, type="town_centre", loyalty="enemy")
         e_town_centre.is_constructed = True
         # Initialize player and enemy units, buildings, resources, and construction queues
         self.units = []
@@ -204,7 +204,7 @@ class GameplayState:
         # correctly applied
         self.update_VISIBILITY_MAP()
 
-    # Sets up the player's starting hero unit based on the selected faction. It retrieves the hero's stats from the UNITS database    
+    # Sets up the player's starting hero unit from the selected faction's unit data.
     def player_setup(self, faction, color):
         # Safety. Could remove in the future.
         if not faction:
@@ -220,25 +220,38 @@ class GameplayState:
             print(f"[ERROR] Faction '{faction_key}' not found in FACTIONS config database! Available keys: {list(FACTIONS.keys())}")
             return
 
-        # Retrieve the hero's key from the faction data, which is used to look up the hero's stats in the UNITS database. 
-        # If the hero's stats are not found, an error message is printed, and the method returns early.
+        # Retrieve the hero's key and stats from the faction data.
         hero_key = faction_data.get("hero_key") or faction_data.get("hero")
-        hero_stats = UNITS.get(hero_key)
+        unit_configs = self.get_faction_units(faction_key)
+        hero_data = unit_configs.get(hero_key)
 
-        if not hero_stats:
-            print(f"[ERROR] Hero stats key '{hero_key}' not found in UNITS database!")
+        if not hero_data:
+            print(f"[ERROR] Hero unit '{hero_key}' not found in faction '{faction_key}'!")
             return
 
         start_x, start_y = 5, 5
-        print(f"[INIT] Spawning Player Hero: {hero_stats[0]} at ({start_x}, {start_y})")
+        hero_stats = hero_data["stats"]
+        print(f"[INIT] Spawning Player Hero: {hero_key.replace('_', ' ').title()} at ({start_x}, {start_y})")
 
-        # Create the player's hero unit using the retrieved stats and starting position. The hero is added to the player's units list.
-        player_hero = BaseUnits(start_x, start_y, hero_stats[5], hero_stats[6], hero_stats[7], hero_stats[8], type=hero_key, loyalty="player")
-        player_villager = BaseUnits(4, 4, 5, 50, 25, 1, type="villager", loyalty="player")
+        player_hero = BaseUnits(
+            start_x, start_y, hero_stats["movement"], hero_stats["attack"],
+            hero_stats["defense"], hero_stats.get("range", 1), type=hero_key,
+            loyalty="player"
+        )
+        villager_data = unit_configs.get("villager")
+        if not villager_data:
+            print(f"[ERROR] Villager unit not found in faction '{faction_key}'!")
+            return
+        villager_stats = villager_data["stats"]
+        player_villager = BaseUnits(
+            4, 4, villager_stats["movement"], villager_stats["attack"],
+            villager_stats["defense"], villager_stats.get("range", 1),
+            type="villager", loyalty="player"
+        )
         self.units.append(player_hero)
         self.units.append(player_villager)
 
-    # Sets up the enemy's starting hero unit based on the selected faction. It retrieves the hero's stats from the UNITS database
+    # Sets up the enemy's starting hero unit from the selected faction's unit data.
     # and positions the enemy hero at a distinct starting tile. The enemy hero is added to the enemy_units list.
     def enemy_setup(self, faction, color):
         if not faction:
@@ -253,17 +266,22 @@ class GameplayState:
             return
 
         hero_key = faction_data.get("hero_key") or faction_data.get("hero")
-        hero_stats = UNITS.get(hero_key)
+        hero_data = self.get_faction_units(faction_key).get(hero_key)
 
-        if not hero_stats:
-            print(f"[ERROR] Hero stats key '{hero_key}' not found in UNITS database!")
+        if not hero_data:
+            print(f"[ERROR] Hero unit '{hero_key}' not found in faction '{faction_key}'!")
             return
 
         # Position opponent hero at distinct starting tile coordinates
         start_x, start_y = 17, 4
-        print(f"[INIT] Spawning Enemy Hero: {hero_stats[0]} at ({start_x}, {start_y})")
+        hero_stats = hero_data["stats"]
+        print(f"[INIT] Spawning Enemy Hero: {hero_key.replace('_', ' ').title()} at ({start_x}, {start_y})")
 
-        enemy_hero = BaseUnits(start_x, start_y, hero_stats[5], hero_stats[6], hero_stats[7], hero_stats[8], type=hero_key)
+        enemy_hero = BaseUnits(
+            start_x, start_y, hero_stats["movement"], hero_stats["attack"],
+            hero_stats["defense"], hero_stats.get("range", 1), type=hero_key,
+            loyalty="enemy"
+        )
         
         self.enemy_units.append(enemy_hero)  # Append to enemy collection instead of self.units
 
@@ -556,27 +574,60 @@ class GameplayState:
                     return False
         return True
 
-    # Creates instance of chosen building and subtracts resource cost.
+    def get_faction_buildings(self, faction_name=None):
+        faction_key = (faction_name or self.player_faction or "seljuks").lower()
+        faction_data = FACTIONS.get(faction_key, {})
+        if isinstance(faction_data.get("buildings"), dict):
+            return faction_data["buildings"]
+
+        for age_data in faction_data.values():
+            if isinstance(age_data, dict) and isinstance(age_data.get("buildings"), dict):
+                return age_data["buildings"]
+        return {}
+
+    def get_building_data(self, building_name, faction_name=None):
+        return self.get_faction_buildings(faction_name).get(building_name)
+
+    def get_faction_units(self, faction_name=None):
+        faction_key = (faction_name or self.player_faction or "seljuks").lower()
+        faction_data = FACTIONS.get(faction_key, {})
+        if isinstance(faction_data.get("units"), dict):
+            return faction_data["units"]
+
+        for age_data in faction_data.values():
+            if isinstance(age_data, dict) and isinstance(age_data.get("units"), dict):
+                return age_data["units"]
+        return {}
+
     def building_construction(self, building_name):
-        # Aquiring list of building attributes
-        if building_name in BUILDINGS:
-            b_attr = BUILDINGS[building_name]
-        elif building_name in RESOURCE_BUILDINGS:
-            b_attr = RESOURCE_BUILDINGS[building_name]
+        building_data = self.get_building_data(building_name)
+        if not building_data:
+            return
+
+        costs = building_data["cost"]
+        stats = building_data["stats"]
         selected_unit = next((u for u in self.units if u.id == self.selected_unit_id), None)
         # If player's resources are enough, subtract cost, and create building instance, append to 
         # building list.
-        if self.food_amount >= b_attr[1] and self.wood_amount >= b_attr[2] and self.gold_amount >= b_attr[3]:
+        if (self.food_amount >= costs["food"] and self.wood_amount >= costs["wood"]
+            and self.gold_amount >= costs["gold"]):
             self.cover_resources(selected_unit.x, selected_unit.y)
             new_building_id = max([b.id for b in self.buildings], default=0) + 1
-            new_building = BaseBuildings(self.selected_tile[0], self.selected_tile[1], b_attr[4], b_attr[5])
+            new_building = BaseBuildings(
+                self.selected_tile[0], self.selected_tile[1], stats["hitpoints"],
+                stats.get("pop capacity", 0), type=building_name, loyalty="player"
+            )
             new_building.id = new_building_id
-            new_building.type = building_name
             new_building.building_queued()
             new_building.is_constructed = False
             self.buildings.append(new_building)
-            if building_name in RESOURCE_BUILDINGS:
-                new_resource = ResourceSource(self.selected_tile[0], self.selected_tile[1], b_attr[6], b_attr[7], b_attr[8], b_attr[9], True, "player")
+            resource_data = building_data.get("resource")
+            if resource_data:
+                new_resource = ResourceSource(
+                    self.selected_tile[0], self.selected_tile[1], resource_data["type"],
+                    resource_data["amount"], resource_data["gather_amount"],
+                    building_data["description"], True, "player"
+                )
                 self.resources.append(new_resource)
             self.popup_menu.close()
             self.building_menu.close()
@@ -588,9 +639,9 @@ class GameplayState:
                 selected_unit.update_vision_coords() # Sync coordinates
                 self.update_VISIBILITY_MAP() # Refresh the Fog of War
             # Subtracts resource cost
-            self.food_amount -= b_attr[1]
-            self.wood_amount -= b_attr[2]
-            self.gold_amount -= b_attr[3]
+            self.food_amount -= costs["food"]
+            self.wood_amount -= costs["wood"]
+            self.gold_amount -= costs["gold"]
             self.selected_unit_id = None
         else:
             self.message_box.open("Insufficient funds", self.error_message)
@@ -711,7 +762,8 @@ class GameplayState:
         }
 
         # Add Train if it's a production building
-        if building.type in BUILDINGS:
+        building_data = self.get_building_data(building.type)
+        if building_data and building_data.get("trainable units"):
             options.insert(0, "Train")
             actions["Train"] = self.unit_selection
 
@@ -728,14 +780,9 @@ class GameplayState:
         spawn_x, spawn_y = selected_building.x, selected_building.y
         building_name = selected_building.type
         
-        # Finds the building's attribute list consisting of type, cost, and trainable units
-        if building_name in BUILDINGS:
-            b_attr = BUILDINGS[building_name]
-            trainable_units = b_attr[6]
-        else:
-            # Handle resource buildings if they have units, or default to empty list
-            b_attr = RESOURCE_BUILDINGS.get(building_name, [None]*10)
-            trainable_units = b_attr[6] if b_attr[6] is not None else []
+        building_data = self.get_building_data(building_name)
+        trainable_units = building_data.get("trainable units", []) if building_data else []
+        unit_configs = self.get_faction_units()
 
         affordable_unit_keys = []
         options = []
@@ -743,18 +790,18 @@ class GameplayState:
         for unit_name in trainable_units:
             # Normalize to lowercase for dictionary lookup
             u_key = unit_name.lower()
-            if u_key in UNITS:
-                u_attr = UNITS[u_key]
-                food, wood, gold = u_attr[1], u_attr[2], u_attr[3]
+            unit_data = unit_configs.get(u_key)
+            if unit_data:
+                costs = unit_data["cost"]
                 
                 # Check affordability
-                if (self.food_amount >= food and
-                    self.wood_amount >= wood and
-                    self.gold_amount >= gold):
+                if (self.food_amount >= costs["food"] and
+                    self.wood_amount >= costs["wood"] and
+                    self.gold_amount >= costs["gold"]):
                     
                     # Store technical key and display name
                     affordable_unit_keys.append(u_key)
-                    options.append(u_attr[0]) # The friendly name (e.g., "Villager")
+                    options.append(u_key.replace("_", " ").title())
 
         # Map display names to actions
         actions = {}
@@ -772,17 +819,23 @@ class GameplayState:
 
     # Creates an instance of a unit with appropriate attributes.
     def train_action(self, unit_name, spawn_x, spawn_y):
-        # Finds the unit's attribute list consisting of type, cost, movement, and defense values
-        u_attr = UNITS[unit_name]
-        # Creates a unit instance with appropriate attributes. Then subtracts from the player's 
-        # resources based on its cost.
-        new_unit = BaseUnits(spawn_x, spawn_y, u_attr[5], u_attr[6], u_attr[7], u_attr[8], type=unit_name, loyalty="player")
+        unit_data = self.get_faction_units().get(unit_name)
+        if not unit_data:
+            return
+
+        costs = unit_data["cost"]
+        stats = unit_data["stats"]
+        new_unit = BaseUnits(
+            spawn_x, spawn_y, stats["movement"], stats["attack"],
+            stats["defense"], stats.get("range", 1), type=unit_name,
+            loyalty="player"
+        )
         # Sets the unit's action count to 1 and appends it to the player's unit list.
         new_unit.unit_queued()
         self.units.append(new_unit)
-        self.food_amount -= u_attr[1]
-        self.wood_amount -= u_attr[2]
-        self.gold_amount -= u_attr[3]
+        self.food_amount -= costs["food"]
+        self.wood_amount -= costs["wood"]
+        self.gold_amount -= costs["gold"]
         # Sets the building's action count to 1
         selected_building = next((b for b in self.buildings if b.id == self.selected_building_id), None)
         if selected_building:
@@ -797,10 +850,8 @@ class GameplayState:
         selected_building = next((b for b in self.buildings if b.id == self.selected_building_id), None)
         building_name = selected_building.type
         
-        if building_name in BUILDINGS:
-            tech_list = BUILDINGS[building_name][8]
-        else:
-            tech_list = RESOURCE_BUILDINGS[building_name][9]
+        building_data = self.get_building_data(building_name)
+        tech_list = building_data.get("research", []) if building_data else []
         
         affordable_tech_keys = []
         options = []
@@ -1142,8 +1193,8 @@ class GameplayState:
             self.selected_unit.movement_range
         )
 
-        u_attr = UNITS[self.selected_unit.type]
-        self.message_box.open(u_attr[9], False)
+        unit_data = self.get_faction_units().get(self.selected_unit.type, {})
+        self.message_box.open(unit_data.get("description", ""), False)
         
     # Unit selection
     def select_player_unit(self):
@@ -1161,7 +1212,7 @@ class GameplayState:
                 self.selected_unit = unit
                 self.selected_unit_id = unit.id
 
-                u_attr = UNITS[self.selected_unit.type]
+                unit_data = self.get_faction_units().get(self.selected_unit.type, {})
 
                 # Only show reachable tiles if unit is not tired
                 if not self.selected_unit.unit_tired():
@@ -1190,7 +1241,7 @@ class GameplayState:
                             prev_building.selected = False
                     self.selected_building_id = None
 
-                self.message_box.open(u_attr[9], False)
+                self.message_box.open(unit_data.get("description", ""), False)
 
                 # Unit was found and processed
                 return True
@@ -1213,12 +1264,8 @@ class GameplayState:
                 self.selected_building = building
                 self.selected_building_id = building.id
 
-                if self.selected_building.type in BUILDINGS:
-                    b_attr = BUILDINGS[self.selected_building.type]
-                    b_desc = b_attr[7]
-                elif self.selected_building.type in RESOURCE_BUILDINGS:
-                    b_attr = RESOURCE_BUILDINGS[self.selected_building.type]
-                    b_desc = b_attr[9]
+                building_data = self.get_building_data(self.selected_building.type)
+                b_desc = building_data.get("description", "") if building_data else ""
 
                 # Deselect any selected unit
                 if self.selected_unit_id is not None:

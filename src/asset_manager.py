@@ -4,17 +4,23 @@ from animated_sprite import AnimatedSprite
 from config import *
 
 class AssetManager:
-    def __init__(self):
+    def __init__(self, pfaction, efaction, pcolor, ecolor):
         # Sprite dictionaries to hold loaded assets for terrain, units, and buildings
         self.terrain_sprites = {}
         self.punit_sprites = {}
         self.eunit_sprites = {}
-        self.building_sprites = {}
+        self.pbuilding_sprites = {}
+        self.ebuilding_sprites = {}
         self.building_icons = {}
         self.resource_sprites = {}
         self.resource_animations = {}
         self.ui_elements = {}
         self.animated_sprites = {}
+
+        self.pfaction = pfaction
+        self.efaction = efaction
+        self.pcolor = pcolor
+        self.ecolor = ecolor
 
         self.load_all_assets()
 
@@ -26,10 +32,24 @@ class AssetManager:
             animation_speed=0.10 
         )
 
+    def reload_factions(self, pfaction, efaction, pcolor, ecolor):
+        self.pfaction = pfaction
+        self.efaction = efaction
+        self.pcolor = pcolor
+        self.ecolor = ecolor
+        
+        # Clear old dictionaries and reload
+        self.punit_sprites.clear()
+        self.eunit_sprites.clear()
+        self.pbuilding_sprites.clear()
+        self.ebuilding_sprites.clear()
+        
+        self.load_faction_assets()
+
     # Loads all assets by calling individual loading methods for each asset type
     def load_all_assets(self):
         self.load_terrain_sprites()      
-        self.load_building_sprites()
+        self.load_faction_assets()
         self.load_building_icons()
         self.load_resource_sprites()
         self.load_resource_icons()
@@ -42,49 +62,64 @@ class AssetManager:
             path = os.path.join(TERRAIN_PATH, filename)
             self.terrain_sprites[tile_code] = pygame.image.load(path).convert_alpha()
     
-    # loads the sprites for the units
-    def load_unit_sprites(self, pfaction, efaction, pcolor, ecolor):
-        # player path
-        player_path = os.path.join("..", "assets", "units", pfaction, pcolor)
-        enemy_path = os.path.join("..", "assets", "units", efaction, ecolor)
+    def load_faction_assets(self):
+        # Load Player Faction Assets (Defaulting to "Dark Age" or checking available ages per faction)
+        self._load_side_assets(self.pfaction, self.pcolor, is_player=True)
+        
+        # Load Enemy Faction Assets
+        self._load_side_assets(self.efaction, self.ecolor, is_player=False)
 
-        for unit_name, config in UNIT_SPRITES_CONFIG.items():
-            unit_folder = config["folder"]
-            self.punit_sprites[unit_name] = {}  # player units
-            self.eunit_sprites[unit_name] = {}  
-            
-            # Load Player Sprites Safely
-            for key, filename in config["files"].items():
-                full_path = os.path.join(player_path, unit_folder, filename)
-                
-                # Check if file exists before loading
-                if os.path.exists(full_path):
-                    self.punit_sprites[unit_name][key] = pygame.image.load(full_path).convert_alpha()
-                # If it doesn't exist, it is skipped entirely (no crash, no fallback)
+    def _load_side_assets(self, faction_key, color_key, is_player):
+        target_unit_dict = self.punit_sprites if is_player else self.eunit_sprites
+        target_building_dict = self.pbuilding_sprites if is_player else self.ebuilding_sprites
 
-            # Load Enemy Sprites Safely
-            for key, filename in config["files"].items():
-                full_path = os.path.join(enemy_path, unit_folder, filename)
-                
-                # Check if file exists before loading
-                if os.path.exists(full_path):
-                    self.eunit_sprites[unit_name][key] = pygame.image.load(full_path).convert_alpha()
+        faction_data = FACTIONS.get(faction_key, {})
+        
+        age_configs = [
+            (key, value)
+            for key, value in faction_data.items()
+            if isinstance(value, dict) and ("units" in value or "buildings" in value)
+        ]
+        if not age_configs and ("units" in faction_data or "buildings" in faction_data):
+            age_configs = [("Dark Age", faction_data)]
 
-    # Loads the sprites for the buildings
-    def load_building_sprites(self):
-        for building_type, sprite_info in BUILDING_SPRITES.items():
+        for age_name, value in age_configs:
+            age_folder = age_name.lower().replace(" ", "_")
+            base_path = os.path.join("..", "assets", "factions", faction_key, color_key, age_folder)
 
-            # If this building has multiple sprite states (normal, selected, etc.)
-            if isinstance(sprite_info, dict):
-                self.building_sprites[building_type] = {
-                    key: pygame.image.load(os.path.join(BUILDING_PATH, filename)).convert_alpha()
-                    for key, filename in sprite_info.items()
-                }
+            # --- Load Units for this Age ---
+            if "units" in value:
+                for unit_name, unit_data in value["units"].items():
+                    unit_folder = unit_data.get("folder", unit_name)
+                    target_unit_dict[unit_name] = {}
+                    
+                    files = unit_data.get("files", {})
+                    for file_key, filename in files.items():
+                        full_path = os.path.join(base_path, "units", unit_folder, filename)
+                        if os.path.exists(full_path):
+                            target_unit_dict[unit_name][file_key] = pygame.image.load(full_path).convert_alpha()
 
-            # Backwards compatibility: single-sprite buildings
-            else:
-                path = os.path.join(BUILDING_PATH, sprite_info)
-                self.building_sprites[building_type] = pygame.image.load(path).convert_alpha()
+            # --- Load Buildings for this Age ---
+            if "buildings" in value:
+                for bldg_name, bldg_data in value["buildings"].items():
+                    bldg_folder = bldg_data.get("folder", bldg_name)
+                    target_building_dict[bldg_name] = {}
+                    
+                    files = bldg_data.get("files", {})
+                    for file_key, filename in files.items():
+                        full_path = os.path.join(base_path, "buildings", bldg_folder, filename)
+                        if os.path.exists(full_path):
+                            target_building_dict[bldg_name][file_key] = pygame.image.load(full_path).convert_alpha()
+
+    # Loads the icons for the buildings
+    def load_building_icons(self):
+        for building_name, filename in BUILDING_ICONS.items():
+            full_path = os.path.join(BUILDING_ICONS_PATH, filename)
+            try:
+                sprite = pygame.image.load(full_path).convert_alpha()
+                self.building_icons[building_name] = sprite
+            except pygame.error as e:
+                print(f"Unable to load icon {filename} from {BUILDING_ICONS_PATH}: {e}")
 
     # Loads the icons for the buildings
     def load_building_icons(self):

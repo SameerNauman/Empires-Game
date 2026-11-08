@@ -160,11 +160,8 @@ class Renderer:
             active_faction = p1_faction_name if startup.selected_col == 0 else p2_faction_name
             desc_text = startup.faction_descriptions.get(active_faction, "")
             if desc_text:
-                # Define screen margins (e.g., 100 pixels padding on left and right)
                 max_width = w - 200 
                 desc_y = int(h * 0.88)
-                
-                # Render using self.small_font with automatic text wrapping
                 self._draw_multiline_text_centered(desc_text, self.small_font, "#D0D0D0", w // 2, desc_y, max_width)
 
     def _draw_borderless_button(self, text, rect, is_selected, is_editing, popup_sprite):
@@ -176,14 +173,12 @@ class Renderer:
         else:
             pygame.draw.rect(self.screen, (40, 40, 50), rect, border_radius=4)
 
-        # Centered Text Label
         text_color = "#FFD700" if is_editing else ("#00FFFF" if is_selected else "#C0C0C0")
         txt_surf = self.small_font.render(text, True, text_color)
         txt_rect = txt_surf.get_rect(center=rect.center)
         
         self.draw_text_with_shadow(text, text_color, txt_rect.topleft, font=self.small_font)
 
-    # Helper to wrap and render text cleanly within screen margins.
     def _draw_multiline_text_centered(self, text, font, color, center_x, center_y, max_width):
         words = text.split(" ")
         lines = []
@@ -199,7 +194,6 @@ class Renderer:
         if current_line:
             lines.append(current_line)
 
-        # Calculate total height to stack lines nicely centered vertically
         line_height = font.get_linesize()
         total_height = len(lines) * line_height
         start_y = center_y - (total_height // 2)
@@ -208,13 +202,9 @@ class Renderer:
             line_y = start_y + (i * line_height)
             surf = font.render(line, True, color)
             rect = surf.get_rect(center=(center_x, line_y))
-            # Draw with shadow for crisp readability
             self.draw_text_with_shadow(line, color, rect.topleft, font=font, surface=self.screen)
 
-    # Controls state drawing
-    # Draws the controls menu on the display surface. It displays the control sprites and their corresponding labels.
     def draw_controls_menu(self, width, height):
-        # Sprites
         awsd_sprite = self.assets.ui_elements.get("awsd")
         awsd_rect = awsd_sprite.get_rect(center=((width // 8) * 7, (height // 16) * 3.5))
         
@@ -227,52 +217,34 @@ class Renderer:
         tab_sprite = self.assets.ui_elements.get("tab")
         tab_rect = tab_sprite.get_rect(center=((width // 8) * 7, (height // 16) * 14))
 
-        # Text
         self.draw_text_with_shadow("Controls", "#C0C0C0", ((width // 8) - 100, (height // 16)))
         self.draw_text_with_shadow("Movement", "#C0C0C0", ((width // 8) * 4.5, (height // 8) * 2.5))
         self.draw_text_with_shadow("Selection", "#C0C0C0", ((width // 8) * 4.5, (height // 16) * 10.5))
         self.draw_text_with_shadow("Cycle", "#C0C0C0", ((width // 8) * 4.5, (height // 16) * 13.5))
 
-        # Display Sprites
         self.screen.blit(awsd_sprite, awsd_rect)
         self.screen.blit(arrows_sprite, arrows_rect)
         self.screen.blit(shift_sprite, shift_rect)
         self.screen.blit(tab_sprite, tab_rect)
 
-    # Menu state drawing
-    # Draws the menu on the display surface. It handles the rendering of the background, title, controls menu, popup menu,
-    # and fade transition effect. The method also manages the state transitions between the main menu and the controls menu.
     def draw_menu(self, menu):
         w, h = self.screen.get_size()
-
-        # Clear the screen surface with a black background before drawing the menu elements.
         self.screen.fill((0, 0, 0))
-
-        # Animated Screens
         self.display_animated_screens("title")
 
-        # Controls menu
         if menu.open_controls_menu:
             self.draw_controls_menu(w, h)
         else:
-            # Title
             title_rect = menu.title_text.get_rect(center=menu.title.center)
             self.draw_text_with_shadow("Faith & Fury", "#C0C0C0", title_rect)
         
         if menu.popup_menu.is_open:
             menu.popup_menu.draw(self.screen)
 
-    # Draws the entire game world, including terrain, units, buildings, resources, and UI elements. It respects the fog of war and
-    # depth-sorts all entities for proper rendering order. The method also handles drawing the HUD, resource bar, banners, day counter,
-    # minimap, and any active fade effects.
     def draw_game_world(self, game_state, visibility_map):
-        # Clear screen / Background
         self.screen.fill((32, 32, 32))
-
-        # Draw terrain map first (respecting Fog of War: 0=hidden, 1=explored/darkened, 2=visible)
         self.draw_map_with_fog(game_state, visibility_map)
 
-        # Draw tile highlights (reachable tiles & hovered tiles)
         if game_state.selected_unit:
             for tile in (game_state.reachable_tiles or []):
                 self.draw_tile_highlight(game_state, tile[0], tile[1], (0, 255, 255, 90))
@@ -280,14 +252,8 @@ class Renderer:
         if game_state.hovered_tile:
             self.draw_tile_highlight_crimson(game_state, *game_state.hovered_tile)
 
-        # Build a single, unified render queue for all world objects 
-        # (Resources, Buildings, Units) so they depth-sort correctly together!
         render_queue = []
-
-        # Add Resources
         render_queue.extend(game_state.resources)
-
-        # Add Player Buildings & Units
         render_queue.extend(game_state.buildings)
         render_queue.extend(game_state.units)
 
@@ -305,13 +271,11 @@ class Renderer:
                 if visibility_map[eux][euy] == 2:
                     render_queue.append(eu)
 
-        # Sort everything strictly by isometric depth (x + y)
         render_queue.sort(key=lambda obj: (obj.x + obj.y))
 
         cam_x = game_state.camera_x
         cam_y = game_state.camera_y
 
-        # Draw all world entities in a single pass
         for obj in render_queue:
             if isinstance(obj, ResourceSource):
                 obj.draw(
@@ -320,16 +284,18 @@ class Renderer:
                     self.assets.resource_sprites, VISIBILITY_MAP=visibility_map
                 )
             elif hasattr(obj, 'direction'):  # It's a unit
-                # Check your loyalty attribute cleanly
                 loyalty = getattr(obj, 'loyalty', 'player')
                 if loyalty == 'player':
                     obj.draw(self.screen, cam_x, cam_y, self.assets.punit_sprites)
                 else:
                     obj.draw(self.screen, cam_x, cam_y, self.assets.eunit_sprites)
             elif hasattr(obj, 'hitpoints'):  # It's a building
-                obj.draw(self.screen, cam_x, cam_y, self.assets.building_sprites)
+                loyalty = getattr(obj, 'loyalty', 'player')
+                if loyalty == 'player':
+                    obj.draw(self.screen, cam_x, cam_y, self.assets.pbuilding_sprites)
+                else:
+                    obj.draw(self.screen, cam_x, cam_y, self.assets.ebuilding_sprites)
 
-        # Draw HUD & UI on top of the world
         self.display_resource_bar(game_state)
         self.display_banner(game_state)
         self.display_day_counter(game_state)
@@ -343,15 +309,12 @@ class Renderer:
         game_state.popup_menu.draw(self.screen)
         game_state.building_menu.draw(self.screen)
         
-        # Minimap & Screen Fades
         self.draw_tactical_map(game_state, visibility_map)
         game_state.fade_manager.draw(self.screen)
 
-    # Returns (draw_tx, draw_ty)
     def draw_coords(self, x, y):
         draw_tx = x + OFFSET_X
         draw_ty = y + OFFSET_Y
-
         return (draw_tx, draw_ty)
     
     def screen_coords(self, x, y, camera_x, camera_y):
@@ -363,12 +326,10 @@ class Renderer:
 
         return(screen_x, screen_y)
 
-    # Displays the sprites for the terrain, and magenta for missing sprites
     def draw_map_with_fog(self, game_state, VISIBILITY_MAP):
         map_data = PLAYABLE_MAP
         for tx in range(len(map_data)):
             for ty in range(len(map_data[tx])):
-                # Skip unseen tiles
                 if VISIBILITY_MAP[tx][ty] == 0:
                     continue
 
@@ -379,7 +340,6 @@ class Renderer:
                 sprite = self.assets.terrain_sprites.get(tile)
 
                 if sprite:
-                    # Darken if explored but not currently visible
                     if VISIBILITY_MAP[tx][ty] == 1:
                         sprite = sprite.copy()
                         sprite.fill(
@@ -393,7 +353,6 @@ class Renderer:
                     )
 
                 else:
-                    # If there isnt a sprite, draw a magenta tile
                     pygame.draw.polygon(
                         self.screen,
                         (255, 0, 255),
@@ -405,7 +364,6 @@ class Renderer:
                         ],
                     )
 
-    # Displays highlighted reachable tiles
     def draw_tile_highlight(self, game_state, x, y, color):
         draw_tx, draw_ty = self.draw_coords(x, y)
         screen_x, screen_y = self.screen_coords(draw_tx, draw_ty, game_state.camera_x, game_state.camera_y)
@@ -419,23 +377,19 @@ class Renderer:
         ])
         self.screen.blit(overlay, (screen_x - BASE_TILE_WIDTH // 2, screen_y))
 
-    # Displays the red hovered tile
     def draw_tile_highlight_crimson(self, game_state, x, y):
         draw_tx, draw_ty = self.draw_coords(x, y)
         screen_x, screen_y = self.screen_coords(draw_tx, draw_ty, game_state.camera_x, game_state.camera_y)
 
-        # Define the diamond shape points
         points = [
-            (screen_x, screen_y),  # top
-            (screen_x + BASE_TILE_WIDTH // 2, screen_y + BASE_TILE_HEIGHT // 2),  # right
-            (screen_x, screen_y + BASE_TILE_HEIGHT),  # bottom
-            (screen_x - BASE_TILE_WIDTH // 2, screen_y + BASE_TILE_HEIGHT // 2),  # left
+            (screen_x, screen_y),
+            (screen_x + BASE_TILE_WIDTH // 2, screen_y + BASE_TILE_HEIGHT // 2),
+            (screen_x, screen_y + BASE_TILE_HEIGHT),
+            (screen_x - BASE_TILE_WIDTH // 2, screen_y + BASE_TILE_HEIGHT // 2),
         ]
 
-        # Draw the outline, not a filled polygon
         pygame.draw.polygon(self.screen, (220, 20, 60), points, width=5)
         
-    # Displays the resource icons in the top right corner of the screen, with animation.
     def display_resource_icons(self, game_state, res_type):
         anim = self.assets.resource_animations.get(res_type)
         if not anim: return
@@ -456,30 +410,24 @@ class Renderer:
         rect = sprite.get_rect(topright=(res_x, res_y))
         self.screen.blit(sprite, rect)
 
-    # Displays the resource bar at the top of the screen
     def display_resource_bar(self, game_state):
         bar_sprite = self.assets.ui_elements.get("resource_bar")
-        w, h = self.screen.get_size() # Get live width
+        w, h = self.screen.get_size()
 
         if bar_sprite:
-            # 3 slice
             edge_width = 50 
             
-            # Left Cap
             self.screen.blit(bar_sprite, (0, 0), (0, 0, edge_width, bar_sprite.get_height()))
             
-            # Middle (Stretched)
             middle_section = bar_sprite.subsurface((edge_width, 0, bar_sprite.get_width() - (edge_width * 2), bar_sprite.get_height()))
             stretched_middle = pygame.transform.scale(middle_section, (w - (edge_width * 2), bar_sprite.get_height()))
             self.screen.blit(stretched_middle, (edge_width, 0))
             
-            # Right Cap
             self.screen.blit(bar_sprite, (w - edge_width, 0), (bar_sprite.get_width() - edge_width, 0, edge_width, bar_sprite.get_height()))
 
         text_color = (255, 255, 255)
         font = pygame.font.SysFont(None, 60)
 
-        # Population
         game_state.population = len(game_state.units)
         max_pop = 0
         for building in game_state.buildings:
@@ -496,16 +444,15 @@ class Renderer:
         g_surface = font.render(gold_text, True, text_color)
         p_surface = font.render(pop_text, True, text_color)
 
-        # dynamic text positions.
-        f_x = w * 0.12  # Food at ~12%
-        w_x = w * 0.35  # Wood at ~35%
-        g_x = w * 0.65  # Gold at ~65%
-        p_x = w * 0.88  # Pop at ~88%
+        f_x = w * 0.12
+        w_x = w * 0.35
+        g_x = w * 0.65
+        p_x = w * 0.88
 
-        f_y = (58 - f_surface.get_height())
-        w_y = (58 - w_surface.get_height())
-        g_y = (58 - g_surface.get_height())
-        p_y = (58 - p_surface.get_height())
+        f_y = 5
+        w_y = 5
+        g_y = 5
+        p_y = 5
 
         self.screen.blit(f_surface, (f_x, f_y))
         self.screen.blit(w_surface, (w_x, w_y))
@@ -517,21 +464,19 @@ class Renderer:
         if not banner_dict:
             return
 
-        faction_key = getattr(game_state, "player_faction", "seljuk").lower() 
+        faction_key = getattr(game_state, "player_faction", "seljuks").lower() 
         banner_sprite = banner_dict.get(faction_key)
         
         if not banner_sprite:
             return
 
         w, h = self.screen.get_size()
-        
         banner_x = (w // 2) - (banner_sprite.get_width() // 2)
         banner_y = 0 
 
         self.screen.blit(banner_sprite, (banner_x, banner_y))
 
     def display_day_counter(self, game_state):
-
         self.assets.day_counter_anim.update()
         
         sprite = self.assets.day_counter_anim.get_current_frame()
@@ -548,46 +493,35 @@ class Renderer:
 
         padding = 10
         text_x = sprite_x + sprite.get_width() + padding
-        
         text_y = sprite_y + (sprite.get_height() // 2) - (surface.get_height() // 2)
 
         self.screen.blit(sprite, (sprite_x, sprite_y))
         self.screen.blit(surface, (text_x, text_y))
         
-    # Displays a circular mini map in the bottom right corner of the screen.
     def draw_tactical_map(self, game_state, visibility_map):
-        # Mini map dimensions and position
-        
-        # Create a surface for the circular mini map with per-pixel alpha
         mini_map_surface = pygame.Surface((game_state.minimap_size, game_state.minimap_size), pygame.SRCALPHA)
         
-        # Draw semi-transparent circular background - smaller circle
-        # circle_radius = int(RADIUS * 0.85)
         pygame.draw.circle(mini_map_surface, (32, 32, 32, 200), (game_state.radius, game_state.radius), game_state.smaller_radius)
         
-        # Calculate offset to center the map on the minimap center
         center_x_grid = (PLAYABLE_WIDTH - 1) / 2.0
         center_y_grid = (PLAYABLE_HEIGHT - 1) / 2.0
         
         offset_x = game_state.radius - int((center_x_grid - center_y_grid) * game_state.mini_map_scale)
         offset_y = game_state.radius - int((center_x_grid + center_y_grid) * game_state.mini_map_scale)
         
-        # Draw only visible tiles
         for x in range(PLAYABLE_WIDTH):
             for y in range(PLAYABLE_HEIGHT):
                 vis = visibility_map[x][y]
                 if vis == 0:
-                    continue  # Skip tiles not visible
+                    continue
                 tile = PLAYABLE_MAP[x][y]
                 color = TILE_DRAW_COLORS.get(tile, (255, 0, 255))
 
                 draw_x = int((x - y) * game_state.mini_map_scale + offset_x)
                 draw_y = int((x + y) * game_state.mini_map_scale + offset_y)
                 
-                # Check if point is within circle before drawing
                 dist_from_center = ((draw_x - game_state.radius) ** 2 + (draw_y - game_state.radius) ** 2) ** 0.5
                 if dist_from_center < game_state.smaller_radius:
-                    # Top-down diamond tile
                     pygame.draw.polygon(mini_map_surface, color, [
                         (draw_x, draw_y - game_state.mini_map_scale),
                         (draw_x + game_state.mini_map_scale, draw_y),
@@ -595,7 +529,6 @@ class Renderer:
                         (draw_x - game_state.mini_map_scale, draw_y)
                     ])
 
-        # Only draw player units/buildings/resources if on visible tiles
         for unit in game_state.units:
             ux, uy = int(unit.x), int(unit.y)
             if 0 <= ux < PLAYABLE_WIDTH and 0 <= uy < PLAYABLE_HEIGHT and visibility_map[ux][uy] != 0:
@@ -625,32 +558,22 @@ class Renderer:
         
         self.map_outline(mini_map_surface, offset_x, offset_y, game_state)
         
-        # Blit the mini map surface to the screen
         self.screen.blit(mini_map_surface, (game_state.mini_map_center_x - game_state.radius, game_state.mini_map_center_y - game_state.radius))
-        
-        # Draw circular border
         pygame.draw.circle(self.screen, (205, 195, 183), (game_state.mini_map_center_x, game_state.mini_map_center_y), game_state.smaller_radius, 5)
 
     def map_outline(self, surface, offset_x, offset_y, game_state):
-        # Draw yellow outline around playable map with margin
-        margin = -1  # tile margin inward from edges
+        margin = -1 
         corners = [
-            (margin, margin),                           # top-left
-            (PLAYABLE_WIDTH - 1 - margin, margin),      # top-right
-            (PLAYABLE_WIDTH - 1 - margin, PLAYABLE_HEIGHT - 1 - margin),  # bottom-right
-            (margin, PLAYABLE_HEIGHT - 1 - margin)      # bottom-left
+            (margin, margin),
         ]
-        # Top-down diamond view (rotate 45 degrees without isometric compression)
         corners_screen = []
         for x, y in corners:
             draw_x = int((x - y) * game_state.mini_map_scale + offset_x)
             draw_y = int((x + y) * game_state.mini_map_scale + offset_y)
             corners_screen.append([draw_x, draw_y])
-        # Draw diamond outline using polygon (unfilled, just the border)
         if len(corners_screen) >= 3:
             pygame.draw.polygon(surface, (255, 255, 0), corners_screen, 2)
 
-    # Displays units on the map
     def draw_unit(self, x, y, surface, draw_x, draw_y, game_state):
         triangle_points = [
             (draw_x, draw_y - HALF_HEIGHT),
@@ -659,17 +582,14 @@ class Renderer:
         ]
         pygame.draw.polygon(surface, (255, 255, 255), triangle_points)
 
-    # Displays buildings on the map
     def draw_building(self, x, y, surface, draw_x, draw_y, game_state):
         size = HALF_WIDTH // 2
         pygame.draw.rect(surface, (255, 255, 255), pygame.Rect(draw_x - size, draw_y - size, size * 2, size * 2))
 
-    # Displays resources on the map
     def draw_resource(self, x, y, surface, draw_x, draw_y, game_state):
         circle_radius = HALF_WIDTH // 2
         pygame.draw.circle(surface, (255, 255, 255), (draw_x, draw_y), circle_radius)
 
-    # Displays the current frame of the animated screen specified by 'name' on the display surface.
     def display_animated_screens(self, name):
         anim = self.assets.animated_sprites.get(name)
         if not anim: return
@@ -678,9 +598,7 @@ class Renderer:
         sprite = anim.get_current_frame()
 
         if sprite:
-            # Update the animation frame based on the elapsed time and blit it to the display surface
             anim.update() 
-            
             rect = sprite.get_rect(topleft=(0, 0))
             self.screen.blit(sprite, rect)
 
