@@ -443,7 +443,7 @@ class GameplayState:
             is_on_resource = any((res.x, res.y) == landed_tile for res in self.resources)
 
             # Valid build locations: Adjacent to a Town Centre OR standing on a Resource tile
-            if self.is_adjacent_to_town_centre() or is_on_resource:
+            if self.is_adjacent_to_town_centre() or is_on_resource or self.is_adjacent_to_mill():
                 options.insert(1, "Build")
                 actions["Build"] = self.build_action
 
@@ -539,6 +539,10 @@ class GameplayState:
         if is_on_food_resource:
             options.append("Mill")
             actions["Mill"] = lambda: self.building_construction("mill")
+
+        if self.is_adjacent_to_mill():
+            options.append("Farm")
+            actions["Farm"] = lambda: self.building_construction("farm")
 
         if is_on_gold_resource:
             options.append("Gold Mine")
@@ -1351,10 +1355,9 @@ class GameplayState:
     # Checks if the selected tile is adjacent to a mill for farm building   
     def is_adjacent_to_mill(self):
         tx, ty = self.selected_tile
-        # Get all 8 neighbors (North, South, East, West, and diagonals)
+        # Get all 4 neighbors (North, South, East, West)
         neighbors = [
-            (tx-1, ty), (tx+1, ty), (tx, ty-1), (tx, ty+1),
-            (tx-1, ty-1), (tx+1, ty-1), (tx-1, ty+1), (tx+1, ty+1)
+            (tx-1, ty), (tx+1, ty), (tx, ty-1), (tx, ty+1)
         ]
         
         for b in self.buildings:
