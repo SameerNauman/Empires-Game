@@ -43,9 +43,9 @@ class GameplayState:
         self.food_amount = 500
         self.wood_amount = 500
         self.gold_amount = 500
-        self.enemy_food = 500
-        self.enemy_wood = 500
-        self.enemy_gold = 500
+        self.enemy_food = 1500
+        self.enemy_wood = 1500
+        self.enemy_gold = 1500
         # Day counter
         self.day = 0
         # Selected entities and their IDs for tracking which unit or building is currently selected
@@ -89,6 +89,7 @@ class GameplayState:
             "unit_vision": 0,
             "unit_movement": 0,
             "building_vision": 0,
+            "building_hitpoints": 0,
             "gather_rate_food": 1.0,
             "gather_rate_wood": 1.0,
             "gather_rate_gold": 1.0
@@ -97,6 +98,7 @@ class GameplayState:
             "unit_vision": 0,
             "unit_movement": 0,
             "building_vision": 0,
+            "building_hitpoints": 0,
             "gather_rate_food": 1.0,
             "gather_rate_wood": 1.0,
             "gather_rate_gold": 1.0
@@ -618,7 +620,8 @@ class GameplayState:
             self.cover_resources(selected_unit.x, selected_unit.y)
             new_building_id = max([b.id for b in self.buildings], default=0) + 1
             new_building = BaseBuildings(
-                self.selected_tile[0], self.selected_tile[1], stats["hitpoints"],
+                self.selected_tile[0], self.selected_tile[1],
+                stats["hitpoints"] + self.tech_multipliers.get("building_hitpoints", 0),
                 stats.get("pop capacity", 0), type=building_name, loyalty="player"
             )
             new_building.id = new_building_id
@@ -986,10 +989,10 @@ class GameplayState:
             return True
         elif self.player_age == "Fuedal Age":
             self.game_state_manager.set_state("game over")
-            return
+            return True
         elif self.enemy_age == "Fuedal Age":
             self.game_state_manager.set_state("game over")
-            return
+            return True
         # Game continues running
         else:
             return False

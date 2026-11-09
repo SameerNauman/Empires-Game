@@ -263,8 +263,6 @@ MILL_DESC = ("The Mill is a resource building, which can only be built on farmab
 FARM_DESC = ("The Farm is a resource building, which can only be built on tiles adjacent to Mills. Generates gold every turn.")
 GOLD_MINE_DESC = ("The Gold Mine is a resource building, which can only be built on a gold vein. Generates gold every turn.")
 
-
-
 # === UNITS ===
 
 MALIK_SHAH_DESC = ("Malik Shah I is the Sultan of the Seljuk Empire. He is a ranged cavalry unit that can move long distances, and strike enemies from afar. \n\n"
@@ -283,8 +281,10 @@ SPEARMEN_DESC = ("Spearmen are melee units that excel at defending against caval
 # Town Centre
 TOWN_WATCH_DESC = "Increases Vision of all Buildings by 1 tiles."
 SCOUT_TRAINING_DESC = "Increases Vision of all Units by 2 tiles."
-MARCHED_PACE_DESC = "Increases Movement of all Units by 3 tiles."
+MASONRY_DESC = "Increases the hitpoints of all buildings by 50"
 
+# Barracks
+MARCHED_PACE_DESC = "Increases Movement of Infantry units by 2 tiles."
 
 # Market
 BASKET_WEAVING_DESC = "Increases Food gather rate from Berries by 10%."
@@ -298,7 +298,8 @@ IRRIGATION_DESC = "Increases Food gather rate from Farms 10%."
 RESEARCH = {
     "town_watch": ["Town Watch", 100, 0, 0, TOWN_WATCH_DESC, "building_vision", 1],
     "scout_training": ["Scout Training", 100, 0, 0, SCOUT_TRAINING_DESC, "unit_vision", 2],
-    "marched_pace": ["Marched Pace", 150, 0, 0, MARCHED_PACE_DESC, "unit_movement", 3],
+    "masonry": ["Masonry", 0, 100, 0, MASONRY_DESC, "building_hitpoints", 50],
+    "marched_pace": ["Marched Pace", 150, 0, 0, MARCHED_PACE_DESC, "unit_movement", 2],
     "basket_weaving": ["Basket Weaving", 0, 100, 0, BASKET_WEAVING_DESC, "gather_rate_food", 1.10],
     "double-blade_axe": ["Double-Blade Axe", 100, 0, 0, DOUBLE_BLADE_AXE_DESC, "gather_rate_wood", 1.10],
     "smelting": ["Smelting", 0, 100, 0, SMELTING_DESC, "gather_rate_gold", 1.10],
@@ -439,7 +440,7 @@ FACTIONS = {
                     },
                     "description": TOWN_WATCH_DESC,
                     "trainable units": ["villager"],
-                    "research": ["town_watch", "scout_training", "marched_pace"],
+                    "research": ["town_watch", "scout_training", "masonry"],
                     "files": {
                         "normal": "town_centre.png",
                         "selected": "tc_selected.png",
@@ -459,7 +460,7 @@ FACTIONS = {
                     },
                     "description": BARRACKS_DESC,
                     "trainable units": ["spearmen"],
-                    "research": [],
+                    "research": ["marched_pace"],
                     "files": {
                         "normal": "barracks.png",
                         "selected": "barracks_selected.png",
@@ -607,7 +608,7 @@ FACTIONS = {
                 },
                 "description": TOWN_WATCH_DESC,
                 "trainable units": ["villager"],
-                "research": ["town_watch", "scout_training", "marched_pace"],
+                "research": ["town_watch", "scout_training", "masonry"],
                 "files": {
                     "normal": "town_centre.png",
                     "selected": "tc_selected.png",
@@ -627,7 +628,7 @@ FACTIONS = {
                 },
                 "description": BARRACKS_DESC,
                 "trainable units": ["limitanei"],
-                "research": [],
+                "research": ["marched_pace"],
                 "files": {
                     "normal": "barracks.png",
                     "selected": "barracks_selected.png",

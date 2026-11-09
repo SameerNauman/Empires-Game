@@ -76,6 +76,12 @@ class TurnManager:
             else:
                 multipliers[effect_key] += effect_val
 
+            if effect_key == "building_hitpoints":
+                buildings = game_state.e_buildings if side == "enemy" else game_state.buildings
+                for building in buildings:
+                    building.hitpoints += effect_val
+                    building.max_hitpoints += effect_val
+
             if side == 'player' and "vision" in effect_key:
                 game_state.update_VISIBILITY_MAP()
 
@@ -209,11 +215,21 @@ class TurnManager:
 
         if self.enemy_turn_phase == 'move':
             if enemy.path:
-                enemy.move_along_path()
-                game_state.follow_enemy_camera(enemy)
-                self.enemy_turn_delay = 0 
-                if not enemy.path:
+                next_tile = (int(round(enemy.path[0][0])), int(round(enemy.path[0][1])))
+                blocked_by_unit = any(
+                    unit is not enemy and unit.health > 0
+                    and int(unit.x) == next_tile[0] and int(unit.y) == next_tile[1]
+                    for unit in game_state.enemy_units
+                )
+                if blocked_by_unit or not self.enemy_ai.is_passable_tile(*next_tile):
+                    enemy.path = []
                     self.enemy_turn_phase = 'attack'
+                else:
+                    enemy.move_along_path()
+                    game_state.follow_enemy_camera(enemy)
+                    self.enemy_turn_delay = 0
+                    if not enemy.path:
+                        self.enemy_turn_phase = 'attack'
             else:
                 # SAFEGUARD: If the enemy has no path, immediately move to attack or skip to next unit!
                 self.enemy_turn_phase = 'attack'

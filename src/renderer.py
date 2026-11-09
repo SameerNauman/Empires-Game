@@ -449,10 +449,10 @@ class Renderer:
         g_x = w * 0.65
         p_x = w * 0.88
 
-        f_y = 5
-        w_y = 5
-        g_y = 5
-        p_y = 5
+        f_y = (58 - f_surface.get_height())
+        w_y = (58 - w_surface.get_height())
+        g_y = (58 - g_surface.get_height())
+        p_y = (58 - p_surface.get_height())
 
         self.screen.blit(f_surface, (f_x, f_y))
         self.screen.blit(w_surface, (w_x, w_y))
@@ -564,7 +564,10 @@ class Renderer:
     def map_outline(self, surface, offset_x, offset_y, game_state):
         margin = -1 
         corners = [
-            (margin, margin),
+            (margin, margin),                           # top-left
+            (PLAYABLE_WIDTH - 1 - margin, margin),      # top-right
+            (PLAYABLE_WIDTH - 1 - margin, PLAYABLE_HEIGHT - 1 - margin),  # bottom-right
+            (margin, PLAYABLE_HEIGHT - 1 - margin)      # bottom-left
         ]
         corners_screen = []
         for x, y in corners:

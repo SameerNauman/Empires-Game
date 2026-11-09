@@ -72,13 +72,12 @@ class PathFinding:
             for neighbor in self.neighbors(*current):
                 x, y = neighbor
                 
-                # A unit can PASS an ally, but cannot STOP on an ally's tile.
-                # We only block the neighbor if it is occupied AND is not our final goal.
+                # Do not route onto another unit of the moving side, including at the goal.
                 if self.moving_side == 'player':
-                    if self.is_friendly(x, y) and neighbor != goal:
+                    if self.is_friendly(x, y):
                         continue
                 else: # moving_side == 'enemy'
-                    if self.is_enemy(x, y) and neighbor != goal:
+                    if self.is_enemy(x, y):
                         continue
 
                 tile = PLAYABLE_MAP[x][y]
